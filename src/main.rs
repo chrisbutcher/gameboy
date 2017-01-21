@@ -1,3 +1,11 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+#![allow(unused_must_use)]
+#![allow(non_snake_case)]
+
+extern crate time;
+
 pub mod types;
 pub mod cpu;
 pub mod cartridge;
@@ -8,16 +16,21 @@ pub mod ppu;
 // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 // http://web.textfiles.com/games/gbspec.txt
 // http://bgb.bircd.org/pandocs.htm#aboutthepandocs
+// https://www.youtube.com/watch?v=ecTQVa42sJc
 
 // Opcodes specifically:
 // http://imrannazar.com/Gameboy-Z80-Opcode-Map
 // http://gameboy.mongenel.com/dmg/opcodes.html
+
+// Tools:
+// https://github.com/mmuszkow/gb-disasm (Gameboy Rom disassembler)
 
 // Tutorials
 // https://www.youtube.com/watch?v=_mHdUhVQOb8
 // http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU
 // http://www.codeslinger.co.uk/pages/projects/gameboy/beginning.html
 // https://cturt.github.io/cinoop.html
+// https://github.com/jedahan/rustboy/blob/master/development_log.md
 
 struct GameBoy {
   cpu: cpu::CPU,
@@ -78,16 +91,42 @@ impl GameBoy {
   }
 
   pub fn tick(&mut self) {
-    // let mut cycles_this_update = 0;
+    let max_cycles = 69905; // constantize
+    let mut cycles_this_update = 0;
 
-    // while cycles_this_update < MAX_CYCLES {
-      // int cycles = ExecuteNextOpcode( ) ;
-      // cyclesThisUpdate+=cycles ;
-      // UpdateTimers(cycles) ;
-      // UpdateGraphics(cycles) ;
-      // DoInterupts( ) ;
-    // }
-    // RenderScreen( ) ;
+    while cycles_this_update < max_cycles {
+      let cycles = self.execute_next_opcode();
+      cycles_this_update += cycles;
+      self.update_timers(cycles);
+      self.update_graphics(cycles);
+      self.do_interrupts();
+
+      // break; // TODO
+    }
+    self.render_screen()
+  }
+
+  pub fn execute_next_opcode(&mut self) -> i32 {
+    let mut cycles: i32 = 0;
+    let opcode: types::Byte = self.mmu.read(self.cpu.PC as usize);
+    self.cpu.PC += 1;
+    self.cpu.execute_opcode(opcode, &mut self.ppu)
+  }
+
+  fn update_timers(&mut self, cycles: i32) {
+    // NOOP
+  }
+
+  fn update_graphics(&mut self, cycles: i32) {
+    // NOOP
+  }
+
+  fn do_interrupts(&mut self) {
+    // NOOP
+  }
+
+  fn render_screen(&mut self) {
+    // NOOP
   }
 
   pub fn print_game_title(&self) {
@@ -107,6 +146,8 @@ impl GameBoy {
 fn main() {
   let mut game_boy = GameBoy::new();
 
+  // println!("time is: {:?}", time::now());
+
   game_boy.initialize();
   game_boy.mmu.load_game("tetris.gb");
   game_boy.print_game_title();
@@ -114,7 +155,7 @@ fn main() {
   println!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
   loop {
-    game_boy.cpu.tick();
+    game_boy.tick(); // TODO call this 60 times a second
     // ppu.tick(cpu.cycles)
     // screen.render(ppu.frame_buffer)
 

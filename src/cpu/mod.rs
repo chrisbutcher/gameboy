@@ -1,6 +1,7 @@
 use std::fmt;
 
 pub use super::types;
+pub use super::ppu;
 
 const FLAG_Z: u8 = 7; // Zero
 const FLAG_N: u8 = 6; // Negative
@@ -60,12 +61,22 @@ impl CPU {
       }
   }
 
-  pub fn tick(&self) {
-    println!("Tick!");
-    // Fetch next op address. op_index = memory.read_byte[self.pc]
-    // Increment pc
-    // Execute. opcode_fn(op_index)
-    // cycles = opcode_timing(op_index)
+  pub fn execute_opcode(&mut self, opcode: types::Byte, ppu: &mut ppu::PPU) -> i32 {
+    match opcode {
+      0x00 => self.op_nop(),  // NOP
+      0xc3 => self.op_jp(), // JP $xxxx
+      // _ => Err(format!("Unexpected opcode: {:x}", opcode).as_str())
+      _ => panic!("Unexpected opcode: {:x}", opcode)
+    }
+    // Ok(cycles)
+  }
+
+  fn op_nop(&self) -> i32 {
+    4
+  }
+
+  fn op_jp(&mut self) -> i32 {
+    12
   }
 
   pub fn flags(&self) -> types::Byte {

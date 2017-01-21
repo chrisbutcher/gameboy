@@ -25,7 +25,7 @@ impl MMU {
     f.read(&mut self.cartridge.buffer);
   }
 
-  pub fn read(&self, address: usize) -> u8 {
+  pub fn read(&self, address: usize) -> types::Byte {
     match address {
       0x0000 ... 0x7FFF => self.cartridge.buffer[address],
       0x8000 ... 0xFFFF => self.buffer[address],
