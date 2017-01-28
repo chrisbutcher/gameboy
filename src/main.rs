@@ -6,6 +6,10 @@
 
 extern crate time;
 
+#[macro_use]
+extern crate log;
+extern crate env_logger;
+
 pub mod types;
 pub mod cpu;
 pub mod cartridge;
@@ -17,6 +21,10 @@ pub mod ppu;
 // http://web.textfiles.com/games/gbspec.txt
 // http://bgb.bircd.org/pandocs.htm#aboutthepandocs
 // https://www.youtube.com/watch?v=ecTQVa42sJc
+// http://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
+
+// Test roms:
+// http://gbdev.gg8.se/files/roms/blargg-gb-tests/
 
 // Opcodes specifically:
 // http://imrannazar.com/Gameboy-Z80-Opcode-Map
@@ -32,13 +40,16 @@ pub mod ppu;
 // https://cturt.github.io/cinoop.html
 // https://github.com/jedahan/rustboy/blob/master/development_log.md
 
+// Livecoding
+// https://www.youtube.com/watch?v=025tC0DcFUI&t=625s
+
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
   ppu: ppu::PPU
 }
 
-const MAX_CYCLES: i32 = 69905;
+const MAX_CYCLES_PER_UPDATE: i32 = 69905;
 
 impl GameBoy {
   pub fn new() -> GameBoy {
@@ -52,11 +63,13 @@ impl GameBoy {
   pub fn initialize(&mut self) {
     // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
     self.cpu.PC = 0x0100;
+
     self.cpu.AF.write(0x01B0);
     self.cpu.BC.write(0x0013);
     self.cpu.DE.write(0x00D8);
     self.cpu.HL.write(0x014D);
     self.cpu.SP.write(0xFFFE);
+
     self.mmu.write(0xFF05, 0x00);
     self.mmu.write(0xFF06, 0x00);
     self.mmu.write(0xFF07, 0x00);
@@ -90,12 +103,11 @@ impl GameBoy {
     self.mmu.write(0xFFFF, 0x00);
   }
 
-  pub fn tick(&mut self) {
-    let max_cycles = 69905; // constantize
+  fn tick(&mut self) {
     let mut cycles_this_update = 0;
 
-    while cycles_this_update < max_cycles {
-      let cycles = self.execute_next_opcode();
+    while cycles_this_update < MAX_CYCLES_PER_UPDATE {
+      let cycles = self.cpu.execute_next_opcode(&mut self.mmu);
       cycles_this_update += cycles;
       self.update_timers(cycles);
       self.update_graphics(cycles);
@@ -104,13 +116,6 @@ impl GameBoy {
       // break; // TODO
     }
     self.render_screen()
-  }
-
-  pub fn execute_next_opcode(&mut self) -> i32 {
-    let mut cycles: i32 = 0;
-    let opcode: types::Byte = self.mmu.read(self.cpu.PC as usize);
-    self.cpu.PC += 1;
-    self.cpu.execute_opcode(opcode, &mut self.ppu)
   }
 
   fn update_timers(&mut self, cycles: i32) {
@@ -146,10 +151,9 @@ impl GameBoy {
 fn main() {
   let mut game_boy = GameBoy::new();
 
-  // println!("time is: {:?}", time::now());
-
   game_boy.initialize();
   game_boy.mmu.load_game("tetris.gb");
+  // game_boy.mmu.load_game("cpu_instrs.gb");
   game_boy.print_game_title();
   println!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
   println!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());

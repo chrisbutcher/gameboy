@@ -1,12 +1,20 @@
 use std::fmt;
 
 pub use super::types;
-pub use super::ppu;
+pub use super::mmu;
+pub use super::cartridge;
+pub mod opcodes;
 
 const FLAG_Z: u8 = 7; // Zero
 const FLAG_N: u8 = 6; // Negative
 const FLAG_H: u8 = 5; // Half-carry
 const FLAG_C: u8 = 4; // Carry
+
+#[derive(Debug)]
+enum RegEnum {
+  A, F, B, C, D, E, H, L,
+  AF, BC, DE, HL
+}
 
 pub struct Register {
   value: types::Word
@@ -61,11 +69,41 @@ impl CPU {
       }
   }
 
-  pub fn execute_opcode(&mut self, opcode: types::Byte, ppu: &mut ppu::PPU) -> i32 {
+  pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
+    let opcode: types::Byte = mmu.read(self.PC);
+    self.PC += 1;
+    self.execute_opcode(opcode, mmu)
+  }
+
+  fn execute_opcode(&mut self, opcode: types::Byte, mmu: &mut mmu::MMU) -> i32 {
     match opcode {
-      0x00 => self.op_nop(),  // NOP
-      0xc3 => self.op_jp(), // JP $xxxx
-      // _ => Err(format!("Unexpected opcode: {:x}", opcode).as_str())
+      opcodes::NOP => {
+        self.op_nop()
+      },
+      opcodes::JP_NN => {
+        self.op_jp_nn(mmu)
+      },
+      opcodes::XOR_A => {
+        self.op_xor_8bit_n(RegEnum::A, mmu)
+      },
+      opcodes::XOR_B => {
+        self.op_xor_8bit_n(RegEnum::B, mmu)
+      },
+      opcodes::DEC_B => {
+        self.dec_n(RegEnum::B, mmu)
+      },
+      opcodes::LD_HL_NN => {
+        self.ld_n_nn(RegEnum::HL, mmu)
+      },
+      opcodes::LD_C_N => {
+        self.ld_nn_n(RegEnum::C, mmu)
+      },
+      opcodes::LD_B_N => {
+        self.ld_nn_n(RegEnum::B, mmu)
+      },
+      opcodes::LDD_HL_A => {
+        self.ldd_nn_n(RegEnum::A, RegEnum::HL)
+      },
       _ => panic!("Unexpected opcode: {:x}", opcode)
     }
     // Ok(cycles)
@@ -75,46 +113,140 @@ impl CPU {
     4
   }
 
-  fn op_jp(&mut self) -> i32 {
+  fn op_jp_nn(&mut self, mmu: &mmu::MMU) -> i32 {
+    self.PC = mmu.read_word(self.PC);
+
     12
   }
 
-  pub fn flags(&self) -> types::Byte {
-    self.AF.read_lo()
+  fn op_xor_8bit_n(&mut self, reg: RegEnum, mmu: &mut mmu::MMU) -> i32 {
+    let A = self.AF.read_hi();
+
+    let n = match reg {
+      RegEnum::A => A,
+      RegEnum::B => self.BC.read_hi(),
+      _ => panic!("Unexpected RegEnum: {:?}", reg)
+    };
+
+    let result = n ^ A;
+    self.AF.write_hi(result);
+
+    self.reset_all_flags();
+
+    if result == 0x00 {
+      self.set_flag(FLAG_Z);
+    } else {
+      self.reset_flag(FLAG_Z);
+    }
+
+    4
   }
 
-  pub fn set_flag_z(&mut self) {
+  fn dec_n(&mut self, reg: RegEnum, mmu: &mut mmu::MMU) -> i32 {
+    let (n, before) = match reg {
+      RegEnum::B => {
+        let before = self.BC.read_hi();
+        let n = before.wrapping_sub(1);
+        self.BC.write_hi(n);
+        (n, before)
+      },
+      _ => panic!("Unexpected RegEnum: {:?}", reg)
+    };
+
+    if n == 0x00 {
+      self.set_flag(FLAG_Z);
+    }
+
+    self.set_flag(FLAG_N);
+
+    if (before & 0x0f) == 0 {
+      self.set_flag(FLAG_H);
+    } else {
+      self.reset_flag(FLAG_H);
+    }
+
+    4 // TODO
+  }
+
+  fn ld_n_nn(&mut self, reg: RegEnum, mmu: &mut mmu::MMU) -> i32 {
+    let nn = mmu.read_word(self.PC);
+    self.PC += 2; // TODO is this correct?
+    // println!("ld_n_nn -> nn: {:x}", nn);
+
+    match reg {
+      RegEnum::HL => {
+        self.HL.write(nn);
+      },
+      _ => panic!("Unexpected RegEnum: {:?}", reg)
+    };
+
+    12
+  }
+
+  fn ld_nn_n(&mut self, reg: RegEnum, mmu: &mut mmu::MMU) -> i32 {
+    let nn = mmu.read(self.PC);
+    self.PC += 1;
+
+    match reg {
+      RegEnum::C => {
+        self.BC.write_lo(nn);
+      },
+      RegEnum::B => {
+        self.BC.write_hi(nn);
+      },
+      _ => panic!("Unexpected RegEnum: {:?}", reg)
+    };
+
+    8
+  }
+
+  fn ldd_nn_n(&mut self, regSrc: RegEnum, regDstAndDec: RegEnum) -> i32 {
+    let srcVal = match regSrc {
+      RegEnum::A => {
+        self.AF.read_hi()
+      },
+      _ => panic!("Unexpected RegEnum: {:?}", regSrc)
+    };
+
+    // println!("{:x}", srcVal);
+    // NOTE: wrapping_sub
+    // https://doc.rust-lang.org/std/primitive.u8.html#method.wrapping_add
+
+    match regDstAndDec {
+      RegEnum::HL => {
+        self.HL.write((srcVal.wrapping_sub(1)) as types::Word);
+      },
+      _ => panic!("Unexpected RegEnum: {:?}", regDstAndDec)
+    };
+
+    8
+  }
+
+  pub fn set_flag(&mut self, flag: u8) {
     let flags = self.AF.read_lo();
-    let result = flags | 1 << FLAG_Z;
-
-    println!("{:b}", flags);
-    println!("{:b}", result);
-    self.AF.write_lo(result);
+    self.AF.write_lo(flags | 1 << flag);
   }
 
-  pub fn flag_z(&self) -> bool {
-    (self.AF.read_lo() & 1 << FLAG_Z) != 0
+  pub fn reset_flag(&mut self, flag: u8) {
+    let flags = self.AF.read_lo();
+    self.AF.write_lo(flags | 0 << flag);
   }
 
-  pub fn flag_n(&self) -> bool {
-    (self.AF.read_lo() & 1 << FLAG_N) != 0
+  pub fn reset_all_flags(&mut self) {
+    self.AF.write_lo(0x00);
   }
 
-  pub fn flag_h(&self) -> bool {
-    (self.AF.read_lo() & 1 << FLAG_H) != 0
-  }
-
-  pub fn flag_c(&self) -> bool {
-    (self.AF.read_lo() & 1 << FLAG_C) != 0
+  pub fn read_flag(&self, flag: u8) -> bool {
+    (self.AF.read_lo() & 1 << flag) != 0
   }
 }
 
 #[test]
 fn set_flags() {
   let mut cpu = CPU::new();
-  assert_eq!(false, cpu.flag_z());
-  cpu.set_flag_z();
-  assert_eq!(true, cpu.flag_z());
+  assert_eq!(false, cpu.read_flag(FLAG_Z));
+  cpu.set_flag(FLAG_Z);
+  assert_eq!(true, cpu.read_flag(FLAG_Z));
 }
 
 #[test]
@@ -134,4 +266,84 @@ fn register_setting() {
   assert_eq!(0xDD, register.read_hi());
   assert_eq!(0xFF, register.read_lo());
   assert_eq!(0xDDFF, register.read());
+}
+
+#[test]
+fn opcode_nop() {
+  let mut cpu = CPU::new();
+  let mut mmu = mmu::MMU::new();
+  mmu.cartridge = cartridge::Cartridge { buffer: vec![opcodes::NOP] };
+
+  let cycles = cpu.execute_next_opcode(&mut mmu);
+  assert_eq!(4, cycles);
+  assert_eq!(0x0001, cpu.PC);
+}
+
+#[test]
+fn opcode_jp_nn() {
+  let mut cpu = CPU::new();
+  let mut mmu = mmu::MMU::new();
+  mmu.cartridge = cartridge::Cartridge { buffer: vec![opcodes::JP_NN, 0x50, 0x01] };
+
+  let cycles = cpu.execute_next_opcode(&mut mmu);
+  assert_eq!(12, cycles);
+  assert_eq!(0x0150, cpu.PC);
+}
+
+#[test]
+fn opcode_xor_a() {
+  let mut cpu = CPU::new();
+  let mut mmu = mmu::MMU::new();
+  mmu.cartridge = cartridge::Cartridge { buffer: vec![opcodes::XOR_A] };
+
+  cpu.AF.write_hi(0xFF);
+
+  let cycles = cpu.execute_next_opcode(&mut mmu);
+  assert_eq!(0x00, cpu.AF.read_hi());
+  assert_eq!(4, cycles);
+  assert_eq!(0x0001, cpu.PC);
+  assert!(cpu.read_flag(FLAG_Z));
+  assert!(!cpu.read_flag(FLAG_N));
+  assert!(!cpu.read_flag(FLAG_H));
+  assert!(!cpu.read_flag(FLAG_C));
+}
+
+#[test]
+fn opcode_xor_b() {
+  let mut cpu = CPU::new();
+  let mut mmu = mmu::MMU::new();
+  mmu.cartridge = cartridge::Cartridge { buffer: vec![opcodes::XOR_B] };
+
+  //     11100101 = E5
+  // XOR 11010100 = D4
+  //     00110001 = 31
+  cpu.BC.write_hi(0xE5);
+  cpu.AF.write_hi(0xD4);
+
+  let cycles = cpu.execute_next_opcode(&mut mmu);
+  assert_eq!(0x31, cpu.AF.read_hi());
+  assert_eq!(4, cycles);
+  assert_eq!(0x0001, cpu.PC);
+  assert!(!cpu.read_flag(FLAG_Z));
+  assert!(!cpu.read_flag(FLAG_N));
+  assert!(!cpu.read_flag(FLAG_H));
+  assert!(!cpu.read_flag(FLAG_C));
+}
+
+#[test]
+fn opcode_dec_b() {
+  let mut cpu = CPU::new();
+  let mut mmu = mmu::MMU::new();
+  mmu.cartridge = cartridge::Cartridge { buffer: vec![opcodes::DEC_B] };
+
+  cpu.BC.write_hi(0xF0);
+
+  let cycles = cpu.execute_next_opcode(&mut mmu);
+  // assert_eq!(0x31, cpu.AF.read_hi());
+  assert_eq!(4, cycles);
+  assert_eq!(0x0001, cpu.PC);
+  assert!(!cpu.read_flag(FLAG_Z));
+  assert!(cpu.read_flag(FLAG_N));
+  assert!(cpu.read_flag(FLAG_H));
+  assert!(!cpu.read_flag(FLAG_C));
 }

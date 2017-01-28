@@ -7,7 +7,7 @@ pub use super::cartridge;
 const MEMORY_SIZE: usize = 0x10000;
 
 pub struct MMU {
-  buffer: Vec<types::Byte>,
+  pub buffer: Vec<types::Byte>,
   pub cartridge: cartridge::Cartridge
   // Switches banks via the MBC (memory bank controller)
 }
@@ -25,14 +25,25 @@ impl MMU {
     f.read(&mut self.cartridge.buffer);
   }
 
-  pub fn read(&self, address: usize) -> types::Byte {
+  pub fn read(&self, address: types::Word) -> types::Byte {
     match address {
-      0x0000 ... 0x7FFF => self.cartridge.buffer[address],
-      0x8000 ... 0xFFFF => self.buffer[address],
+      0x0000 ... 0x7FFF => self.cartridge.buffer[address as usize],
+      0x8000 ... 0xFFFF => self.buffer[address as usize],
       // 0xA000 ... 0xC000 => self.buffer[address],
       // 0xC000 ... 0xFFFF => self.buffer[address],
       _ => 0x0000
     }
+  }
+
+  pub fn read_word(&self, address: types::Word) -> types::Word {
+    let lo_byte = self.read(address);
+    let hi_byte = self.read(address + 1);
+    let word = ((hi_byte as types::Word) << 8) | lo_byte as types::Word;
+    // println!("hi_byte {:x}", hi_byte);
+    // println!("lo_byte {:x}", lo_byte);
+    // println!("word {:x}", word);
+
+    word
   }
 
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
