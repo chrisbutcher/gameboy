@@ -22,6 +22,7 @@ pub mod ppu;
 // http://bgb.bircd.org/pandocs.htm#aboutthepandocs
 // https://www.youtube.com/watch?v=ecTQVa42sJc
 // http://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
+// http://gameboy.mongenel.com/asmschool.html
 
 // Test roms:
 // http://gbdev.gg8.se/files/roms/blargg-gb-tests/
