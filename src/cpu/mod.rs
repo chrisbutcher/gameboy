@@ -401,7 +401,7 @@ impl CPU {
       0xF9 => { println!("LD SP,HL : ld_sp_hl() not implemented! {:#X}", opcode); 42 },
       0xFA => { println!("LD A,(nn) : ld_a_nn() not implemented! {:#X}", opcode); 42 },
       0xFB => { println!("EI : ei() not implemented! {:#X}", opcode); 42 },
-      0xFE => { println!("CP"); self.cp_n(); 8 },
+      0xFE => { println!("CP"); self.cp_n(mmu); 8 },
       0xFF => { println!("RST 38H : rst_38h() not implemented! {:#X}", opcode); 42 },
       _ => panic!("Unexpected opcode: {:#X}", opcode)
     }
@@ -514,8 +514,9 @@ impl CPU {
     self.PC += 1;
   }
 
-  fn cp_n(&mut self) {
-    shared_cp();
+  fn cp_n(&mut self, mmu: &mut mmu::MMU) {
+    let value = mmu.read(self.PC);
+    shared_cp(self, value);
     // OPCodes_CP(m_pMemory->Read(PC.GetValue()));
     // PC.Increment();
     self.PC += 1;
@@ -604,6 +605,36 @@ fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
   //       ToggleFlag(FLAG_HALF);
   //   }
   //   AF.SetHigh(static_cast<u8> (result));
+}
+
+fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
+  let value = cpu.read_byte_reg(RegEnum::A);
+  cpu.util_set_flag(FLAG_SUB);
+  // SetFlag(FLAG_SUB);
+
+  if value < byte {
+    cpu.util_toggle_flag(FLAG_CARRY);
+  }
+  // if (AF.GetHigh() < number)
+  // {
+  //     ToggleFlag(FLAG_CARRY);
+  // }
+
+  if value == byte {
+    cpu.util_toggle_flag(FLAG_ZERO);
+  }
+  // if (AF.GetHigh() == number)
+  // {
+  //     ToggleFlag(FLAG_ZERO);
+  // }
+
+  if ((value.wrapping_sub(byte)) & 0xF) > (value & 0xF) {
+    cpu.util_toggle_flag(FLAG_HALF_CARRY);
+  }
+  // if (((AF.GetHigh() - number) & 0xF) > (AF.GetHigh() & 0xF))
+  // {
+  //     ToggleFlag(FLAG_HALF);
+  // }
 }
 
 #[test]
