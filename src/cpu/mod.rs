@@ -294,7 +294,7 @@ impl CPU {
       0x86 => { println!("ADD A,(HL) : add_a_hl() not implemented! {:#X}", opcode); 42 },
       0x87 => { println!("ADD A,A : add_a_a() not implemented! {:#X}", opcode); 42 },
       0x88 => { println!("ADC A,B : adc_a_b() not implemented! {:#X}", opcode); 42 },
-      0x89 => { println!("ADC A,C : adc_a_c() not implemented! {:#X}", opcode); 42 },
+      0x89 => { println!("ADC A,C"); self.adc_a_c(); 4 },
       0x8A => { println!("ADC A,D : adc_a_d() not implemented! {:#X}", opcode); 42 },
       0x8B => { println!("ADC A,E : adc_a_e() not implemented! {:#X}", opcode); 42 },
       0x8C => { println!("ADC A,H : adc_a_h() not implemented! {:#X}", opcode); 42 },
@@ -462,29 +462,23 @@ impl CPU {
   }
 
   fn rra(&mut self) {
-    self.util_rotate_rr(RegEnum::A)
+    shared_rotate_rr(self, RegEnum::A)
   }
 
   fn ld_a_d(&mut self) {
-    // self.
+    let value = self.read_byte_reg(RegEnum::D);
+    self.write_byte_reg(RegEnum::A, value)
+  }
+
+  fn adc_a_c(&mut self) {
+    let value = self.read_byte_reg(RegEnum::C);
+    shared_adc(self, value);
+    // OPCodes_ADC(BC.GetLow());
+
+    panic!("Not implemented!")
   }
 
   // Helpers
-
-  fn util_rotate_rr(&mut self, regEnum: RegEnum) {
-    let carry = if self.util_is_flag_set(FLAG_CARRY) { 0x80 } else { 0x00 };
-    let result = self.read_byte_reg(regEnum);
-
-    if result & 0x01 != 0 { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
-    let result = result >> 1;
-    let result = result | carry;
-    self.write_byte_reg(regEnum, result);
-
-    match regEnum {
-      RegEnum::A => { self.util_toggle_zero_flag_from_result(result) },
-      _ => {}
-    }
-  }
 
   fn util_toggle_zero_flag_from_result(&mut self, result: types::Byte) {
     if result == 0 {
@@ -530,20 +524,44 @@ fn shared_dec_n(cpu: &mut CPU, regEnum: RegEnum) {
   cpu.write_byte_reg(regEnum, result);
 
   if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
-  // IsSetFlag(FLAG_CARRY) ? SetFlag(FLAG_CARRY) : ClearAllFlags();
   cpu.util_set_flag(FLAG_SUB);
-  // ToggleFlag(FLAG_SUB);
 
   cpu.util_toggle_zero_flag_from_result(result);
-  // ToggleZeroFlagFromResult(result);
 
   if (result & 0x0F) == 0x0F {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
-  // if ((result & 0x0F) == 0x0F)
-  // {
-  //     ToggleFlag(FLAG_HALF);
-  // }
+}
+
+fn shared_rotate_rr(cpu: &mut CPU, regEnum: RegEnum) {
+  let carry = if cpu.util_is_flag_set(FLAG_CARRY) { 0x80 } else { 0x00 };
+  let result = cpu.read_byte_reg(regEnum);
+
+  if result & 0x01 != 0 { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
+  let result = result >> 1;
+  let result = result | carry;
+  cpu.write_byte_reg(regEnum, result);
+
+  match regEnum {
+    RegEnum::A => { cpu.util_toggle_zero_flag_from_result(result) },
+    _ => {}
+  }
+}
+
+fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
+  // int carry = IsSetFlag(FLAG_CARRY) ? 1 : 0;
+  //   int result = AF.GetHigh() + number + carry;
+  //   ClearAllFlags();
+  //   ToggleZeroFlagFromResult(static_cast<u8> (result));
+  //   if (result > 0xFF)
+  //   {
+  //       ToggleFlag(FLAG_CARRY);
+  //   }
+  //   if (((AF.GetHigh()& 0x0F) + (number & 0x0F) + carry) > 0x0F)
+  //   {
+  //       ToggleFlag(FLAG_HALF);
+  //   }
+  //   AF.SetHigh(static_cast<u8> (result));
 }
 
 #[test]
