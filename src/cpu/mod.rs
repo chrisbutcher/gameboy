@@ -61,6 +61,7 @@ impl fmt::Debug for Register {
 pub struct CPU {
   pub AF: Register, pub BC: Register, pub DE: Register, pub HL: Register,
   pub SP: Register, pub PC: types::Word,
+  pub BranchTaken: bool // so far unused
 }
 
 fn formatted_flags(cpu: &CPU) -> String {
@@ -79,7 +80,7 @@ impl CPU {
   pub fn new() -> CPU {
       CPU {
         AF: Register::new(), BC: Register::new(), DE: Register::new(), HL: Register::new(),
-        SP: Register::new(), PC: 0x0000,
+        SP: Register::new(), PC: 0x0000, BranchTaken: false
       }
   }
 
@@ -139,7 +140,13 @@ impl CPU {
 
     println!("{:?}", self);
     self.PC += 1;
-    self.execute_opcode(opcode, mmu)
+    let cycles = self.execute_opcode(opcode, mmu);
+
+    if cycles == 42 {
+      panic!("Unexpected opcode: {}", opcode);
+    }
+
+    cycles
   }
 
   // https://github.com/CTurt/Cinoop/blob/master/source/cpu.c
@@ -181,8 +188,8 @@ impl CPU {
       0x1C => { println!("INC E : inc_e() not implemented! {:#X}", opcode); 42 },
       0x1D => { println!("DEC E : dec_e() not implemented! {:#X}", opcode); 42 },
       0x1E => { println!("LD E,n : ld_e_n() not implemented! {:#X}", opcode); 42 },
-      0x1F => { println!("RRA : rra() not implemented! {:#X}", opcode); 42 },
-      0x20 => { println!("JR NZ,n : jr_nz_n() not implemented! {:#X}", opcode); 42 },
+      0x1F => { println!("RRA"); self.rra(); 4 },
+      0x20 => { println!("JR NZ,n"); self.jr_nz_n(mmu); 8 },
       0x21 => { println!("LD HL,nn"); self.ld_hl_nn(mmu); 12 },
       0x22 => { println!("LD (HLI),A : ld_hli_a() not implemented! {:#X}", opcode); 42 },
       0x23 => { println!("INC HL : inc_hl() not implemented! {:#X}", opcode); 42 },
@@ -272,7 +279,7 @@ impl CPU {
       0x77 => { println!("LD (HL),A : ld_hl_a() not implemented! {:#X}", opcode); 42 },
       0x78 => { println!("LD A,B : ld_a_b() not implemented! {:#X}", opcode); 42 },
       0x79 => { println!("LD A,C : ld_a_c() not implemented! {:#X}", opcode); 42 },
-      0x7A => { println!("LD A,D : ld_a_d() not implemented! {:#X}", opcode); 42 },
+      0x7A => { println!("LD A,D"); self.ld_a_d(); 4 },
       0x7B => { println!("LD A,E : ld_a_e() not implemented! {:#X}", opcode); 42 },
       0x7C => { println!("LD A,H : ld_a_h() not implemented! {:#X}", opcode); 42 },
       0x7D => { println!("LD A,L : ld_a_l() not implemented! {:#X}", opcode); 42 },
@@ -435,7 +442,6 @@ impl CPU {
   }
 
   fn ld_hld_a(&mut self) {
-    // LD (HLD), A
     let value = self.read_byte_reg(RegEnum::A);
     self.write_word_reg(RegEnum::HL, (value as types::Word).wrapping_sub(1));
   }
@@ -444,7 +450,41 @@ impl CPU {
     shared_dec_n(self, RegEnum::B);
   }
 
+  fn jr_nz_n(&mut self, mmu: &mmu::MMU) {
+    if !self.util_is_flag_set(FLAG_ZERO) {
+      println!("self.PC [{:#X}] + 1 + mmu.read_word(self.PC) [{:#X}] as types::SignedByte) [{:#X}]", self.PC, mmu.read_word(self.PC), mmu.read_word(self.PC) as types::SignedByte);
+
+      self.PC = self.PC + 1 + mmu.read(self.PC) as types::Word;
+      self.BranchTaken = true;
+    } else {
+      self.PC += 1;
+    }
+  }
+
+  fn rra(&mut self) {
+    self.util_rotate_rr(RegEnum::A)
+  }
+
+  fn ld_a_d(&mut self) {
+    // self.
+  }
+
   // Helpers
+
+  fn util_rotate_rr(&mut self, regEnum: RegEnum) {
+    let carry = if self.util_is_flag_set(FLAG_CARRY) { 0x80 } else { 0x00 };
+    let result = self.read_byte_reg(regEnum);
+
+    if result & 0x01 != 0 { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
+    let result = result >> 1;
+    let result = result | carry;
+    self.write_byte_reg(regEnum, result);
+
+    match regEnum {
+      RegEnum::A => { self.util_toggle_zero_flag_from_result(result) },
+      _ => {}
+    }
+  }
 
   fn util_toggle_zero_flag_from_result(&mut self, result: types::Byte) {
     if result == 0 {
