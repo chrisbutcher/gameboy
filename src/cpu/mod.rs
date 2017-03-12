@@ -143,7 +143,7 @@ impl CPU {
     let cycles = self.execute_opcode(opcode, mmu);
 
     if cycles == 42 {
-      panic!("Unexpected opcode: {}", opcode);
+      panic!("Unexpected opcode: {:#X}", opcode);
     }
 
     cycles
@@ -170,7 +170,7 @@ impl CPU {
       0x0A => { println!("LD A,(BC) : ld_a_bc() not implemented! {:#X}", opcode); 42 },
       0x0B => { println!("DEC BC : dec_bc() not implemented! {:#X}", opcode); 42 },
       0x0C => { println!("INC C : inc_c() not implemented! {:#X}", opcode); 42 },
-      0x0D => { println!("DEC C : dec_c() not implemented! {:#X}", opcode); 42 },
+      0x0D => { println!("DEC C"); self.dec_c(); 4 },
       0x0E => { println!("LD C,n"); self.ld_c_n(mmu); 8 },
       0x0F => { println!("RRCA : rrca() not implemented! {:#X}", opcode); 42 },
       0x10 => { println!("STOP : stop() not implemented! {:#X}", opcode); 42 },
@@ -407,12 +407,13 @@ impl CPU {
     // Ok(cycles)
   }
 
-  // Opcodes
+  // Opcode implementations
 
   fn nop(&self) {
   }
 
   fn jp_nn(&mut self, mmu: &mmu::MMU) {
+    // println!("!!!!!!!!! {:#X}", mmu.read_word(self.PC));
     self.PC = mmu.read_word(self.PC);
   }
 
@@ -444,17 +445,22 @@ impl CPU {
   fn ld_hld_a(&mut self) {
     let value = self.read_byte_reg(RegEnum::A);
     self.write_word_reg(RegEnum::HL, (value as types::Word).wrapping_sub(1));
+    // panic!("Seems to be wrong, NO$GMB sets HL to $DFFE"); // TODO
   }
 
   fn dec_b(&mut self) {
     shared_dec_n(self, RegEnum::B);
   }
 
+  fn dec_c(&mut self) {
+    shared_dec_n(self, RegEnum::C);
+  }
+
   fn jr_nz_n(&mut self, mmu: &mmu::MMU) {
     if !self.util_is_flag_set(FLAG_ZERO) {
-      println!("self.PC [{:#X}] + 1 + mmu.read_word(self.PC) [{:#X}] as types::SignedByte) [{:#X}]", self.PC, mmu.read_word(self.PC), mmu.read_word(self.PC) as types::SignedByte);
+      let dest = mmu.read(self.PC) as types::SignedByte;
+      self.PC = self.PC.wrapping_add((1 + dest) as types::Word);
 
-      self.PC = self.PC + 1 + mmu.read(self.PC) as types::Word;
       self.BranchTaken = true;
     } else {
       self.PC += 1;
@@ -549,7 +555,7 @@ fn shared_rotate_rr(cpu: &mut CPU, regEnum: RegEnum) {
 }
 
 fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
-  // int carry = IsSetFlag(FLAG_CARRY) ? 1 : 0;
+  //   int carry = IsSetFlag(FLAG_CARRY) ? 1 : 0;
   //   int result = AF.GetHigh() + number + carry;
   //   ClearAllFlags();
   //   ToggleZeroFlagFromResult(static_cast<u8> (result));
