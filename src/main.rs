@@ -164,7 +164,7 @@ fn main() {
     // ppu.tick(cpu.cycles)
     // screen.render(ppu.frame_buffer)
 
-    break // TODO
+    // break // TODO
   }
 }
 

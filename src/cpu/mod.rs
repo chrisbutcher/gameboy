@@ -219,7 +219,7 @@ impl CPU {
       0x3B => { println!("DEC SP : dec_sp() not implemented! {:#X}", opcode); 42 },
       0x3C => { println!("INC A : inc_a() not implemented! {:#X}", opcode); 42 },
       0x3D => { println!("DEC A : dec_a() not implemented! {:#X}", opcode); 42 },
-      0x3E => { println!("LD A,n : ld_a_n() not implemented! {:#X}", opcode); 42 },
+      0x3E => { println!("LD A,n"); self.ld_a_n(mmu); 8 },
       0x3F => { println!("CCF : ccf() not implemented! {:#X}", opcode); 42 },
       0x40 => { println!("LD B,B : ld_b_b() not implemented! {:#X}", opcode); 42 },
       0x41 => { println!("LD B,C : ld_b_c() not implemented! {:#X}", opcode); 42 },
@@ -482,6 +482,12 @@ impl CPU {
     // OPCodes_ADC(BC.GetLow());
 
     panic!("Not implemented!")
+  }
+
+  fn ld_a_n(&mut self, mmu: &mmu::MMU) {
+    let value = mmu.read(self.PC);
+    self.write_byte_reg(RegEnum::A, value);
+    self.PC += 1;
   }
 
   // Helpers
