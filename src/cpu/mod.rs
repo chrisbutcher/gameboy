@@ -61,7 +61,8 @@ impl fmt::Debug for Register {
 pub struct CPU {
   pub AF: Register, pub BC: Register, pub DE: Register, pub HL: Register,
   pub SP: Register, pub PC: types::Word,
-  pub BranchTaken: bool // so far unused
+
+  pub BranchTaken: bool, pub IME: bool, pub IMECycles: i32 // so far unused
 }
 
 fn formatted_flags(cpu: &CPU) -> String {
@@ -70,8 +71,8 @@ fn formatted_flags(cpu: &CPU) -> String {
 
 impl fmt::Debug for CPU {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "[PC] {:#X} [Regs] A:{:#X}, F:{:#X}, B:{:#X}, C:{:#X}, D:{:#X}, E:{:#X}, H:{:#X}, L:{:#X} - FLAGS: {}",
-      self.PC, self.AF.read_hi(), self.AF.read_lo(), self.BC.read_hi(), self.BC.read_lo(), self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo(), formatted_flags(self)
+    write!(f, "[PC] {:#X}\n[Regs] A:{:#X}, F:{:#X}, B:{:#X}, C:{:#X}, D:{:#X}, E:{:#X}, H:{:#X}, L:{:#X}\n[Flags]: {} [SP] {:#X}",
+      self.PC, self.AF.read_hi(), self.AF.read_lo(), self.BC.read_hi(), self.BC.read_lo(), self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo(), formatted_flags(self), self.SP.read()
     )
   }
 }
@@ -80,7 +81,7 @@ impl CPU {
   pub fn new() -> CPU {
       CPU {
         AF: Register::new(), BC: Register::new(), DE: Register::new(), HL: Register::new(),
-        SP: Register::new(), PC: 0x0000, BranchTaken: false
+        SP: Register::new(), PC: 0x0000, BranchTaken: false, IME: false, IMECycles: 0
       }
   }
 
@@ -378,7 +379,7 @@ impl CPU {
       0xDC => { println!("CALL C,nn : call_c_nn() not implemented! {:#X}", opcode); 42 },
       0xDE => { println!("SBC n : sbc_n() not implemented! {:#X}", opcode); 42 },
       0xDF => { println!("RST 18H : rst_18h() not implemented! {:#X}", opcode); 42 },
-      0xE0 => { println!("LD (0xFF00+n),A : ld_0xff00_plus_n_a() not implemented! {:#X}", opcode); 42 },
+      0xE0 => { println!("LD (0xFF00+n),A"); self.ld_0xff00_plus_n_a(mmu); 12 },
       0xE1 => { println!("POP HL : pop_hl() not implemented! {:#X}", opcode); 42 },
       0xE2 => { println!("LD (0xFF00+C),A : ld_0xff00_plus_c_a() not implemented! {:#X}", opcode); 42 },
       0xE5 => { println!("PUSH HL : push_hl() not implemented! {:#X}", opcode); 42 },
@@ -389,10 +390,10 @@ impl CPU {
       0xEA => { println!("LD (nn),A : ld_nn_a() not implemented! {:#X}", opcode); 42 },
       0xEE => { println!("XOR n : xor_n() not implemented! {:#X}", opcode); 42 },
       0xEF => { println!("RST 28H : rst_28h() not implemented! {:#X}", opcode); 42 },
-      0xF0 => { println!("LD A,(0xFF00+n) : ld_a_0xff00_plus_n() not implemented! {:#X}", opcode); 42 },
+      0xF0 => { println!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu); 12 },
       0xF1 => { println!("POP AF : pop_af() not implemented! {:#X}", opcode); 42 },
       0xF2 => { println!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode); 42 },
-      0xF3 => { println!("DI : di() not implemented! {:#X}", opcode); 42 },
+      0xF3 => { println!("DI"); self.di(); 4 },
       0xF5 => { println!("PUSH AF : push_af() not implemented! {:#X}", opcode); 42 },
       0xF6 => { println!("OR n : or_n() not implemented! {:#X}", opcode); 42 },
       0xF7 => { println!("RST 30H : rst_30h() not implemented! {:#X}", opcode); 42 },
@@ -400,7 +401,7 @@ impl CPU {
       0xF9 => { println!("LD SP,HL : ld_sp_hl() not implemented! {:#X}", opcode); 42 },
       0xFA => { println!("LD A,(nn) : ld_a_nn() not implemented! {:#X}", opcode); 42 },
       0xFB => { println!("EI : ei() not implemented! {:#X}", opcode); 42 },
-      0xFE => { println!("CP n : cp_n() not implemented! {:#X}", opcode); 42 },
+      0xFE => { println!("CP"); self.cp_n(); 8 },
       0xFF => { println!("RST 38H : rst_38h() not implemented! {:#X}", opcode); 42 },
       _ => panic!("Unexpected opcode: {:#X}", opcode)
     }
@@ -435,11 +436,13 @@ impl CPU {
   }
 
   fn ld_c_n(&mut self, mmu: &mmu::MMU) {
-    shared_ld_n_n(self, RegEnum::C, mmu);
+    let value = mmu.read(self.PC);
+    shared_ld_n_n(self, RegEnum::C, value);
   }
 
   fn ld_b_n(&mut self, mmu: &mmu::MMU) {
-    shared_ld_n_n(self, RegEnum::B, mmu);
+    let value = mmu.read(self.PC);
+    shared_ld_n_n(self, RegEnum::B, value);
   }
 
   fn ld_hld_a(&mut self) {
@@ -479,7 +482,6 @@ impl CPU {
   fn adc_a_c(&mut self) {
     let value = self.read_byte_reg(RegEnum::C);
     shared_adc(self, value);
-    // OPCodes_ADC(BC.GetLow());
 
     panic!("Not implemented!")
   }
@@ -487,6 +489,35 @@ impl CPU {
   fn ld_a_n(&mut self, mmu: &mmu::MMU) {
     let value = mmu.read(self.PC);
     self.write_byte_reg(RegEnum::A, value);
+    self.PC += 1;
+  }
+
+  fn di(&mut self) {
+    self.IME = false;
+    self.IMECycles = 0;
+  }
+
+  fn ld_0xff00_plus_n_a(&mut self, mmu: &mut mmu::MMU) {
+    let value = self.read_byte_reg(RegEnum::A);
+    let operand = mmu.read(self.PC) as types::Word;
+
+    mmu.write(0xFF00 + operand, value); // TODO Should trigger interrupt stuff
+
+    self.PC += 1;
+  }
+
+  fn ld_a_0xff00_plus_n(&mut self, mmu: &mut mmu::MMU) {
+    let operand = mmu.read(self.PC) as types::Word;
+    let value = mmu.read(0xFF00 + operand);
+
+    self.write_byte_reg(RegEnum::A, value);
+    self.PC += 1;
+  }
+
+  fn cp_n(&mut self) {
+    shared_cp();
+    // OPCodes_CP(m_pMemory->Read(PC.GetValue()));
+    // PC.Increment();
     self.PC += 1;
   }
 
@@ -524,9 +555,8 @@ fn shared_xor_n(cpu: &mut CPU, byte: types::Byte)
     cpu.util_toggle_zero_flag_from_result(result);
 }
 
-fn shared_ld_n_n(cpu: &mut CPU, regEnum: RegEnum, mmu: &mmu::MMU) {
-  let value = mmu.read(cpu.PC);
-  cpu.write_byte_reg(regEnum, value);
+fn shared_ld_n_n(cpu: &mut CPU, regEnum: RegEnum, byte: types::Byte) {
+  cpu.write_byte_reg(regEnum, byte);
   cpu.PC += 1;
 }
 
