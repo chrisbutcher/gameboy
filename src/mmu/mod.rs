@@ -4,19 +4,28 @@ use std::fs::File;
 pub use super::types;
 pub use super::cartridge;
 
-const MEMORY_SIZE: usize = 0x10000;
-
 pub struct MMU {
-  pub buffer: Vec<types::Byte>,
-  pub cartridge: cartridge::Cartridge
+  pub cartridge: cartridge::Cartridge, // 0000-7fff
+  pub video_ram: Vec<types::Byte>,     // 8000-9FFF
+  pub external_ram: Vec<types::Byte>,  // A000-BFFF
+  pub work_ram: Vec<types::Byte>,      // C000-DFFF, with E000-FDFF shadow
+  pub sprite_info: Vec<types::Byte>,   // FE00-FE9F
+  pub io: Vec<types::Byte>,            // FF00-FF7F
+  pub zram: Vec<types::Byte>,          // FF80-FFFF (zero page ram)
+
   // Switches banks via the MBC (memory bank controller)
 }
 
 impl MMU {
   pub fn new() -> MMU {
     MMU {
-      buffer: vec![0x00; MEMORY_SIZE],
-      cartridge: cartridge::Cartridge::new()
+      cartridge: cartridge::Cartridge::new(), // 0000-7fff
+      video_ram: vec![0x00; 0x2000],
+      external_ram: vec![0x00; 0x2000],
+      work_ram: vec![0x00; 0x2000],
+      sprite_info: vec![0x00; 0x100],
+      io: vec![0x00; 0x100],
+      zram: vec![0x00; 0x80],
     }
   }
 
@@ -28,10 +37,14 @@ impl MMU {
   pub fn read(&self, address: types::Word) -> types::Byte {
     match address {
       0x0000 ... 0x7FFF => self.cartridge.buffer[address as usize],
-      0x8000 ... 0xFFFF => self.buffer[address as usize],
-      // 0xA000 ... 0xC000 => self.buffer[address],
-      // 0xC000 ... 0xFFFF => self.buffer[address],
-      _ => 0x0000
+      0x8000 ... 0x9FFF => self.video_ram[address as usize - 0x8000],
+      0xA000 ... 0xBFFF => self.external_ram[address as usize - 0xA000],
+      0xC000 ... 0xDFFF => self.work_ram[address as usize - 0xC000],
+      0xE000 ... 0xFDFF => self.work_ram[address as usize - 0xE000 - 2000], // ECHO work ram
+      0xFE00 ... 0xFE9F => self.sprite_info[address as usize - 0xFE00],
+      0xFF00 ... 0xFF7F => self.io[address as usize - 0xFF00],
+      0xFF80 ... 0xFFFF => self.zram[address as usize - 0xFF80],
+      _ => { panic!("Memory access is out of bounds: {:#X}", address); }
     }
   }
 
@@ -39,23 +52,33 @@ impl MMU {
     let lo_byte = self.read(address);
     let hi_byte = self.read(address + 1);
     let word = ((hi_byte as types::Word) << 8) | lo_byte as types::Word;
-    // println!("hi_byte {:x}", hi_byte);
-    // println!("lo_byte {:x}", lo_byte);
-    // println!("word {:x}", word);
 
     word
   }
 
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
+    println!("Writing {:#X}, with {:#X}", address, data);
+
     // Disallow writes to restricted memory regions
     if address < 0x8000 || (address >= 0xFEA0 && address < 0xFEFF) {
       return
-    } else if address >= 0xE000 && address < 0xFE00 {
-      let echo_ram_offset = 0x2000;
-      self.write(address - echo_ram_offset, data)
-    }
+    } //else if address >= 0xE000 && address < 0xFE00 { // ECHO work ram
+      // let echo_ram_offset = 0x2000;
+      // self.write(address - echo_ram_offset, data)
+    // }
 
-    self.buffer[address as usize] = data;
+    match address {
+      0x0000 ... 0x7FFF => { panic!("Writing to disallowed memory region: {:#X}", address); }, // no-op
+      0x8000 ... 0x9FFF => { self.video_ram[address as usize - 0x8000] = data },
+      0xA000 ... 0xBFFF => { self.external_ram[address as usize - 0xA000] = data },
+      0xC000 ... 0xDFFF => { self.work_ram[address as usize - 0xC000] = data },
+      0xE000 ... 0xFDFF => { let echo_ram_offset = 0x2000; self.write(address - echo_ram_offset, data) }, // ECHO work ra }m
+      0xFE00 ... 0xFE9F => { self.sprite_info[address as usize - 0xFE00] = data },
+      0xFEA0 ... 0xFEFF => { panic!("Writing to disallowed memory region: {:#X}", address); }, // no-op
+      0xFF00 ... 0xFF7F => { self.io[address as usize - 0xFF00] = data },
+      0xFF80 ... 0xFFFF => { self.zram[address as usize - 0xFF80] = data },
+      _ => { panic!("Memory access is out of bounds: {:#X}", address); }
+    }
   }
 
   pub fn num_rom_banks(&self) -> types::Byte {

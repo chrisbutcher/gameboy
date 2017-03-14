@@ -522,6 +522,10 @@ impl CPU {
     let operand = mmu.read(self.PC) as types::Word;
     let value = mmu.read(0xFF00 + operand);
 
+    // if operand == 0x44 { // HACK
+    //   self.write_byte_reg(RegEnum::A, 0x94);
+    // }
+
     self.write_byte_reg(RegEnum::A, value);
     self.PC += 1;
   }
