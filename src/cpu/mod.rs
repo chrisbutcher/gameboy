@@ -1,4 +1,7 @@
 use std::fmt;
+use std::io;
+use std::io::prelude::*;
+use std::env;
 
 pub use super::types;
 pub use super::mmu;
@@ -137,9 +140,15 @@ impl CPU {
   // }
 
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
+    println!("{:?}\n", self);
+
     let opcode: types::Byte = mmu.read(self.PC);
 
-    println!("{:?}", self);
+    match env::var("DEBUG") {
+        Ok(_) => { let mut stdin = io::stdin(); let _ = stdin.read(&mut [0u8]).unwrap(); },
+        _ => {},
+    };
+
     self.PC += 1;
     let cycles = self.execute_opcode(opcode, mmu);
 
@@ -208,7 +217,7 @@ impl CPU {
       0x2F => { println!("CPL : cpl() not implemented! {:#X}", opcode); 42 },
       0x30 => { println!("JR NC,n : jr_nc_n() not implemented! {:#X}", opcode); 42 },
       0x31 => { println!("LD SP,nn : ld_sp_nn() not implemented! {:#X}", opcode); 42 },
-      0x32 => { println!("LD (HLD), A"); self.ld_hld_a(); 8 },
+      0x32 => { println!("LD (HLD), A"); self.ld_hld_a(mmu); 8 },
       0x33 => { println!("INC SP : inc_sp() not implemented! {:#X}", opcode); 42 },
       0x34 => { println!("INC (HL) : inc_hl() not implemented! {:#X}", opcode); 42 },
       0x35 => { println!("DEC (HL) : dec_hl() not implemented! {:#X}", opcode); 42 },
@@ -445,10 +454,13 @@ impl CPU {
     shared_ld_n_n(self, RegEnum::B, value);
   }
 
-  fn ld_hld_a(&mut self) {
+  fn ld_hld_a(&mut self, mmu: &mut mmu::MMU) {
     let value = self.read_byte_reg(RegEnum::A);
-    self.write_word_reg(RegEnum::HL, (value as types::Word).wrapping_sub(1));
-    // panic!("Seems to be wrong, NO$GMB sets HL to $DFFE"); // TODO
+    let address = self.read_word_reg(RegEnum::HL);
+    mmu.write(address, value);
+    self.write_word_reg(RegEnum::HL, address - 1);
+    // self.write_word_reg(RegEnum::HL, value.wrapping_sub(1));
+    // panic!("Seems to be wrong, bgb sets HL to $DFFE"); // TODO
   }
 
   fn dec_b(&mut self) {
