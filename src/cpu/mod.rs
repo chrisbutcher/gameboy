@@ -587,7 +587,7 @@ fn shared_rotate_rr(cpu: &mut CPU, regEnum: RegEnum) {
 
   match regEnum {
     RegEnum::A => { cpu.util_toggle_zero_flag_from_result(result) },
-    _ => {}
+    _ => {} // NOTE Only do this for Register A
   }
 }
 
@@ -610,31 +610,18 @@ fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
 fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
   let value = cpu.read_byte_reg(RegEnum::A);
   cpu.util_set_flag(FLAG_SUB);
-  // SetFlag(FLAG_SUB);
 
   if value < byte {
     cpu.util_toggle_flag(FLAG_CARRY);
   }
-  // if (AF.GetHigh() < number)
-  // {
-  //     ToggleFlag(FLAG_CARRY);
-  // }
 
   if value == byte {
     cpu.util_toggle_flag(FLAG_ZERO);
   }
-  // if (AF.GetHigh() == number)
-  // {
-  //     ToggleFlag(FLAG_ZERO);
-  // }
 
   if ((value.wrapping_sub(byte)) & 0xF) > (value & 0xF) {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
-  // if (((AF.GetHigh() - number) & 0xF) > (AF.GetHigh() & 0xF))
-  // {
-  //     ToggleFlag(FLAG_HALF);
-  // }
 }
 
 #[test]
