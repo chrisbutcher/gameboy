@@ -473,8 +473,8 @@ impl CPU {
 
   fn jr_nz_n(&mut self, mmu: &mmu::MMU) {
     if !self.util_is_flag_set(FLAG_ZERO) {
-      let dest = mmu.read(self.PC) as types::SignedByte;
-      self.PC = self.PC.wrapping_add((1 + dest) as types::Word);
+      let operand_dest = mmu.read(self.PC) as types::SignedByte;
+      self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
 
       self.BranchTaken = true;
     } else {
@@ -487,20 +487,20 @@ impl CPU {
   }
 
   fn ld_a_d(&mut self) {
-    let value = self.read_byte_reg(RegEnum::D);
-    self.write_byte_reg(RegEnum::A, value)
+    let operand = self.read_byte_reg(RegEnum::D);
+    self.write_byte_reg(RegEnum::A, operand)
   }
 
   fn adc_a_c(&mut self) {
-    let value = self.read_byte_reg(RegEnum::C);
-    shared_adc(self, value);
+    let operand = self.read_byte_reg(RegEnum::C);
+    shared_adc(self, operand);
 
     panic!("Not implemented!")
   }
 
   fn ld_a_n(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read(self.PC);
-    self.write_byte_reg(RegEnum::A, value);
+    let operand = mmu.read(self.PC);
+    self.write_byte_reg(RegEnum::A, operand);
     self.PC += 1;
   }
 
