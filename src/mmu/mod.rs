@@ -19,7 +19,7 @@ pub struct MMU {
 impl MMU {
   pub fn new() -> MMU {
     MMU {
-      cartridge: cartridge::Cartridge::new(), // 0000-7fff
+      cartridge: cartridge::Cartridge::new(),
       video_ram: vec![0x00; 0x2000],
       external_ram: vec![0x00; 0x2000],
       work_ram: vec![0x00; 0x2000],

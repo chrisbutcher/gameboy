@@ -10,6 +10,13 @@ extern crate time;
 extern crate log;
 extern crate env_logger;
 
+extern crate sdl2;
+use sdl2::pixels;
+
+use std::{thread};
+// use std::time::Duration;
+use std::cell::RefCell;
+
 pub mod types;
 pub mod cpu;
 pub mod cartridge;
@@ -149,9 +156,27 @@ impl GameBoy {
   }
 }
 
-fn main() {
-  let mut game_boy = GameBoy::new();
+fn initialize_window<'a>() -> RefCell<sdl2::render::Renderer<'a>> {
+  let sdl_context = sdl2::init().unwrap();
+  let video_subsys = sdl_context.video().unwrap();
+  let window = video_subsys.window("GAMEBOY", 160, 144)
+    .position_centered()
+    .opengl()
+    .build()
+    .unwrap();
 
+  let mut renderer = window.renderer().build().unwrap();
+
+  renderer.set_draw_color(pixels::Color::RGB(0, 0, 0));
+  renderer.clear();
+  RefCell::new(renderer)
+}
+
+fn main() {
+  // let mut renderer = initialize_window();
+  // renderer.borrow_mut().present();
+
+  let mut game_boy = GameBoy::new();
   game_boy.initialize();
   game_boy.mmu.load_game("tetris.gb");
   // game_boy.mmu.load_game("cpu_instrs.gb");
