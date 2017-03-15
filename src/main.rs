@@ -12,9 +12,10 @@ extern crate env_logger;
 
 extern crate sdl2;
 use sdl2::pixels;
+use sdl2::event::Event;
 
 use std::{thread};
-// use std::time::Duration;
+use std::time::Duration;
 use std::cell::RefCell;
 
 pub mod types;
@@ -156,7 +157,7 @@ impl GameBoy {
   }
 }
 
-fn initialize_window<'a>() -> RefCell<sdl2::render::Renderer<'a>> {
+fn initialize_window<'a>() -> RefCell<(sdl2::Sdl, sdl2::render::Renderer<'a>)> {
   let sdl_context = sdl2::init().unwrap();
   let video_subsys = sdl_context.video().unwrap();
   let window = video_subsys.window("GAMEBOY", 160, 144)
@@ -167,14 +168,15 @@ fn initialize_window<'a>() -> RefCell<sdl2::render::Renderer<'a>> {
 
   let mut renderer = window.renderer().build().unwrap();
 
-  renderer.set_draw_color(pixels::Color::RGB(0, 0, 0));
+  renderer.set_draw_color(pixels::Color::RGB(15, 56, 15));
   renderer.clear();
-  RefCell::new(renderer)
+  RefCell::new((sdl_context, renderer))
 }
 
 fn main() {
-  // let mut renderer = initialize_window();
-  // renderer.borrow_mut().present();
+  let (mut sdl_context, mut renderer) = initialize_window().into_inner();
+
+  // renderer.present();
 
   let mut game_boy = GameBoy::new();
   game_boy.initialize();
@@ -184,8 +186,19 @@ fn main() {
   println!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
   println!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
-  loop {
-    game_boy.tick(); // TODO call this 60 times a second
+  let mut events = sdl_context.event_pump().unwrap();
+
+  'main: loop {
+    for event in events.poll_iter() {
+      match event {
+        Event::Quit {..} => break 'main,
+        _ => {
+          game_boy.tick();
+          renderer.present();
+        }
+      }
+    }
+    // game_boy.tick(); // TODO call this 60 times a second
     // ppu.tick(cpu.cycles)
     // screen.render(ppu.frame_buffer)
 
