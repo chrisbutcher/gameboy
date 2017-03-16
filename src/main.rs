@@ -48,6 +48,7 @@ pub mod ppu;
 // http://www.codeslinger.co.uk/pages/projects/gameboy/beginning.html
 // https://cturt.github.io/cinoop.html
 // https://github.com/jedahan/rustboy/blob/master/development_log.md
+// https://speakerdeck.com/albertofem/a-journey-into-hardware-emulation-building-a-gameboy-emulator-from-scratch
 
 // Livecoding
 // https://www.youtube.com/watch?v=025tC0DcFUI&t=625s

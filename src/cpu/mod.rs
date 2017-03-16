@@ -220,7 +220,7 @@ impl CPU {
       0x33 => { println!("INC SP : inc_sp() not implemented! {:#X}", opcode); 42 },
       0x34 => { println!("INC (HL) : inc_hl() not implemented! {:#X}", opcode); 42 },
       0x35 => { println!("DEC (HL) : dec_hl() not implemented! {:#X}", opcode); 42 },
-      0x36 => { println!("LD (HL),n : ld_hl_n() not implemented! {:#X}", opcode); 42 },
+      0x36 => { println!("LD (HL),n"); self.ld_hl_n(mmu); 12 },
       0x37 => { println!("SCF : scf() not implemented! {:#X}", opcode); 42 },
       0x38 => { println!("JR C,n : jr_c_n() not implemented! {:#X}", opcode); 42 },
       0x39 => { println!("ADD HL,SP : add_hl_sp() not implemented! {:#X}", opcode); 42 },
@@ -395,7 +395,7 @@ impl CPU {
       0xE7 => { println!("RST 20H : rst_20h() not implemented! {:#X}", opcode); 42 },
       0xE8 => { println!("ADD SP,n : add_sp_n() not implemented! {:#X}", opcode); 42 },
       0xE9 => { println!("JP (HL) : jp_hl() not implemented! {:#X}", opcode); 42 },
-      0xEA => { println!("LD (nn),A : ld_nn_a() not implemented! {:#X}", opcode); 42 },
+      0xEA => { println!("LD (nn),A"); self.ld_nn_a(mmu); 16 },
       0xEE => { println!("XOR n : xor_n() not implemented! {:#X}", opcode); 42 },
       0xEF => { println!("RST 28H : rst_28h() not implemented! {:#X}", opcode); 42 },
       0xF0 => { println!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu); 12 },
@@ -528,9 +528,26 @@ impl CPU {
   fn cp_n(&mut self, mmu: &mut mmu::MMU) {
     let value = mmu.read(self.PC);
     shared_cp(self, value);
-    // OPCodes_CP(m_pMemory->Read(PC.GetValue()));
-    // PC.Increment();
     self.PC += 1;
+  }
+
+  fn ld_hl_n(&mut self, mmu: &mmu::MMU) {
+    let value = mmu.read_word(self.PC);
+    self.write_word_reg(RegEnum::HL, value);
+    self.PC += 1;
+  }
+
+  fn ld_nn_a(&mut self, mmu: &mmu::MMU) {
+    let low = mmu.read(self.PC);
+    self.PC += 1;
+
+    let high = mmu.read(self.PC);
+    self.PC += 1;
+
+    let addr = ((low as types::Word) << 8) | high as types::Word;
+    let value = mmu.read(addr);
+
+    self.write_byte_reg(RegEnum::A, value);
   }
 
   // Helpers
