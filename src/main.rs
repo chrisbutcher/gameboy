@@ -55,7 +55,6 @@ pub mod ppu;
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
-  ppu: ppu::PPU
 }
 
 const MAX_CYCLES_PER_UPDATE: i32 = 69905;
@@ -65,7 +64,6 @@ impl GameBoy {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
-      ppu: ppu::PPU::new()
     }
   }
 
@@ -132,7 +130,7 @@ impl GameBoy {
   }
 
   fn update_graphics(&mut self, cycles: i32) {
-    // NOOP
+    self.mmu.ppu.borrow_mut().tick(cycles);
   }
 
   fn do_interrupts(&mut self) {
@@ -174,7 +172,7 @@ fn initialize_window<'a>() -> RefCell<(sdl2::Sdl, sdl2::render::Renderer<'a>)> {
 }
 
 fn main() {
-  let (mut sdl_context, mut renderer) = initialize_window().into_inner();
+  // let (mut sdl_context, mut renderer) = initialize_window().into_inner();
 
   // renderer.present();
 
@@ -186,24 +184,32 @@ fn main() {
   println!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
   println!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
-  let mut events = sdl_context.event_pump().unwrap();
+  // let mut events = sdl_context.event_pump().unwrap();
 
-  'main: loop {
-    for event in events.poll_iter() {
-      match event {
-        Event::Quit {..} => break 'main,
-        _ => {
-          game_boy.tick();
-          renderer.present();
-        }
-      }
+  if true {
+    loop {
+      game_boy.tick();
     }
-    // game_boy.tick(); // TODO call this 60 times a second
-    // ppu.tick(cpu.cycles)
-    // screen.render(ppu.frame_buffer)
+  } else {
+    // 'main: loop {
+    //   for event in events.poll_iter() {
+    //     match event {
+    //       Event::Quit {..} => break 'main,
+    //       _ => {
+    //         game_boy.tick();
+    //         renderer.present();
+    //       }
+    //     }
+    //   }
+      // game_boy.tick(); // TODO call this 60 times a second
+      // ppu.tick(cpu.cycles)
+      // screen.render(ppu.frame_buffer)
 
-    // break // TODO
+      // break // TODO
+    // }
   }
+
+
 }
 
 #[test]

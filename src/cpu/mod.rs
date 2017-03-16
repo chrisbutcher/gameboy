@@ -6,7 +6,6 @@ use std::env;
 pub use super::types;
 pub use super::mmu;
 pub use super::cartridge;
-pub mod opcodes;
 
 const FLAG_ZERO: types::Byte = 0x80; // Zero
 const FLAG_SUB: types::Byte = 0x40; // Negative,
@@ -521,10 +520,6 @@ impl CPU {
   fn ld_a_0xff00_plus_n(&mut self, mmu: &mut mmu::MMU) {
     let operand = mmu.read(self.PC) as types::Word;
     let value = mmu.read(0xFF00 + operand);
-
-    // if operand == 0x44 { // HACK
-    //   self.write_byte_reg(RegEnum::A, 0x94);
-    // }
 
     self.write_byte_reg(RegEnum::A, value);
     self.PC += 1;

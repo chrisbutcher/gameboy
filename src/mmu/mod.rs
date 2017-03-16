@@ -1,8 +1,10 @@
 use std::io::prelude::*;
 use std::fs::File;
+use std::cell::RefCell;
 
 pub use super::types;
 pub use super::cartridge;
+pub use super::ppu;
 
 pub struct MMU {
   pub cartridge: cartridge::Cartridge, // 0000-7fff
@@ -13,6 +15,7 @@ pub struct MMU {
   pub io: Vec<types::Byte>,            // FF00-FF7F
   pub zram: Vec<types::Byte>,          // FF80-FFFF (zero page ram)
 
+  pub ppu: RefCell<ppu::PPU>,
   // Switches banks via the MBC (memory bank controller)
 }
 
@@ -26,6 +29,7 @@ impl MMU {
       sprite_info: vec![0x00; 0x100],
       io: vec![0x00; 0x100],
       zram: vec![0x00; 0x80],
+      ppu: RefCell::new(ppu::PPU::new()),
     }
   }
 
@@ -36,13 +40,23 @@ impl MMU {
 
   pub fn read(&self, address: types::Word) -> types::Byte {
     match address {
-      0x0000 ... 0x7FFF => { println!("MMU#read from cartridge"); self.cartridge.buffer[address as usize] },
+      0x0000 ... 0x7FFF => {
+        // println!("MMU#read from cartridge");
+        self.cartridge.buffer[address as usize]
+      },
       0x8000 ... 0x9FFF => { println!("MMU#read from video_ram"); self.video_ram[address as usize - 0x8000] },
       0xA000 ... 0xBFFF => { println!("MMU#read from external_ram"); self.external_ram[address as usize - 0xA000] },
       0xC000 ... 0xDFFF => { println!("MMU#read from work_ram"); self.work_ram[address as usize - 0xC000] },
       0xE000 ... 0xFDFF => { println!("MMU#read from work_ram"); self.work_ram[address as usize - 0xE000 - 2000] }, // ECHO work ram
       0xFE00 ... 0xFE9F => { println!("MMU#read from sprite_info"); self.sprite_info[address as usize - 0xFE00] },
-      0xFF00 ... 0xFF7F => { println!("MMU#read from io"); self.io[address as usize - 0xFF00] },
+      0xFF00 ... 0xFF3F => { println!("MMU#read from io"); self.io[address as usize - 0xFF00] },
+      addr @ 0xFF40 ... 0xFF7F => {
+        println!("MMU#read from ppu");
+        match addr {
+          0xFF40 | 0xFF42 | 0xFF43 | 0xFF44 => {  self.ppu.borrow_mut().rb(addr) },
+          _ => { self.io[address as usize - 0xFF00] }
+        }
+      },
       0xFF80 ... 0xFFFF => { println!("MMU#read from zram"); self.zram[address as usize - 0xFF80] },
       _ => { panic!("Memory access is out of bounds: {:#X}", address); }
     }
@@ -65,7 +79,8 @@ impl MMU {
       0xE000 ... 0xFDFF => { let echo_ram_offset = 0x2000; self.write(address - echo_ram_offset, data) }, // ECHO work ra }m
       0xFE00 ... 0xFE9F => { println!("MMU#write to sprite_info"); self.sprite_info[address as usize - 0xFE00] = data },
       0xFEA0 ... 0xFEFF => { panic!("Writing to disallowed memory region: {:#X}", address); }, // no-op
-      0xFF00 ... 0xFF7F => { println!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
+      0xFF00 ... 0xFF3F => { println!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
+      0xFF40 ... 0xFF7F => { println!("MMU#write to ppu"); self.io[address as usize - 0xFF00] = data },
       0xFF80 ... 0xFFFF => { println!("MMU#write to zram"); self.zram[address as usize - 0xFF80] = data },
       _ => { panic!("Memory access is out of bounds: {:#X}", address); }
     }
