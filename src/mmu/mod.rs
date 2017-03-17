@@ -78,7 +78,7 @@ impl MMU {
       0xC000 ... 0xDFFF => { println!("MMU#write to work_ram"); self.work_ram[address as usize - 0xC000] = data },
       0xE000 ... 0xFDFF => { let echo_ram_offset = 0x2000; self.write(address - echo_ram_offset, data) }, // ECHO work ra }m
       0xFE00 ... 0xFE9F => { println!("MMU#write to sprite_info"); self.sprite_info[address as usize - 0xFE00] = data },
-      0xFEA0 ... 0xFEFF => { panic!("Writing to disallowed memory region: {:#X}", address); }, // no-op
+      0xFEA0 ... 0xFEFF => { println!("Writing to disallowed memory region: {:#X}", address); }, // no-op
       0xFF00 ... 0xFF3F => { println!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
       0xFF40 ... 0xFF7F => { println!("MMU#write to ppu"); self.io[address as usize - 0xFF00] = data },
       0xFF80 ... 0xFFFF => { println!("MMU#write to zram"); self.zram[address as usize - 0xFF80] = data },

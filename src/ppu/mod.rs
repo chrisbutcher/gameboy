@@ -32,8 +32,6 @@ impl PPU {
         self.scroll_x as types::Byte
       },
       0xFF44 => {
-        println!("!!!!!!!!!!!! {}", self.line as types::Byte);
-
         self.line as types::Byte
       },
       _ => {
@@ -107,6 +105,6 @@ impl PPU {
       }
     }
 
-    println!("PPU#tick()");
+    // println!("PPU#tick()");
   }
 }
