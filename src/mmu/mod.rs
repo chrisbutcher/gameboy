@@ -68,6 +68,13 @@ impl MMU {
     ((hi_byte as types::Word) << 8) | lo_byte as types::Word
   }
 
+  pub fn write_word(&mut self, address: types::Word, data: types::Word) {
+    let lo_data = (0x00FF & data) as types::Byte;
+    let hi_data = ((0xFF00 & data) >> 8) as types::Byte;
+    self.write(address, lo_data);
+    self.write(address + 1, hi_data);
+  }
+
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
     // println!("Writing {:#X}, with {:#X}", address, data);
 

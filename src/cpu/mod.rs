@@ -354,7 +354,7 @@ impl CPU {
       0xAE => { println!("XOR (HL) : xor_hl() not implemented! {:#X}", opcode); 42 },
       0xAF => { println!("XOR A"); self.xor_a(); 4 },
       0xB0 => { println!("OR B : or_b() not implemented! {:#X}", opcode); 42 },
-      0xB1 => { println!("OR C : or_c() not implemented! {:#X}", opcode); 42 },
+      0xB1 => { println!("OR C"); self.or_c(); 4 },
       0xB2 => { println!("OR D : or_d() not implemented! {:#X}", opcode); 42 },
       0xB3 => { println!("OR E : or_e() not implemented! {:#X}", opcode); 42 },
       0xB4 => { println!("OR H : or_h() not implemented! {:#X}", opcode); 42 },
@@ -378,7 +378,7 @@ impl CPU {
       0xC6 => { println!("ADD A,n : add_a_n() not implemented! {:#X}", opcode); 42 },
       0xC7 => { println!("RST 00H : rst_00h() not implemented! {:#X}", opcode); 42 },
       0xC8 => { println!("RET Z : ret_z() not implemented! {:#X}", opcode); 42 },
-      0xC9 => { println!("RET : ret() not implemented! {:#X}", opcode); 42 },
+      0xC9 => { println!("RET"); self.ret(mmu); 8 },
       0xCA => { println!("JP Z,nn : jp_z_nn() not implemented! {:#X}", opcode); 42 },
       0xCB => { println!("CB prefixed instruction : cb_prefixed_instruction() not implemented! {:#X}", opcode); 42 },
       0xCC => { println!("CALL Z,nn : call_z_nn() not implemented! {:#X}", opcode); 42 },
@@ -593,13 +593,10 @@ impl CPU {
     shared_inc_byte_reg(self, RegEnum::C);
   }
 
-  fn call_nn(&mut self, mmu: &mmu::MMU) {
-    let word = mmu.read_word(self.PC);
-    self.PC += 2;
-
+  fn call_nn(&mut self, mmu: &mut mmu::MMU) {
     let current_PC = self.PC;
-    self.stack_push(current_PC);
-    self.PC = word;
+    self.stack_push(current_PC + 2, mmu);
+    self.PC = mmu.read_word(self.PC);
   }
 
   fn ld_bc_nn(&mut self, mmu: &mmu::MMU) {
@@ -618,12 +615,28 @@ impl CPU {
     self.write_byte_reg(RegEnum::A, operand)
   }
 
+  fn or_c(&mut self) {
+    shared_or_n(self, RegEnum::C);
+  }
+
+  fn ret(&mut self, mmu: &mmu::MMU) {
+    self.stack_pop(mmu);
+  }
+
   // Helpers
 
-  fn stack_push(&mut self, word: types::Word) {
+  fn stack_push(&mut self, word: types::Word, mmu: &mut mmu::MMU) {
+    let current_SP = self.read_word_reg(RegEnum::SP); // TODO just manipulate .value directly
+    self.write_word_reg(RegEnum::SP, current_SP - 2);
+    mmu.write_word(self.read_word_reg(RegEnum::SP), word);
+  }
+
+  fn stack_pop(&mut self, mmu: &mmu::MMU) {
+    let addr = mmu.read_word(self.read_word_reg(RegEnum::SP));
+    self.PC = addr.swap_bytes(); // NOTE keep this swap_bytes call?
+
     let current_SP = self.read_word_reg(RegEnum::SP);
-    self.SP.write(current_SP - 2);
-    self.write_word_reg(RegEnum::SP, word);//.swap_bytes());
+    self.SP.write(current_SP + 2);
   }
 
   fn util_toggle_zero_flag_from_result(&mut self, result: types::Byte) {
@@ -709,6 +722,7 @@ fn shared_rotate_rr(cpu: &mut CPU, regEnum: RegEnum) {
 }
 
 fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
+  panic!("not implemented!")
   //   int carry = IsSetFlag(FLAG_CARRY) ? 1 : 0;
   //   int result = AF.GetHigh() + number + carry;
   //   ClearAllFlags();
@@ -739,6 +753,14 @@ fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
   if ((value.wrapping_sub(byte)) & 0xF) > (value & 0xF) {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
+}
+
+fn shared_or_n(cpu: &mut CPU, regEnum: RegEnum) {
+  let value = cpu.read_byte_reg(regEnum);
+  let result = cpu.read_byte_reg(RegEnum::A) | value;
+  cpu.write_byte_reg(RegEnum::A, result);
+  cpu.util_clear_all_flags();
+  cpu.util_toggle_zero_flag_from_result(result);
 }
 
 #[test]
