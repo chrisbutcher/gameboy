@@ -296,7 +296,7 @@ impl CPU {
       0x74 => { println!("LD (HL),H : ld_hl_h() not implemented! {:#X}", opcode); 42 },
       0x75 => { println!("LD (HL),L : ld_hl_l() not implemented! {:#X}", opcode); 42 },
       0x76 => { println!("HALT : halt() not implemented! {:#X}", opcode); 42 },
-      0x77 => { println!("LD (HL),A : ld_hl_a() not implemented! {:#X}", opcode); 42 },
+      0x77 => { println!("LD (HL),A"); self.ld_hl_a(mmu); 8 },
       0x78 => { println!("LD A,B"); self.ld_a_b(); 4 },
       0x79 => { println!("LD A,C : ld_a_c() not implemented! {:#X}", opcode); 42 },
       0x7A => { println!("LD A,D"); self.ld_a_d(); 4 },
@@ -402,7 +402,7 @@ impl CPU {
       0xE1 => { println!("POP HL : pop_hl() not implemented! {:#X}", opcode); 42 },
       0xE2 => { println!("LD (0xFF00+C),A"); self.ld_0xff00_plus_c_a(mmu); 8 },
       0xE5 => { println!("PUSH HL : push_hl() not implemented! {:#X}", opcode); 42 },
-      0xE6 => { println!("AND n : and_n() not implemented! {:#X}", opcode); 42 },
+      0xE6 => { println!("AND n"); self.and_n(mmu); 8 },
       0xE7 => { println!("RST 20H : rst_20h() not implemented! {:#X}", opcode); 42 },
       0xE8 => { println!("ADD SP,n : add_sp_n() not implemented! {:#X}", opcode); 42 },
       0xE9 => { println!("JP (HL) : jp_hl() not implemented! {:#X}", opcode); 42 },
@@ -616,11 +616,24 @@ impl CPU {
   }
 
   fn or_c(&mut self) {
-    shared_or_n(self, RegEnum::C);
+    let value = self.read_byte_reg(RegEnum::C);
+    shared_or_n(self, value);
   }
 
   fn ret(&mut self, mmu: &mmu::MMU) {
     self.stack_pop(mmu);
+  }
+
+  fn ld_hl_a(&mut self, mmu: &mut mmu::MMU) {
+    let addr = self.read_word_reg(RegEnum::SP);
+    mmu.write(addr, self.read_byte_reg(RegEnum::A));
+  }
+
+  fn and_n(&mut self, mmu: &mmu::MMU) {
+    let value = mmu.read(self.PC);
+    shared_and_n(self, value);
+
+    self.PC += 1;
   }
 
   // Helpers
@@ -755,11 +768,17 @@ fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
   }
 }
 
-fn shared_or_n(cpu: &mut CPU, regEnum: RegEnum) {
-  let value = cpu.read_byte_reg(regEnum);
-  let result = cpu.read_byte_reg(RegEnum::A) | value;
+fn shared_or_n(cpu: &mut CPU, byte: types::Byte) {
+  let result = cpu.read_byte_reg(RegEnum::A) | byte;
   cpu.write_byte_reg(RegEnum::A, result);
   cpu.util_clear_all_flags();
+  cpu.util_toggle_zero_flag_from_result(result);
+}
+
+fn shared_and_n(cpu: &mut CPU, byte: types::Byte) {
+  let result = cpu.read_byte_reg(RegEnum::A) & byte;
+  cpu.write_byte_reg(RegEnum::A, result);
+  cpu.util_set_flag(FLAG_HALF_CARRY);
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
