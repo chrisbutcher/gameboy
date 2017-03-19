@@ -84,7 +84,7 @@ impl PPU {
             self.mode = 1;
             self.render_screen();
           } else {
-            self.mode = 2;
+            self.mode = 2; // Re-enter OAM read mode
           }
         }
       },
@@ -95,7 +95,7 @@ impl PPU {
           self.line += 1;
 
           if self.line > 153 {
-            self.mode = 0;
+            self.mode = 2;
             self.line = 0;
           }
         }

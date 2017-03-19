@@ -468,8 +468,6 @@ impl CPU {
     let address = self.read_word_reg(RegEnum::HL);
     mmu.write(address, value);
     self.write_word_reg(RegEnum::HL, address - 1);
-    // self.write_word_reg(RegEnum::HL, value.wrapping_sub(1));
-    // panic!("Seems to be wrong, bgb sets HL to $DFFE"); // TODO
   }
 
   fn dec_b(&mut self) {
@@ -558,26 +556,17 @@ impl CPU {
   }
 
   fn ld_nn_a(&mut self, mmu: &mmu::MMU) {
-    let low = mmu.read(self.PC);
-    self.PC += 1;
+    let addr = mmu.read_word(self.PC);
 
-    let high = mmu.read(self.PC);
-    self.PC += 1;
-
-    let addr = ((low as types::Word) << 8) | high as types::Word;
+    self.PC += 2;
     let value = mmu.read(addr);
 
     self.write_byte_reg(RegEnum::A, value);
   }
 
   fn ld_sp_nn(&mut self, mmu: &mmu::MMU) {
-    let low = mmu.read(self.PC);
-    self.PC += 1;
-
-    let high = mmu.read(self.PC);
-    self.PC += 1;
-
-    let value = ((high as types::Word) << 8) | low as types::Word;
+    let value = mmu.read_word(self.PC);
+    self.PC += 2;
 
     self.write_word_reg(RegEnum::SP, value);
   }
@@ -653,12 +642,6 @@ impl CPU {
   }
 
   fn inc_hl(&mut self, mmu: &mmu::MMU) {
-    // if (m_iAccurateOPCodeState == 1)
-    // {
-    //     m_iReadCache = m_pMemory->Read(HL.GetValue()) + 1;
-    //     return;
-    // }
-    // m_pMemory->Write(HL.GetValue(), m_iReadCache);
     let result = self.read_word_reg(RegEnum::HL) + 1;
 
     if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() };
@@ -667,13 +650,6 @@ impl CPU {
     if result & 0x0F == 0x00 {
       self.util_toggle_flag(FLAG_HALF_CARRY);
     }
-
-    // IsSetFlag(FLAG_CARRY) ? SetFlag(FLAG_CARRY) : ClearAllFlags();
-    // ToggleZeroFlagFromResult(m_iReadCache);
-    // if ((m_iReadCache & 0x0F) == 0x00)
-    // {
-    //     ToggleFlag(FLAG_HALF);
-    // }
   }
 
   // Helpers

@@ -9,6 +9,7 @@ extern crate time;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+use log::LogLevel;
 
 extern crate sdl2;
 use sdl2::pixels;
@@ -70,7 +71,8 @@ impl GameBoy {
 
   pub fn initialize(&mut self) {
     // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
-    self.cpu.PC = 0x0100;
+    // self.cpu.PC = 0x0100;
+    self.cpu.PC = 0x0; // TODO
 
     self.cpu.AF.write(0x01B0);
     self.cpu.BC.write(0x0013);
@@ -172,7 +174,9 @@ fn initialize_window<'a>() -> RefCell<(sdl2::Sdl, sdl2::render::Renderer<'a>)> {
   RefCell::new((sdl_context, renderer))
 }
 
+// RUST_LOG=debug cargo run tetris.gb
 fn main() {
+  env_logger::init().unwrap();
   // let (mut sdl_context, mut renderer) = initialize_window().into_inner();
 
   // renderer.present();
