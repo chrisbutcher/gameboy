@@ -217,7 +217,7 @@ impl CPU {
       0x25 => { println!("DEC H : dec_h() not implemented! {:#X}", opcode); 42 },
       0x26 => { println!("LD H,n : ld_h_n() not implemented! {:#X}", opcode); 42 },
       0x27 => { println!("DAA : daa() not implemented! {:#X}", opcode); 42 },
-      0x28 => { println!("JR Z,n : jr_z_n() not implemented! {:#X}", opcode); 42 },
+      0x28 => { println!("JR Z,n"); self.jr_z_n(mmu); 8 },
       0x29 => { println!("ADD HL,HL : add_hl_hl() not implemented! {:#X}", opcode); 42 },
       0x2A => { println!("LD A,(HLI)"); self.ld_a_hli(mmu); 8 },
       0x2B => { println!("DEC HL : dec_hl() not implemented! {:#X}", opcode); 42 },
@@ -229,7 +229,7 @@ impl CPU {
       0x31 => { println!("LD SP,nn"); self.ld_sp_nn(mmu); 12 },
       0x32 => { println!("LD (HLD), A"); self.ld_hld_a(mmu); 8 },
       0x33 => { println!("INC SP : inc_sp() not implemented! {:#X}", opcode); 42 },
-      0x34 => { println!("INC (HL) : inc_hl() not implemented! {:#X}", opcode); 42 },
+      0x34 => { println!("INC (HL)"); self.inc_hl(mmu); 12 },
       0x35 => { println!("DEC (HL) : dec_hl() not implemented! {:#X}", opcode); 42 },
       0x36 => { println!("LD (HL),n"); self.ld_hl_n(mmu); 12 },
       0x37 => { println!("SCF : scf() not implemented! {:#X}", opcode); 42 },
@@ -298,7 +298,7 @@ impl CPU {
       0x76 => { println!("HALT : halt() not implemented! {:#X}", opcode); 42 },
       0x77 => { println!("LD (HL),A"); self.ld_hl_a(mmu); 8 },
       0x78 => { println!("LD A,B"); self.ld_a_b(); 4 },
-      0x79 => { println!("LD A,C : ld_a_c() not implemented! {:#X}", opcode); 42 },
+      0x79 => { println!("LD A,C"); self.ld_a_c(); 4 },
       0x7A => { println!("LD A,D"); self.ld_a_d(); 4 },
       0x7B => { println!("LD A,E : ld_a_e() not implemented! {:#X}", opcode); 42 },
       0x7C => { println!("LD A,H : ld_a_h() not implemented! {:#X}", opcode); 42 },
@@ -495,6 +495,16 @@ impl CPU {
     shared_rotate_rr(self, RegEnum::A)
   }
 
+  fn ld_a_b(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::B);
+    self.write_byte_reg(RegEnum::A, operand)
+  }
+
+  fn ld_a_c(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::C);
+    self.write_byte_reg(RegEnum::A, operand)
+  }
+
   fn ld_a_d(&mut self) {
     let operand = self.read_byte_reg(RegEnum::D);
     self.write_byte_reg(RegEnum::A, operand)
@@ -610,11 +620,6 @@ impl CPU {
     shared_dec_word_reg(self, RegEnum::BC);
   }
 
-  fn ld_a_b(&mut self) {
-    let operand = self.read_byte_reg(RegEnum::B);
-    self.write_byte_reg(RegEnum::A, operand)
-  }
-
   fn or_c(&mut self) {
     let value = self.read_byte_reg(RegEnum::C);
     shared_or_n(self, value);
@@ -636,6 +641,41 @@ impl CPU {
     self.PC += 1;
   }
 
+  fn jr_z_n(&mut self, mmu: &mmu::MMU) {
+    if self.util_is_flag_set(FLAG_ZERO) {
+      let operand_dest = mmu.read(self.PC) as types::SignedByte;
+      self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
+
+      self.BranchTaken = true;
+    } else {
+      self.PC += 1;
+    }
+  }
+
+  fn inc_hl(&mut self, mmu: &mmu::MMU) {
+    // if (m_iAccurateOPCodeState == 1)
+    // {
+    //     m_iReadCache = m_pMemory->Read(HL.GetValue()) + 1;
+    //     return;
+    // }
+    // m_pMemory->Write(HL.GetValue(), m_iReadCache);
+    let result = self.read_word_reg(RegEnum::HL) + 1;
+
+    if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() };
+    self.util_toggle_zero_flag_from_word_result(result);
+
+    if result & 0x0F == 0x00 {
+      self.util_toggle_flag(FLAG_HALF_CARRY);
+    }
+
+    // IsSetFlag(FLAG_CARRY) ? SetFlag(FLAG_CARRY) : ClearAllFlags();
+    // ToggleZeroFlagFromResult(m_iReadCache);
+    // if ((m_iReadCache & 0x0F) == 0x00)
+    // {
+    //     ToggleFlag(FLAG_HALF);
+    // }
+  }
+
   // Helpers
 
   fn stack_push(&mut self, word: types::Word, mmu: &mut mmu::MMU) {
@@ -653,6 +693,12 @@ impl CPU {
   }
 
   fn util_toggle_zero_flag_from_result(&mut self, result: types::Byte) {
+    if result == 0 {
+      self.util_toggle_flag(FLAG_ZERO);
+    }
+  }
+
+  fn util_toggle_zero_flag_from_word_result(&mut self, result: types::Word) {
     if result == 0 {
       self.util_toggle_flag(FLAG_ZERO);
     }
