@@ -12,11 +12,13 @@ extern crate env_logger;
 use log::LogLevel;
 
 extern crate sdl2;
+use sdl2::render;
 use sdl2::pixels;
 use sdl2::event::Event;
 
 use std::{thread};
 use std::time::Duration;
+use std::cell::Cell;
 use std::cell::RefCell;
 
 pub mod types;
@@ -54,18 +56,20 @@ pub mod ppu;
 // Livecoding
 // https://www.youtube.com/watch?v=025tC0DcFUI&t=625s
 
-struct GameBoy {
+struct GameBoy<'a> {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
+  renderer: Option<Renderer<'a>>, // http://jadpole.github.io/arcaders/arcaders-1-4
 }
 
 const MAX_CYCLES_PER_UPDATE: i32 = 69905;
 
-impl GameBoy {
-  pub fn new() -> GameBoy {
+impl<'a> GameBoy<'a> {
+  pub fn new() -> GameBoy<'a> {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
+      renderer: None
     }
   }
 
@@ -113,7 +117,7 @@ impl GameBoy {
     self.mmu.write(0xFFFF, 0x00);
   }
 
-  fn tick(&mut self) {
+  fn compute_frame(&mut self) {
     let mut cycles_this_update = 0;
 
     while cycles_this_update < MAX_CYCLES_PER_UPDATE {
@@ -125,7 +129,7 @@ impl GameBoy {
 
       // break; // TODO
     }
-    self.render_screen()
+    self.render_screen();
   }
 
   fn update_timers(&mut self, cycles: i32) {
@@ -142,6 +146,7 @@ impl GameBoy {
 
   fn render_screen(&mut self) {
     // NOOP
+    // NOTE Don't push SDL2 struct into here, just update 3d array and render it in outer loop below
   }
 
   pub fn print_game_title(&self) {
@@ -154,7 +159,7 @@ impl GameBoy {
       title.push(ch)
     }
 
-    println!("Loading ROM: {:?}", title.trim()) // TODO
+    debug!("Loading ROM: {:?}", title.trim()) // TODO
   }
 }
 
@@ -167,9 +172,9 @@ fn initialize_window<'a>() -> RefCell<(sdl2::Sdl, sdl2::render::Renderer<'a>)> {
     .build()
     .unwrap();
 
-  let mut renderer = window.renderer().build().unwrap();
+  let mut renderer = window.renderer().present_vsync().build().unwrap();
 
-  renderer.set_draw_color(pixels::Color::RGB(15, 56, 15));
+  renderer.set_draw_color(pixels::Color::RGB(152, 184, 24));
   renderer.clear();
   RefCell::new((sdl_context, renderer))
 }
@@ -177,44 +182,41 @@ fn initialize_window<'a>() -> RefCell<(sdl2::Sdl, sdl2::render::Renderer<'a>)> {
 // RUST_LOG=debug cargo run tetris.gb
 fn main() {
   env_logger::init().unwrap();
-  // let (mut sdl_context, mut renderer) = initialize_window().into_inner();
+  let (mut sdl_context, mut renderer) = initialize_window().into_inner();
 
-  // renderer.present();
+  renderer.present();
 
   let mut game_boy = GameBoy::new();
+
   game_boy.initialize();
   game_boy.mmu.load_game("tetris.gb");
   // game_boy.mmu.load_game("cpu_instrs.gb");
   game_boy.print_game_title();
-  println!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
-  println!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
+  debug!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
+  debug!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
-  // let mut events = sdl_context.event_pump().unwrap();
+  let mut events = sdl_context.event_pump().unwrap();
 
-  if true {
-    loop {
-      game_boy.tick();
+  'main: loop {
+    for event in events.poll_iter() {
+      match event {
+        Event::Quit {..} => break 'main,
+        _ => {
+        }
+      }
     }
-  } else {
-    // 'main: loop {
-    //   for event in events.poll_iter() {
-    //     match event {
-    //       Event::Quit {..} => break 'main,
-    //       _ => {
-    //         game_boy.tick();
-    //         renderer.present();
-    //       }
-    //     }
-    //   }
-      // game_boy.tick(); // TODO call this 60 times a second
-      // ppu.tick(cpu.cycles)
-      // screen.render(ppu.frame_buffer)
 
-      // break // TODO
-    // }
+    renderer.set_draw_color(pixels::Color::RGB(152, 184, 24));
+    renderer.clear();
+
+    game_boy.compute_frame();
+
+    renderer.set_draw_color(pixels::Color::RGB(255, 255, 255));
+    renderer.draw_line(sdl2::rect::Point::new(0,0), sdl2::rect::Point::new(100,100));
+    renderer.present();
+
+    // break // TODO
   }
-
-
 }
 
 #[test]

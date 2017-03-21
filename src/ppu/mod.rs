@@ -1,4 +1,5 @@
 pub use super::types;
+pub use super::sdl2;
 
 // PPU supports tiles: 8x8 pixel groups
 // Modes: Sprite Read, Video Read, Horizontal Blank, Vertical Blank
@@ -6,7 +7,6 @@ pub use super::types;
 pub struct PPU {
   // Framebuffer -- 3d array of pixels. 160 x 144 x 3 (3 bytes to support GBC, first byte for b&w)
   // framebuffer: [[[types::Byte; 160]; 144]; 3]
-
   pub mode: u8,
   pub mode_clock: i32,
   pub line: u8,
@@ -105,6 +105,6 @@ impl PPU {
       }
     }
 
-    // println!("PPU#tick()");
+    // debug!("PPU#tick()");
   }
 }
