@@ -9,17 +9,9 @@ extern crate time;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-use log::LogLevel;
 
 extern crate sdl2;
-use sdl2::render;
-use sdl2::pixels;
 use sdl2::event::Event;
-
-use std::{thread};
-use std::time::Duration;
-use std::cell::Cell;
-use std::cell::RefCell;
 
 pub mod types;
 pub mod cpu;
@@ -34,6 +26,10 @@ pub mod ppu;
 // https://www.youtube.com/watch?v=ecTQVa42sJc
 // http://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
 // http://gameboy.mongenel.com/asmschool.html
+
+// Rust sdl2
+// http://jadpole.github.io/arcaders/arcaders-1-4
+// https://github.com/simias/gb-rs/blob/master/src/ui/sdl2/display.rs#L10
 
 // Test roms:
 // http://gbdev.gg8.se/files/roms/blargg-gb-tests/
@@ -56,20 +52,18 @@ pub mod ppu;
 // Livecoding
 // https://www.youtube.com/watch?v=025tC0DcFUI&t=625s
 
-struct GameBoy<'a> {
+struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
-  renderer: Option<Renderer<'a>>, // http://jadpole.github.io/arcaders/arcaders-1-4
 }
 
 const MAX_CYCLES_PER_UPDATE: i32 = 69905;
 
-impl<'a> GameBoy<'a> {
-  pub fn new() -> GameBoy<'a> {
+impl GameBoy {
+  pub fn new() -> GameBoy {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
-      renderer: None
     }
   }
 
@@ -117,7 +111,8 @@ impl<'a> GameBoy<'a> {
     self.mmu.write(0xFFFF, 0x00);
   }
 
-  fn compute_frame(&mut self) {
+  fn render_frame(&mut self) {
+    // TODO LIMIT to max 60
     let mut cycles_this_update = 0;
 
     while cycles_this_update < MAX_CYCLES_PER_UPDATE {
@@ -145,8 +140,7 @@ impl<'a> GameBoy<'a> {
   }
 
   fn render_screen(&mut self) {
-    // NOOP
-    // NOTE Don't push SDL2 struct into here, just update 3d array and render it in outer loop below
+    self.mmu.ppu.borrow_mut().render_screen();
   }
 
   pub fn print_game_title(&self) {
@@ -163,39 +157,27 @@ impl<'a> GameBoy<'a> {
   }
 }
 
-fn initialize_window<'a>() -> RefCell<(sdl2::Sdl, sdl2::render::Renderer<'a>)> {
-  let sdl_context = sdl2::init().unwrap();
-  let video_subsys = sdl_context.video().unwrap();
-  let window = video_subsys.window("GAMEBOY", 160, 144)
-    .position_centered()
-    .opengl()
-    .build()
-    .unwrap();
-
-  let mut renderer = window.renderer().present_vsync().build().unwrap();
-
-  renderer.set_draw_color(pixels::Color::RGB(152, 184, 24));
-  renderer.clear();
-  RefCell::new((sdl_context, renderer))
-}
-
 // RUST_LOG=debug cargo run tetris.gb
 fn main() {
   env_logger::init().unwrap();
-  let (mut sdl_context, mut renderer) = initialize_window().into_inner();
-
-  renderer.present();
-
   let mut game_boy = GameBoy::new();
 
   game_boy.initialize();
   game_boy.mmu.load_game("tetris.gb");
   // game_boy.mmu.load_game("cpu_instrs.gb");
+
   game_boy.print_game_title();
   debug!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
   debug!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
-  let mut events = sdl_context.event_pump().unwrap();
+  let mut events = None;
+
+  {
+    let ppu = game_boy.mmu.ppu.borrow_mut();
+    events = Some(ppu.sdl_context.event_pump().unwrap());
+  }
+
+  let mut events = events.unwrap();
 
   'main: loop {
     for event in events.poll_iter() {
@@ -206,16 +188,7 @@ fn main() {
       }
     }
 
-    renderer.set_draw_color(pixels::Color::RGB(152, 184, 24));
-    renderer.clear();
-
-    game_boy.compute_frame();
-
-    renderer.set_draw_color(pixels::Color::RGB(255, 255, 255));
-    renderer.draw_line(sdl2::rect::Point::new(0,0), sdl2::rect::Point::new(100,100));
-    renderer.present();
-
-    // break // TODO
+    game_boy.render_frame();
   }
 }
 

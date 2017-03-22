@@ -1,5 +1,7 @@
 pub use super::types;
 pub use super::sdl2;
+pub use super::sdl2::pixels;
+pub use super::sdl2::render::Renderer;
 
 // PPU supports tiles: 8x8 pixel groups
 // Modes: Sprite Read, Video Read, Horizontal Blank, Vertical Blank
@@ -12,12 +14,35 @@ pub struct PPU {
   pub line: u8,
   pub scroll_x: u8,
   pub scroll_y: u8,
+
+  pub sdl_context: sdl2::Sdl,
+  pub renderer: Renderer<'static>,
 }
 
 impl PPU {
   pub fn new() -> PPU {
-    // PPU{framebuffer: [[[0x00; 160]; 144]; 3]}
-    PPU{ mode: 0, mode_clock: 0, line: 0, scroll_x: 0, scroll_y: 0 }
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsys = sdl_context.video().unwrap();
+    let window = video_subsys.window("GAMEBOY", 160, 144)
+      .position_centered()
+      .opengl()
+      .build()
+      .unwrap();
+
+    let renderer = window.renderer()
+      .present_vsync()
+      .build()
+      .unwrap();
+
+    PPU {
+      mode: 0,
+      mode_clock: 0,
+      line: 0,
+      scroll_x: 0,
+      scroll_y: 0,
+      sdl_context: sdl_context,
+      renderer: renderer,
+    }
   }
 
   pub fn rb(&mut self, address: types::Word) -> types::Byte {
@@ -46,6 +71,12 @@ impl PPU {
 
   pub fn render_screen(&mut self) {
     // NO OP
+    self.renderer.set_draw_color(pixels::Color::RGB(152, 184, 24));
+    self.renderer.clear();
+
+    self.renderer.set_draw_color(pixels::Color::RGB(255, 255, 255));
+    self.renderer.draw_line(sdl2::rect::Point::new(0,0), sdl2::rect::Point::new(100,100));
+    self.renderer.present();
   }
 
   pub fn tick(&mut self, cycles: i32) {
