@@ -8,7 +8,7 @@ pub use super::ppu;
 
 pub struct MMU {
   pub cartridge: cartridge::Cartridge, // 0000-7fff
-  pub video_ram: Vec<types::Byte>,     // 8000-9FFF
+  // GPU's video ram                      8000-9FFF
   pub external_ram: Vec<types::Byte>,  // A000-BFFF
   pub work_ram: Vec<types::Byte>,      // C000-DFFF, with E000-FDFF shadow
   pub sprite_info: Vec<types::Byte>,   // FE00-FE9F
@@ -23,7 +23,6 @@ impl MMU {
   pub fn new() -> MMU {
     MMU {
       cartridge: cartridge::Cartridge::new(),
-      video_ram: vec![0x00; 0x2000],
       external_ram: vec![0x00; 0x2000],
       work_ram: vec![0x00; 0x2000],
       sprite_info: vec![0x00; 0x100],
@@ -44,7 +43,7 @@ impl MMU {
         // debug!("MMU#read from cartridge");
         self.cartridge.buffer[address as usize]
       },
-      0x8000 ... 0x9FFF => { debug!("MMU#read from video_ram"); self.video_ram[address as usize - 0x8000] },
+      0x8000 ... 0x9FFF => { debug!("MMU#read from PPU.video_ram"); self.ppu.borrow_mut().video_ram[address as usize - 0x8000] },
       0xA000 ... 0xBFFF => { debug!("MMU#read from external_ram"); self.external_ram[address as usize - 0xA000] },
       0xC000 ... 0xDFFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xC000] },
       0xE000 ... 0xFDFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xE000 - 2000] }, // ECHO work ram
@@ -53,7 +52,7 @@ impl MMU {
       addr @ 0xFF40 ... 0xFF7F => {
         debug!("MMU#read from ppu");
         match addr {
-          0xFF40 | 0xFF42 | 0xFF43 | 0xFF44 => {  self.ppu.borrow_mut().rb(addr) },
+          0xFF40 | 0xFF42 | 0xFF43 | 0xFF44 => {  self.ppu.borrow_mut().read(addr) },
           _ => { self.io[address as usize - 0xFF00] }
         }
       },
@@ -76,14 +75,19 @@ impl MMU {
   }
 
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
-    // debug!("Writing {:#X}, with {:#X}", address, data);
+    debug!("Writing {:#X}, with {:#X}", address, data);
 
     match address {
       0x0000 ... 0x7FFF => { panic!("Writing to disallowed memory region: {:#X}", address); }, // no-op
-      0x8000 ... 0x9FFF => { debug!("MMU#write to video_ram"); self.video_ram[address as usize - 0x8000] = data },
+      0x8000 ... 0x9FFF => {
+        debug!("MMU#write to PPU.video_ram");
+        let mut borrowed_ppu = self.ppu.borrow_mut();
+        borrowed_ppu.video_ram[address as usize - 0x8000] = data;
+        borrowed_ppu.update_tile(address, data)
+      },
       0xA000 ... 0xBFFF => { debug!("MMU#write to external_ram"); self.external_ram[address as usize - 0xA000] = data },
       0xC000 ... 0xDFFF => { debug!("MMU#write to work_ram"); self.work_ram[address as usize - 0xC000] = data },
-      0xE000 ... 0xFDFF => { let echo_ram_offset = 0x2000; self.write(address - echo_ram_offset, data) }, // ECHO work ra }m
+      0xE000 ... 0xFDFF => { let echo_ram_offset = 0x2000; self.write(address - echo_ram_offset, data) }, // ECHO work ram
       0xFE00 ... 0xFE9F => { debug!("MMU#write to sprite_info"); self.sprite_info[address as usize - 0xFE00] = data },
       0xFEA0 ... 0xFEFF => { debug!("Writing to disallowed memory region: {:#X}", address); }, // no-op
       0xFF00 ... 0xFF3F => { debug!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
