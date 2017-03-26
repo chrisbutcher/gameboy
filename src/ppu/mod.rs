@@ -2,6 +2,16 @@ pub use super::types;
 pub use super::sdl2;
 pub use super::sdl2::pixels;
 pub use super::sdl2::render::Renderer;
+use std::cell::RefCell;
+
+static mut COUNTER: i32 = 5;
+
+fn print_call_count() {
+  unsafe {
+    COUNTER += 1;
+    println!("print_call_count: {}", COUNTER);
+  }
+}
 
 // PPU supports tiles: 8x8 pixel groups
 // Modes: Sprite Read, Video Read, Horizontal Blank, Vertical Blank
@@ -26,20 +36,22 @@ pub struct PPU {
   pub background_tile: bool,
 
   pub sdl_context: sdl2::Sdl,
-  pub renderer: Renderer<'static>,
+  pub game_renderer: Renderer<'static>,
+  pub debug_renderer: Renderer<'static>,
 }
 
 impl PPU {
   pub fn new() -> PPU {
     let sdl_context = sdl2::init().unwrap();
-    let video_subsys = sdl_context.video().unwrap();
-    let window = video_subsys.window("GAMEBOY", 160, 144)
-      .position_centered()
-      .opengl()
+    let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144);
+    let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 160, 144);
+
+    let game_renderer = game_window.renderer()
+      .present_vsync()
       .build()
       .unwrap();
 
-    let renderer = window.renderer()
+    let debug_renderer = debug_window.renderer()
       .present_vsync()
       .build()
       .unwrap();
@@ -66,8 +78,20 @@ impl PPU {
       background_tile: false,
 
       sdl_context: sdl_context,
-      renderer: renderer,
+      game_renderer: game_renderer,
+      debug_renderer: debug_renderer,
     }
+  }
+
+  pub fn new_window(sdl_context: sdl2::Sdl, title: &str, width: i32, height: i32) -> (sdl2::video::Window, sdl2::Sdl) {
+    let video_subsys = sdl_context.video().unwrap();
+    let window = video_subsys.window(title, 160, 144)
+      .position_centered()
+      .opengl()
+      .build()
+      .unwrap();
+
+      (window, sdl_context)
   }
 
   pub fn read(&mut self, address: types::Word) -> types::Byte {
@@ -130,13 +154,10 @@ impl PPU {
   // TODO reword all comments
   pub fn update_tile(&mut self, address: types::Word, value: types::Byte) {
     // Get the "base address" for this tile row
-
-    // println!("address {:#X}", address);
     let base_address = address & 0x1FFE;
-    // println!("base_address {:#X}", base_address);
 
     // Work out which tile and row was updated
-    let tile = (base_address >> 4) & 511;
+    let tile = (base_address >> 4) & 511; // TODO WTF
 	  let y = (base_address >> 1) & 7;
 
     for x in 0..8 {
@@ -145,6 +166,11 @@ impl PPU {
 
       // Update tile set
       let pixel_colour = if self.video_ram[base_address as usize] & sx != 0 { 1 } else { 0 } + if self.video_ram[(base_address + 1) as usize] & sx != 0 { 2 } else { 0 };
+
+      if pixel_colour != 0 {
+        println!("colour: {:?}, tile: {}", pixel_colour, tile);
+      }
+
       self.tileset[tile as usize][y as usize][x as usize] = pixel_colour;
     }
   }
@@ -220,12 +246,24 @@ impl PPU {
         let pixel_b = self.framebuffer[framebuffer_index as usize + 2];
         let pixel_a = self.framebuffer[framebuffer_index as usize + 3];
 
-        self.renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-        self.renderer.draw_point(sdl2::rect::Point::new(x, y)); // TODO benchmark draw_points
+        self.game_renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
+        self.game_renderer.draw_point(sdl2::rect::Point::new(x, y)); // TODO benchmark draw_points
       }
     }
 
-    self.renderer.present();
+    let first_tile = self.tileset[400];
+    for y in 0..8 {
+      for x in 0..8 {
+        // println!("{}", first_tile[y][x]);
+        let test_pixel = 80 * first_tile[y][x];
+        self.debug_renderer.set_draw_color(pixels::Color::RGBA(test_pixel, test_pixel, test_pixel, test_pixel));
+        self.debug_renderer.draw_point(sdl2::rect::Point::new(x as i32, y as i32));
+      }
+    }
+
+    self.debug_renderer.present();
+
+    self.game_renderer.present();
   }
 
   pub fn tick(&mut self, cycles: i32) {
