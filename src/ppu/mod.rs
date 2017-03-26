@@ -20,8 +20,10 @@ pub struct PPU {
   pub line: u8,
   pub scroll_x: u8,
   pub scroll_y: u8,
+  pub switch_background: bool,
+  pub switch_lcd: bool,
   pub background_map: bool,
-  pub background_tile: u8,
+  pub background_tile: bool,
 
   pub sdl_context: sdl2::Sdl,
   pub renderer: Renderer<'static>,
@@ -53,13 +55,15 @@ impl PPU {
         [0, 0, 0, 0],
       ],
 
-      mode: 0,
+      mode: 2,
       mode_clock: 0,
       line: 0,
       scroll_x: 0,
       scroll_y: 0,
+      switch_background: false,
+      switch_lcd: false,
       background_map: false,
-      background_tile: 0,
+      background_tile: false,
 
       sdl_context: sdl_context,
       renderer: renderer,
@@ -69,7 +73,11 @@ impl PPU {
   pub fn read(&mut self, address: types::Word) -> types::Byte {
     match address {
       0xFF40 => {
-        0x00
+        let switch_background_result = if self.switch_background { 0x01 } else { 0x00 };
+        let background_map_result = if self.background_map { 0x08 } else { 0x00 };
+        let background_tile_result = if self.background_tile { 0x10 } else { 0x00 };
+        let switch_lcd_result = if self.switch_lcd { 0x80 } else { 0x00 };
+        switch_background_result | background_map_result | background_tile_result | switch_lcd_result
       },
       0xFF42 => {
         self.scroll_y as types::Byte
@@ -81,7 +89,40 @@ impl PPU {
         self.line as types::Byte
       },
       _ => {
-        panic!("Unexpected address in PPU: {:#X}", address);
+        panic!("Unexpected address in PPU#read: {:#X}", address);
+      }
+    }
+  }
+
+  pub fn write(&mut self, address: types::Word, value: types::Byte) {
+    match address {
+      0xFF40 => {
+        self.switch_background = if value & 0x01 != 0 { true } else { false };
+        self.background_map = if value & 0x08 != 0 { true } else { false };
+        self.background_tile = if value & 0x10 != 0 { true } else { false };
+        self.switch_lcd = if value & 0x80 != 0 { true } else { false };
+      },
+      0xFF42 => {
+        self.scroll_y = value
+      },
+      0xFF43 => {
+        self.scroll_x = value
+      },
+      0xFF47 => {
+        for i in 0..4 {
+          match (value >> (i * 2)) & 3 {
+            0 => { self.palette[i] = [255,255,255,255] },
+            1 => { self.palette[i] = [192,192,192,255] },
+            2 => { self.palette[i] = [ 96, 96, 96,255] },
+            3 => { self.palette[i] = [  0,  0,  0,255] },
+            _ => {
+              panic!("Unexpected background pallet value: {:#X}", i);
+            }
+          }
+        }
+      },
+      _ => {
+        // panic!("Unexpected address in PPU#write: {:#X}", address);
       }
     }
   }
@@ -136,7 +177,7 @@ impl PPU {
 
     // If the tile data set in use is #1, the
 	  // indices are signed; calculate a real tile offset
-    if self.background_tile == 1 && tile_index < 128 {
+    if self.background_tile && tile_index < 128 {
       tile_index += 256;
     }
 
@@ -146,7 +187,7 @@ impl PPU {
 
       if colour[0] != 0xFF {
         println!("Got colour other than white {:#X}", colour[0]);
-      }      
+      }
 
       // Plot the pixel to canvas
       self.framebuffer[framebuffer_offset as usize + 0] = colour[0];
@@ -161,7 +202,7 @@ impl PPU {
         x = 0;
         line_offset = (line_offset + 1) & 31;
         tile_index = self.video_ram[(tile_map_offset as usize + line_offset as usize) as usize];
-        if self.background_tile == 1 && tile_index < 128 {
+        if self.background_tile && tile_index < 128 {
           tile_index += 256;
         }
       }

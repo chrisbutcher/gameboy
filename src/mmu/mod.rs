@@ -53,8 +53,9 @@ impl MMU {
       addr @ 0xFF40 ... 0xFF7F => {
         debug!("MMU#read from ppu");
         match addr {
-          0xFF40 | 0xFF42 | 0xFF43 | 0xFF44 => {  self.ppu.borrow_mut().read(addr) },
-          _ => { self.io[address as usize - 0xFF00] }
+          // 0xFF40 | 0xFF42 | 0xFF43 | 0xFF44 => {  self.ppu.borrow_mut().read(addr) },
+          0xFF40 ... 0xFF7F => {  self.ppu.borrow_mut().read(addr) },
+          _ => { self.io[addr as usize - 0xFF00] }
         }
       },
       0xFF80 ... 0xFFFF => { debug!("MMU#read from zram"); self.zram[address as usize - 0xFF80] },
@@ -92,7 +93,11 @@ impl MMU {
       0xFE00 ... 0xFE9F => { debug!("MMU#write to sprite_info"); self.sprite_info[address as usize - 0xFE00] = data },
       0xFEA0 ... 0xFEFF => { debug!("Writing to disallowed memory region: {:#X}", address); }, // no-op
       0xFF00 ... 0xFF3F => { debug!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
-      0xFF40 ... 0xFF7F => { debug!("MMU#write to ppu"); self.io[address as usize - 0xFF00] = data },
+      0xFF40 ... 0xFF7F => {
+        debug!("MMU#write to ppu");
+        self.ppu.borrow_mut().write(address, data)
+        // self.io[address as usize - 0xFF00] = data
+      },
       0xFF80 ... 0xFFFF => { debug!("MMU#write to zram"); self.zram[address as usize - 0xFF80] = data },
       _ => { panic!("Memory access is out of bounds: {:#X}", address); }
     }
