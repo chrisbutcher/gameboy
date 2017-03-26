@@ -148,6 +148,7 @@ impl CPU {
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
     debug!("{:?}\n", self);
 
+    // println!("PC: {:#X}", self.PC);
     let opcode: types::Byte = mmu.read(self.PC);
 
     match env::var("DEBUG") {
