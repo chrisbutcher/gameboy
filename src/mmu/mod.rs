@@ -28,6 +28,7 @@ impl MMU {
       sprite_info: vec![0x00; 0x100],
       io: vec![0x00; 0x100],
       zram: vec![0x00; 0x80],
+
       ppu: RefCell::new(ppu::PPU::new()),
     }
   }

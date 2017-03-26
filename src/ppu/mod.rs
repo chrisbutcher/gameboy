@@ -43,11 +43,11 @@ impl PPU {
       .unwrap();
 
     PPU {
-      framebuffer: [0xFF; 160 * 144 * 4],
+      framebuffer: [0x00; 160 * 144 * 4],
       video_ram: vec![0x00; 0x2000],
       tileset: [[[0x00; 8]; 8]; 512],
       palette: [
-        [255, 255, 255, 255],
+        [255, 255, 255, 255], // RGBA, TODO simplify to RGB
         [192, 192, 192, 192],
         [96, 96, 96, 96],
         [0, 0, 0, 0],
@@ -132,7 +132,6 @@ impl PPU {
     let mut framebuffer_offset = self.line.wrapping_mul(160).wrapping_mul(4);
 
     // Read tile index from the background map
-    // let mut colour;
     let mut tile_index = self.video_ram[(tile_map_offset + line_offset) as usize];
 
     // If the tile data set in use is #1, the
@@ -145,6 +144,10 @@ impl PPU {
       // Re-map the tile pixel through the palette
       let colour = self.palette[self.tileset[tile_index as usize][y as usize][x as usize] as usize];
 
+      if colour[0] != 0xFF {
+        println!("Got colour other than white {:#X}", colour[0]);
+      }      
+
       // Plot the pixel to canvas
       self.framebuffer[framebuffer_offset as usize + 0] = colour[0];
       self.framebuffer[framebuffer_offset as usize + 1] = colour[1];
@@ -152,12 +155,12 @@ impl PPU {
       self.framebuffer[framebuffer_offset as usize + 3] = colour[3];
       framebuffer_offset = framebuffer_offset.wrapping_add(4);
 
+      // When this tile ends, read another
       x += 1;
-
       if x == 8 {
         x = 0;
         line_offset = (line_offset + 1) & 31;
-        tile_index = self.video_ram[(tile_map_offset + line_offset) as usize];
+        tile_index = self.video_ram[(tile_map_offset as usize + line_offset as usize) as usize];
         if self.background_tile == 1 && tile_index < 128 {
           tile_index += 256;
         }
