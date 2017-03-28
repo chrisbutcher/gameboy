@@ -85,7 +85,10 @@ impl MMU {
         debug!("MMU#write to PPU.video_ram");
         let mut borrowed_ppu = self.ppu.borrow_mut();
         borrowed_ppu.video_ram[address as usize - 0x8000] = data;
-        borrowed_ppu.update_tile(address, data)
+
+        if address <= 0x97FF {
+          borrowed_ppu.update_tile(address, data)
+        }          
       },
       0xA000 ... 0xBFFF => { debug!("MMU#write to external_ram"); self.external_ram[address as usize - 0xA000] = data },
       0xC000 ... 0xDFFF => { debug!("MMU#write to work_ram"); self.work_ram[address as usize - 0xC000] = data },

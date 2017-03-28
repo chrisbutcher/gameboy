@@ -156,7 +156,7 @@ impl CPU {
         _ => {},
     };
 
-    if self.PC == 0x31F {
+    if self.PC == 0x377 {
       // panic!("boom");
     }
 

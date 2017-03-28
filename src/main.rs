@@ -70,7 +70,7 @@ impl GameBoy {
   pub fn initialize(&mut self) {
     // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
     // self.cpu.PC = 0x0100;
-    self.cpu.PC = 0x100; // TODO
+    self.cpu.PC = 0x0100; // TODO
 
     self.cpu.AF.write(0x01B0);
     self.cpu.BC.write(0x0013);

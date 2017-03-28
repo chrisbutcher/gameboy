@@ -22,7 +22,7 @@ pub struct PPU {
   // pub framebuffer: [[[types::Byte; 4]; 144]; 160],
   pub framebuffer: [types::Byte; 160 * 144 * 4],
   pub video_ram: Vec<types::Byte>,
-  pub tileset: [[[types::Byte; 8]; 8]; 512], // HACK 512 should be 384
+  pub tileset: [[[types::Byte; 8]; 8]; 384], // HACK 512 should be 384
   pub palette: [[types::Byte; 4]; 4],
 
   pub mode: u8,
@@ -44,7 +44,7 @@ impl PPU {
   pub fn new() -> PPU {
     let sdl_context = sdl2::init().unwrap();
     let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144);
-    let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 160, 144);
+    let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192);
 
     let game_renderer = game_window.renderer()
       .present_vsync()
@@ -59,7 +59,7 @@ impl PPU {
     PPU {
       framebuffer: [0x00; 160 * 144 * 4],
       video_ram: vec![0x00; 0x2000],
-      tileset: [[[0x00; 8]; 8]; 512],
+      tileset: [[[0x00; 8]; 8]; 384],
       palette: [
         [255, 255, 255, 255], // RGBA, TODO simplify to RGB
         [192, 192, 192, 192],
@@ -156,8 +156,13 @@ impl PPU {
     // Get the "base address" for this tile row
     let base_address = address & 0x1FFE;
 
+    // println!("updating tile at {:#X} -- base_address: {:#X}", address, base_address);
+    // println!("base_address >> 4 {:#X}", (base_address >> 4));
+    // println!("(base_address >> 4) & 511 {:#X}", (base_address >> 4) & 511);
+    // panic!("stop");
+
     // Work out which tile and row was updated
-    let tile = (base_address >> 4) & 511; // TODO WTF
+    let tile = (base_address >> 4) & 511;
 	  let y = (base_address >> 1) & 7;
 
     for x in 0..8 {
@@ -168,7 +173,7 @@ impl PPU {
       let pixel_colour = if self.video_ram[base_address as usize] & sx != 0 { 1 } else { 0 } + if self.video_ram[(base_address + 1) as usize] & sx != 0 { 2 } else { 0 };
 
       if pixel_colour != 0 {
-        println!("colour: {:?}, tile: {}", pixel_colour, tile);
+        panic!("colour: {:?}, tile: {}", pixel_colour, tile);
       }
 
       self.tileset[tile as usize][y as usize][x as usize] = pixel_colour;
@@ -251,19 +256,25 @@ impl PPU {
       }
     }
 
-    let first_tile = self.tileset[400];
-    for y in 0..8 {
-      for x in 0..8 {
-        // println!("{}", first_tile[y][x]);
-        let test_pixel = 80 * first_tile[y][x];
-        self.debug_renderer.set_draw_color(pixels::Color::RGBA(test_pixel, test_pixel, test_pixel, test_pixel));
-        self.debug_renderer.draw_point(sdl2::rect::Point::new(x as i32, y as i32));
+    self.game_renderer.present();
+  }
+
+  pub fn show_debug_tiles(&mut self) {
+    // HACK DEBUGGING
+    for t_column in 0..24 {
+      for t_row in 0..24 {
+        for y in 0..8 {
+          for x in 0..8 {
+            let test_pixel = 80 * self.tileset[t_column as usize + t_row as usize][y as usize][x as usize];
+            self.debug_renderer.set_draw_color(pixels::Color::RGBA(test_pixel, test_pixel, test_pixel, test_pixel));
+            self.debug_renderer.draw_point(sdl2::rect::Point::new(x * (t_row * 8), y * (t_column * 8)));
+          }
+        }
       }
     }
+    // HACK DEBUGGING
 
     self.debug_renderer.present();
-
-    self.game_renderer.present();
   }
 
   pub fn tick(&mut self, cycles: i32) {
@@ -301,6 +312,7 @@ impl PPU {
             // Enter vblank
             self.mode = 1;
             self.render_screen();
+            self.show_debug_tiles();
           } else {
             self.mode = 2; // Re-enter OAM read mode
           }
