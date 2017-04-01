@@ -156,10 +156,11 @@ impl PPU {
     // Get the "base address" for this tile row
     let base_address = address & 0x1FFE;
 
-    // println!("updating tile at {:#X} -- base_address: {:#X}", address, base_address);
-    // println!("base_address >> 4 {:#X}", (base_address >> 4));
-    // println!("(base_address >> 4) & 511 {:#X}", (base_address >> 4) & 511);
-    // panic!("stop");
+    if value != 0x00 {
+      // Nothing but zeros being written, in infinite loop.
+      // Notes taken here anyways: https://docs.google.com/spreadsheets/d/1_OZnBw-mbklkPoMhlYTAy9lQeTT5WjXocao5c2lvU3g/edit#gid=0
+      panic!("hmm?");
+    }
 
     // Work out which tile and row was updated
     let tile = (base_address >> 4) & 511;
@@ -171,10 +172,6 @@ impl PPU {
 
       // Update tile set
       let pixel_colour = if self.video_ram[base_address as usize] & sx != 0 { 1 } else { 0 } + if self.video_ram[(base_address + 1) as usize] & sx != 0 { 2 } else { 0 };
-
-      if pixel_colour != 0 {
-        panic!("colour: {:?}, tile: {}", pixel_colour, tile);
-      }
 
       self.tileset[tile as usize][y as usize][x as usize] = pixel_colour;
     }
@@ -189,7 +186,7 @@ impl PPU {
     let mut tile_map_offset = if self.background_map { 0x1C00 } else { 0x1800 };
 
     // Which line of tiles to use in the map
-    tile_map_offset += ((self.line + self.scroll_y) & 255) >> 3;
+    tile_map_offset += (((self.line + self.scroll_y) & 255) >> 3) << 5; // Corrected via Cinoop (he had used Imran's)
 
     // Which tile to start with in the map line
     let mut line_offset = self.scroll_x >> 3;

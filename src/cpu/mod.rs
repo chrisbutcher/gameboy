@@ -65,7 +65,7 @@ pub struct CPU {
   pub AF: Register, pub BC: Register, pub DE: Register, pub HL: Register,
   pub SP: Register, pub PC: types::Word,
 
-  pub BranchTaken: bool, pub IME: bool, pub IMECycles: i32 // so far unused
+  pub BranchTaken: bool,
 }
 
 fn formatted_flags(cpu: &CPU) -> String {
@@ -84,7 +84,9 @@ impl CPU {
   pub fn new() -> CPU {
       CPU {
         AF: Register::new(), BC: Register::new(), DE: Register::new(), HL: Register::new(),
-        SP: Register::new(), PC: 0x0000, BranchTaken: false, IME: false, IMECycles: 0
+        SP: Register::new(), PC: 0x0000,
+
+        BranchTaken: false,
       }
   }
 
@@ -156,8 +158,8 @@ impl CPU {
         _ => {},
     };
 
-    if self.PC == 0x377 {
-      // panic!("boom");
+    if self.PC == 0x2817 {
+      panic!("boom");
     }
 
     self.PC += 1;
@@ -413,7 +415,7 @@ impl CPU {
       0xF0 => { debug!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu); 12 },
       0xF1 => { debug!("POP AF : pop_af() not implemented! {:#X}", opcode); 42 },
       0xF2 => { debug!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode); 42 },
-      0xF3 => { debug!("DI"); self.di(); 4 },
+      0xF3 => { debug!("DI"); self.di(mmu); 4 },
       0xF5 => { debug!("PUSH AF : push_af() not implemented! {:#X}", opcode); 42 },
       0xF6 => { debug!("OR n : or_n() not implemented! {:#X}", opcode); 42 },
       0xF7 => { debug!("RST 30H : rst_30h() not implemented! {:#X}", opcode); 42 },
@@ -522,9 +524,10 @@ impl CPU {
     self.PC += 1;
   }
 
-  fn di(&mut self) {
-    self.IME = false;
-    self.IMECycles = 0;
+  fn di(&mut self, mmu: &mut mmu::MMU) {
+    mmu.InterruptEnabled = 0x00;
+    // self.IME = false;
+    // self.IMECycles = 0;
   }
 
   fn ld_0xff00_plus_n_a(&mut self, mmu: &mut mmu::MMU) {

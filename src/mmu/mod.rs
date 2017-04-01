@@ -17,6 +17,9 @@ pub struct MMU {
 
   pub ppu: RefCell<ppu::PPU>,
   // Switches banks via the MBC (memory bank controller)
+
+  pub InterruptEnabled: types::Byte,
+  pub InterruptFlags: types::Byte,
 }
 
 impl MMU {
@@ -30,6 +33,9 @@ impl MMU {
       zram: vec![0x00; 0x80],
 
       ppu: RefCell::new(ppu::PPU::new()),
+
+      InterruptEnabled: 0x00,
+      InterruptFlags: 0x00,
     }
   }
 
@@ -49,7 +55,9 @@ impl MMU {
       0xC000 ... 0xDFFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xC000] },
       0xE000 ... 0xFDFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xE000 - 2000] }, // ECHO work ram
       0xFE00 ... 0xFE9F => { debug!("MMU#read from sprite_info"); self.sprite_info[address as usize - 0xFE00] },
-      0xFF00 ... 0xFF3F => { debug!("MMU#read from io"); self.io[address as usize - 0xFF00] },
+      0xFF00 ... 0xFF0E => { debug!("MMU#read from io"); self.io[address as usize - 0xFF00] },
+      0xFF0F => { panic!("Read from InterruptFlags") }, // TODO Should return self.InterruptFlags
+      0xFF10 ... 0xFF3F => { debug!("MMU#read from io"); self.io[address as usize - 0xFF00] },
       addr @ 0xFF40 ... 0xFF7F => {
         debug!("MMU#read from ppu");
         match addr {
@@ -58,7 +66,8 @@ impl MMU {
           _ => { self.io[addr as usize - 0xFF00] }
         }
       },
-      0xFF80 ... 0xFFFF => { debug!("MMU#read from zram"); self.zram[address as usize - 0xFF80] },
+      0xFF80 ... 0xFFFE => { debug!("MMU#read from zram"); self.zram[address as usize - 0xFF80] },
+      0xFFFF => { panic!("Read from InterruptEnabled") }, // TODO Should return self.InterruptEnabled
       _ => { panic!("Memory access is out of bounds: {:#X}", address); }
     }
   }
@@ -88,20 +97,34 @@ impl MMU {
 
         if address <= 0x97FF {
           borrowed_ppu.update_tile(address, data)
-        }          
+        }
       },
       0xA000 ... 0xBFFF => { debug!("MMU#write to external_ram"); self.external_ram[address as usize - 0xA000] = data },
       0xC000 ... 0xDFFF => { debug!("MMU#write to work_ram"); self.work_ram[address as usize - 0xC000] = data },
       0xE000 ... 0xFDFF => { let echo_ram_offset = 0x2000; self.write(address - echo_ram_offset, data) }, // ECHO work ram
       0xFE00 ... 0xFE9F => { debug!("MMU#write to sprite_info"); self.sprite_info[address as usize - 0xFE00] = data },
       0xFEA0 ... 0xFEFF => { debug!("Writing to disallowed memory region: {:#X}", address); }, // no-op
-      0xFF00 ... 0xFF3F => { debug!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
+      0xFF00 ... 0xFF0E => { debug!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
+      0xFF0F => {
+        self.InterruptFlags = data;
+        if data > 0x01 {
+          panic!("Write to InterruptFlags, with {:b}", data);
+        }
+      },
+      0xFF10 ... 0xFF3F => { debug!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
       0xFF40 ... 0xFF7F => {
         debug!("MMU#write to ppu");
         self.ppu.borrow_mut().write(address, data)
         // self.io[address as usize - 0xFF00] = data
       },
-      0xFF80 ... 0xFFFF => { debug!("MMU#write to zram"); self.zram[address as usize - 0xFF80] = data },
+      0xFF80 ... 0xFFFE => { debug!("MMU#write to zram"); self.zram[address as usize - 0xFF80] = data },
+      0xFFFF => {
+        self.InterruptEnabled = data;
+
+        if data != 0x00 {
+          println!("Write to InterruptEnabled other than 0");
+        }
+      },
       _ => { panic!("Memory access is out of bounds: {:#X}", address); }
     }
   }
