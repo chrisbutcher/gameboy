@@ -2,5 +2,5 @@ target
 *.gb
 gb-disasm
 .byebug-history
-pc_dump
+cpu_dump
 *.swp
