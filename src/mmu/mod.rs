@@ -89,7 +89,7 @@ impl MMU {
     debug!("Writing {:#X}, with {:#X}", address, data);
 
     match address {
-      0x0000 ... 0x7FFF => { panic!("Writing to disallowed memory region: {:#X}", address); }, // no-op
+      0x0000 ... 0x7FFF => { debug!("Writing to disallowed memory region: {:#X}", address); }, // no-op
       0x8000 ... 0x9FFF => {
         debug!("MMU#write to PPU.video_ram");
         let mut borrowed_ppu = self.ppu.borrow_mut();
@@ -122,7 +122,7 @@ impl MMU {
         self.InterruptEnabled = data;
 
         if data != 0x00 {
-          println!("Write to InterruptEnabled other than 0");
+          // println!("Write to InterruptEnabled other than 0");
         }
       },
       _ => { panic!("Memory access is out of bounds: {:#X}", address); }

@@ -120,7 +120,8 @@ impl GameBoy {
       cycles_this_update += cycles;
       self.update_timers(cycles);
       self.update_graphics(cycles);
-      self.do_interrupts();
+      let interrupt_cycles = self.do_interrupts();
+      cycles_this_update += interrupt_cycles;
 
       // break; // TODO
     }
@@ -135,8 +136,8 @@ impl GameBoy {
     self.mmu.ppu.borrow_mut().tick(cycles);
   }
 
-  fn do_interrupts(&mut self) {
-    // NOOP
+  fn do_interrupts(&mut self) -> i32 {
+    self.cpu.handle_interrupts(&mut self.mmu)
   }
 
   fn render_screen(&mut self) {
