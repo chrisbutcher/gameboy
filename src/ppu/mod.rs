@@ -159,7 +159,7 @@ impl PPU {
     if value != 0x00 {
       // Nothing but zeros being written, in infinite loop.
       // Notes taken here anyways: https://docs.google.com/spreadsheets/d/1_OZnBw-mbklkPoMhlYTAy9lQeTT5WjXocao5c2lvU3g/edit#gid=0
-      panic!("hmm?");
+      debug!("Writing data to VRAM!: {:#X}", value);
     }
 
     // Work out which tile and row was updated

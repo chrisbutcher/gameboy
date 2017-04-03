@@ -162,8 +162,12 @@ impl CPU {
         _ => {},
     };
 
+    if self.PC == 0x03EC {
+      // panic!("call tile loading!");
+    }
+
     if self.PC == 0x2817 {
-      panic!("boom");
+      panic!("started drawing tiles, loop is at 2820!");
     }
 
     // let mut actual_output = "";
@@ -218,25 +222,25 @@ impl CPU {
       0x0E => { debug!("LD C,n"); self.ld_c_n(mmu); 8 },
       0x0F => { debug!("RRCA : rrca() not implemented! {:#X}", opcode); 42 },
       0x10 => { debug!("STOP : stop() not implemented! {:#X}", opcode); 42 },
-      0x11 => { debug!("LD DE,nn : ld_de_nn() not implemented! {:#X}", opcode); 42 },
-      0x12 => { debug!("LD (DE),A : ld_de_a() not implemented! {:#X}", opcode); 42 },
-      0x13 => { debug!("INC DE : inc_de() not implemented! {:#X}", opcode); 42 },
+      0x11 => { debug!("LD DE,nn"); self.ld_de_nn(mmu); 12 },
+      0x12 => { debug!("LD (DE),A"); self.ld_de_a(mmu); 8 },
+      0x13 => { debug!("INC DE"); self.inc_de(); 8 },
       0x14 => { debug!("INC D : inc_d() not implemented! {:#X}", opcode); 42 },
       0x15 => { debug!("DEC D : dec_d() not implemented! {:#X}", opcode); 42 },
-      0x16 => { debug!("LD D,n : ld_d_n() not implemented! {:#X}", opcode); 42 },
+      0x16 => { debug!("LD D,n"); self.ld_d_n(mmu); 8 },
       0x17 => { debug!("RLA : rla() not implemented! {:#X}", opcode); 42 },
-      0x18 => { debug!("JR n : jr_n() not implemented! {:#X}", opcode); 42 },
-      0x19 => { debug!("ADD HL,DE : add_hl_de() not implemented! {:#X}", opcode); 42 },
-      0x1A => { debug!("LD A,(DE) : ld_a_de() not implemented! {:#X}", opcode); 42 },
+      0x18 => { debug!("JR n"); self.jr_n(mmu); 8 },
+      0x19 => { debug!("ADD HL,DE"); self.add_hl_de(); 8 },
+      0x1A => { debug!("LD A,(DE)"); self.ld_a_de(mmu); 8 },
       0x1B => { debug!("DEC DE : dec_de() not implemented! {:#X}", opcode); 42 },
-      0x1C => { debug!("INC E : inc_e() not implemented! {:#X}", opcode); 42 },
+      0x1C => { debug!("INC E"); self.inc_e(); 4 },
       0x1D => { debug!("DEC E : dec_e() not implemented! {:#X}", opcode); 42 },
       0x1E => { debug!("LD E,n : ld_e_n() not implemented! {:#X}", opcode); 42 },
       0x1F => { debug!("RRA"); self.rra(); 4 },
       0x20 => { debug!("JR NZ,n"); self.jr_nz_n(mmu); 8 },
       0x21 => { debug!("LD HL,nn"); self.ld_hl_nn(mmu); 12 },
-      0x22 => { debug!("LD (HLI),A : ld_hli_a() not implemented! {:#X}", opcode); 42 },
-      0x23 => { debug!("INC HL : inc_hl() not implemented! {:#X}", opcode); 42 },
+      0x22 => { debug!("LD (HLI),A"); self.ld_hli_a(mmu); 8 },
+      0x23 => { debug!("INC HL"); self.inc_hl(); 8 },
       0x24 => { debug!("INC H : inc_h() not implemented! {:#X}", opcode); 42 },
       0x25 => { debug!("DEC H : dec_h() not implemented! {:#X}", opcode); 42 },
       0x26 => { debug!("LD H,n : ld_h_n() not implemented! {:#X}", opcode); 42 },
@@ -245,7 +249,7 @@ impl CPU {
       0x29 => { debug!("ADD HL,HL : add_hl_hl() not implemented! {:#X}", opcode); 42 },
       0x2A => { debug!("LD A,(HLI)"); self.ld_a_hli(mmu); 8 },
       0x2B => { debug!("DEC HL : dec_hl() not implemented! {:#X}", opcode); 42 },
-      0x2C => { debug!("INC L : inc_l() not implemented! {:#X}", opcode); 42 },
+      0x2C => { debug!("INC L"); self.inc_l(); 4 },
       0x2D => { debug!("DEC L : dec_l() not implemented! {:#X}", opcode); 42 },
       0x2E => { debug!("LD L,n : ld_l_n() not implemented! {:#X}", opcode); 42 },
       0x2F => { debug!("CPL"); self.cpl(); 4 },
@@ -253,8 +257,8 @@ impl CPU {
       0x31 => { debug!("LD SP,nn"); self.ld_sp_nn(mmu); 12 },
       0x32 => { debug!("LD (HLD), A"); self.ld_hld_a(mmu); 8 },
       0x33 => { debug!("INC SP : inc_sp() not implemented! {:#X}", opcode); 42 },
-      0x34 => { debug!("INC (HL)"); self.inc_hl(mmu); 12 },
-      0x35 => { debug!("DEC (HL) : dec_hl() not implemented! {:#X}", opcode); 42 },
+      0x34 => { debug!("INC (HL)"); self.inc_hl_pointer(mmu); 12 },
+      0x35 => { debug!("DEC (HL)"); self.dec_hl_pointer(mmu); 12 },
       0x36 => { debug!("LD (HL),n"); self.ld_hl_n(mmu); 12 },
       0x37 => { debug!("SCF : scf() not implemented! {:#X}", opcode); 42 },
       0x38 => { debug!("JR C,n : jr_c_n() not implemented! {:#X}", opcode); 42 },
@@ -280,14 +284,14 @@ impl CPU {
       0x4C => { debug!("LD C,H : ld_c_h() not implemented! {:#X}", opcode); 42 },
       0x4D => { debug!("LD C,L : ld_c_l() not implemented! {:#X}", opcode); 42 },
       0x4E => { debug!("LD C,(HL) : ld_c_hl() not implemented! {:#X}", opcode); 42 },
-      0x4F => { debug!("LD C,A : ld_c_a() not implemented! {:#X}", opcode); 42 },
+      0x4F => { debug!("LD C,A"); self.ld_c_a(); 4 },
       0x50 => { debug!("LD D,B : ld_d_b() not implemented! {:#X}", opcode); 42 },
       0x51 => { debug!("LD D,C : ld_d_c() not implemented! {:#X}", opcode); 42 },
       0x52 => { debug!("LD D,D : ld_d_d() not implemented! {:#X}", opcode); 42 },
       0x53 => { debug!("LD D,E : ld_d_e() not implemented! {:#X}", opcode); 42 },
       0x54 => { debug!("LD D,H : ld_d_h() not implemented! {:#X}", opcode); 42 },
       0x55 => { debug!("LD D,L : ld_d_l() not implemented! {:#X}", opcode); 42 },
-      0x56 => { debug!("LD D,(HL) : ld_d_hl() not implemented! {:#X}", opcode); 42 },
+      0x56 => { debug!("LD D,(HL)"); self.ld_d_hl(mmu); 8 },
       0x57 => { debug!("LD D,A : ld_d_a() not implemented! {:#X}", opcode); 42 },
       0x58 => { debug!("LD E,B : ld_e_b() not implemented! {:#X}", opcode); 42 },
       0x59 => { debug!("LD E,C : ld_e_c() not implemented! {:#X}", opcode); 42 },
@@ -295,8 +299,8 @@ impl CPU {
       0x5B => { debug!("LD E,E : ld_e_e() not implemented! {:#X}", opcode); 42 },
       0x5C => { debug!("LD E,H : ld_e_h() not implemented! {:#X}", opcode); 42 },
       0x5D => { debug!("LD E,L : ld_e_l() not implemented! {:#X}", opcode); 42 },
-      0x5E => { debug!("LD E,(HL) : ld_e_hl() not implemented! {:#X}", opcode); 42 },
-      0x5F => { debug!("LD E,A : ld_e_a() not implemented! {:#X}", opcode); 42 },
+      0x5E => { debug!("LD E,(HL)"); self.ld_e_hl(mmu); 8 },
+      0x5F => { debug!("LD E,A"); self.ld_e_a(); 4 },
       0x60 => { debug!("LD H,B : ld_h_b() not implemented! {:#X}", opcode); 42 },
       0x61 => { debug!("LD H,C : ld_h_c() not implemented! {:#X}", opcode); 42 },
       0x62 => { debug!("LD H,D : ld_h_d() not implemented! {:#X}", opcode); 42 },
@@ -325,9 +329,9 @@ impl CPU {
       0x79 => { debug!("LD A,C"); self.ld_a_c(); 4 },
       0x7A => { debug!("LD A,D"); self.ld_a_d(); 4 },
       0x7B => { debug!("LD A,E : ld_a_e() not implemented! {:#X}", opcode); 42 },
-      0x7C => { debug!("LD A,H : ld_a_h() not implemented! {:#X}", opcode); 42 },
+      0x7C => { debug!("LD A,H"); self.ld_a_h(); 4 },
       0x7D => { debug!("LD A,L : ld_a_l() not implemented! {:#X}", opcode); 42 },
-      0x7E => { debug!("LD A,(HL) : ld_a_hl() not implemented! {:#X}", opcode); 42 },
+      0x7E => { debug!("LD A,(HL)"); self.ld_a_hl(mmu); 8 },
       0x7F => { debug!("LD A,A : ld_a_a() not implemented! {:#X}", opcode); 42 },
       0x80 => { debug!("ADD A,B : add_a_b() not implemented! {:#X}", opcode); 42 },
       0x81 => { debug!("ADD A,C : add_a_c() not implemented! {:#X}", opcode); 42 },
@@ -336,7 +340,7 @@ impl CPU {
       0x84 => { debug!("ADD A,H : add_a_h() not implemented! {:#X}", opcode); 42 },
       0x85 => { debug!("ADD A,L : add_a_l() not implemented! {:#X}", opcode); 42 },
       0x86 => { debug!("ADD A,(HL) : add_a_hl() not implemented! {:#X}", opcode); 42 },
-      0x87 => { debug!("ADD A,A : add_a_a() not implemented! {:#X}", opcode); 42 },
+      0x87 => { debug!("ADD A,A"); self.add_a_a(); 4 },
       0x88 => { debug!("ADC A,B : adc_a_b() not implemented! {:#X}", opcode); 42 },
       0x89 => { debug!("ADC A,C"); self.adc_a_c(); 4 },
       0x8A => { debug!("ADC A,D : adc_a_d() not implemented! {:#X}", opcode); 42 },
@@ -361,20 +365,20 @@ impl CPU {
       0x9D => { debug!("SBC L : sbc_l() not implemented! {:#X}", opcode); 42 },
       0x9E => { debug!("SBC (HL) : sbc_hl() not implemented! {:#X}", opcode); 42 },
       0x9F => { debug!("SBC A : sbc_a() not implemented! {:#X}", opcode); 42 },
-      0xA0 => { debug!("AND B : and_b() not implemented! {:#X}", opcode); 42 },
-      0xA1 => { debug!("AND C : and_c() not implemented! {:#X}", opcode); 42 },
-      0xA2 => { debug!("AND D : and_d() not implemented! {:#X}", opcode); 42 },
-      0xA3 => { debug!("AND E : and_e() not implemented! {:#X}", opcode); 42 },
-      0xA4 => { debug!("AND H : and_h() not implemented! {:#X}", opcode); 42 },
-      0xA5 => { debug!("AND L : and_l() not implemented! {:#X}", opcode); 42 },
+      0xA0 => { debug!("AND B"); self.and_b(); 4 },
+      0xA1 => { debug!("AND C"); self.and_c(); 4 },
+      0xA2 => { debug!("AND D"); self.and_d(); 4 },
+      0xA3 => { debug!("AND E"); self.and_e(); 4 },
+      0xA4 => { debug!("AND H"); self.and_h(); 4 },
+      0xA5 => { debug!("AND L"); self.and_l(); 4 },
       0xA6 => { debug!("AND (HL) : and_hl() not implemented! {:#X}", opcode); 42 },
       0xA7 => { debug!("AND A"); self.and_a(); 4 },
       0xA8 => { debug!("XOR B"); self.xor_b(); 4 },
-      0xA9 => { debug!("XOR C : xor_c() not implemented! {:#X}", opcode); 42 },
-      0xAA => { debug!("XOR D : xor_d() not implemented! {:#X}", opcode); 42 },
-      0xAB => { debug!("XOR E : xor_e() not implemented! {:#X}", opcode); 42 },
-      0xAC => { debug!("XOR H : xor_h() not implemented! {:#X}", opcode); 42 },
-      0xAD => { debug!("XOR L : xor_l() not implemented! {:#X}", opcode); 42 },
+      0xA9 => { debug!("XOR C"); self.xor_c(); 4 },
+      0xAA => { debug!("XOR D"); self.xor_d(); 4 },
+      0xAB => { debug!("XOR E"); self.xor_e(); 4 },
+      0xAC => { debug!("XOR H"); self.xor_h(); 4 },
+      0xAD => { debug!("XOR L"); self.xor_l(); 4 },
       0xAE => { debug!("XOR (HL) : xor_hl() not implemented! {:#X}", opcode); 42 },
       0xAF => { debug!("XOR A"); self.xor_a(); 4 },
       0xB0 => { debug!("OR B"); self.or_b(); 4 },
@@ -403,7 +407,7 @@ impl CPU {
       0xC7 => { debug!("RST 00H : rst_00h() not implemented! {:#X}", opcode); 42 },
       0xC8 => { debug!("RET Z"); self.ret_z(mmu); 8 },
       0xC9 => { debug!("RET"); self.ret(mmu); 8 },
-      0xCA => { debug!("JP Z,nn : jp_z_nn() not implemented! {:#X}", opcode); 42 },
+      0xCA => { debug!("JP Z,nn"); self.jp_z_nn(mmu); 12 },
       0xCB => { debug!("CB prefixed instruction"); self.cb_prefixed_instruction(mmu) },
       0xCC => { debug!("CALL Z,nn : call_z_nn() not implemented! {:#X}", opcode); 42 },
       0xCD => { debug!("CALL nn"); self.call_nn(mmu); 12 },
@@ -429,10 +433,10 @@ impl CPU {
       0xE6 => { debug!("AND n"); self.and_n(mmu); 8 },
       0xE7 => { debug!("RST 20H : rst_20h() not implemented! {:#X}", opcode); 42 },
       0xE8 => { debug!("ADD SP,n : add_sp_n() not implemented! {:#X}", opcode); 42 },
-      0xE9 => { debug!("JP (HL) : jp_hl() not implemented! {:#X}", opcode); 42 },
+      0xE9 => { debug!("JP (HL)"); self.jp_hl(); 4 },
       0xEA => { debug!("LD (nn),A"); self.ld_nn_a(mmu); 16 },
       0xEE => { debug!("XOR n : xor_n() not implemented! {:#X}", opcode); 42 },
-      0xEF => { debug!("RST 28H : rst_28h() not implemented! {:#X}", opcode); 42 },
+      0xEF => { debug!("RST 28H"); self.rst_28h(mmu); 32 },
       0xF0 => { debug!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu); 12 },
       0xF1 => { debug!("POP AF"); self.pop_af(mmu); 12 },
       0xF2 => { debug!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode); 42 },
@@ -469,6 +473,31 @@ impl CPU {
     shared_xor_n(self, B);
   }
 
+  fn xor_c(&mut self) {
+    let C = self.BC.read_lo();
+    shared_xor_n(self, C);
+  }
+
+  fn xor_d(&mut self) {
+    let D = self.DE.read_hi();
+    shared_xor_n(self, D);
+  }
+
+  fn xor_e(&mut self) {
+    let E = self.DE.read_lo();
+    shared_xor_n(self, E);
+  }
+
+  fn xor_h(&mut self) {
+    let H = self.HL.read_hi();
+    shared_xor_n(self, H);
+  }
+
+  fn xor_l(&mut self) {
+    let L = self.HL.read_lo();
+    shared_xor_n(self, L);
+  }
+
   fn ld_hl_nn(&mut self, mmu: &mut mmu::MMU) {
     // 0x36 not 0x21
     let value = mmu.read_word(self.PC);
@@ -487,6 +516,11 @@ impl CPU {
   fn ld_c_n(&mut self, mmu: &mmu::MMU) {
     let value = mmu.read(self.PC);
     shared_ld_n_n(self, RegEnum::C, value);
+  }
+
+  fn ld_d_n(&mut self, mmu: &mmu::MMU) {
+    let value = mmu.read(self.PC);
+    shared_ld_n_n(self, RegEnum::D, value);
   }
 
   fn ld_b_n(&mut self, mmu: &mmu::MMU) {
@@ -543,8 +577,23 @@ impl CPU {
     self.write_byte_reg(RegEnum::A, operand)
   }
 
+  fn ld_c_a(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::A);
+    self.write_byte_reg(RegEnum::C, operand)
+  }
+
+  fn ld_e_a(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::A);
+    self.write_byte_reg(RegEnum::E, operand)
+  }
+
   fn ld_a_d(&mut self) {
     let operand = self.read_byte_reg(RegEnum::D);
+    self.write_byte_reg(RegEnum::A, operand)
+  }
+
+  fn ld_a_h(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::H);
     self.write_byte_reg(RegEnum::A, operand)
   }
 
@@ -629,6 +678,14 @@ impl CPU {
     shared_inc_byte_reg(self, RegEnum::C);
   }
 
+  fn inc_e(&mut self) {
+    shared_inc_byte_reg(self, RegEnum::E);
+  }
+
+  fn inc_l(&mut self) {
+    shared_inc_byte_reg(self, RegEnum::L);
+  }
+
   fn call_nn(&mut self, mmu: &mut mmu::MMU) {
     let current_PC = self.PC;
     self.stack_push(current_PC + 2, mmu);
@@ -661,7 +718,12 @@ impl CPU {
   }
 
   fn ld_hl_a(&mut self, mmu: &mut mmu::MMU) {
-    let addr = self.read_word_reg(RegEnum::SP);
+    let addr = self.read_word_reg(RegEnum::HL);
+    mmu.write(addr, self.read_byte_reg(RegEnum::A));
+  }
+
+  fn ld_de_a(&mut self, mmu: &mut mmu::MMU) {
+    let addr = self.read_word_reg(RegEnum::DE);
     mmu.write(addr, self.read_byte_reg(RegEnum::A));
   }
 
@@ -683,13 +745,39 @@ impl CPU {
     }
   }
 
-  fn inc_hl(&mut self, mmu: &mmu::MMU) {
-    let result = self.read_word_reg(RegEnum::HL) + 1;
+  fn inc_hl(&mut self) {
+    shared_inc_word_reg(self, RegEnum::HL);
+  }
 
-    if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() };
-    self.util_toggle_zero_flag_from_word_result(result);
+  fn inc_de(&mut self) {
+    shared_inc_word_reg(self, RegEnum::DE);
+  }
 
-    if result & 0x0F == 0x00 {
+  fn inc_hl_pointer(&mut self, mmu: &mut mmu::MMU) {
+    let HL = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(HL);
+    let result = value.wrapping_add(1);
+    mmu.write(HL, result);
+
+    if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
+    self.util_toggle_zero_flag_from_result(result);
+
+    if (result & 0x0F) == 0x00 {
+      self.util_toggle_flag(FLAG_HALF_CARRY);
+    }
+  }
+
+  fn dec_hl_pointer(&mut self, mmu: &mut mmu::MMU) {
+    let HL = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(HL);
+    let result = value.wrapping_sub(1);
+    mmu.write(HL, result);
+
+    if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
+    self.util_toggle_flag(FLAG_SUB);
+    self.util_toggle_zero_flag_from_result(result);
+
+    if (result & 0x0F) == 0x0F {
       self.util_toggle_flag(FLAG_HALF_CARRY);
     }
   }
@@ -729,6 +817,36 @@ impl CPU {
 
   fn and_a(&mut self) {
     let value = self.read_byte_reg(RegEnum::A);
+    shared_and_n(self, value);
+  }
+
+  fn and_b(&mut self) {
+    let value = self.read_byte_reg(RegEnum::B);
+    shared_and_n(self, value);
+  }
+
+  fn and_c(&mut self) {
+    let value = self.read_byte_reg(RegEnum::C);
+    shared_and_n(self, value);
+  }
+
+  fn and_d(&mut self) {
+    let value = self.read_byte_reg(RegEnum::D);
+    shared_and_n(self, value);
+  }
+
+  fn and_e(&mut self) {
+    let value = self.read_byte_reg(RegEnum::E);
+    shared_and_n(self, value);
+  }
+
+  fn and_h(&mut self) {
+    let value = self.read_byte_reg(RegEnum::H);
+    shared_and_n(self, value);
+  }
+
+  fn and_l(&mut self) {
+    let value = self.read_byte_reg(RegEnum::L);
     shared_and_n(self, value);
   }
 
@@ -785,6 +903,89 @@ impl CPU {
   fn reti(&mut self, mmu: &mut mmu::MMU) {
     self.PC = self.stack_pop(mmu);
     self.IME = true;
+  }
+
+  fn rst_28h(&mut self, mmu: &mut mmu::MMU) {
+    let current_PC = self.PC;
+    self.stack_push(current_PC, mmu);
+    self.PC = 0x28;
+  }
+
+  fn add_a_a(&mut self) {
+    shared_add_byte_reg(self, RegEnum::A);
+  }
+
+  fn add_hl_de(&mut self) {
+    let DE = self.read_word_reg(RegEnum::DE);
+    let HL = self.read_word_reg(RegEnum::HL);
+    let result = HL.wrapping_add(DE);
+
+    if self.util_is_flag_set(FLAG_ZERO) { self.util_set_flag(FLAG_ZERO) } else { self.util_clear_all_flags() };
+
+    if result & 0x10000 != 0x00
+    {
+      self.util_toggle_flag(FLAG_CARRY);
+    }
+    if ((HL ^ DE ^ (result & 0xFFFF)) & 0x1000) != 0
+    {
+      self.util_toggle_flag(FLAG_HALF_CARRY);
+    }
+
+    self.write_word_reg(RegEnum::HL, result);
+  }
+
+  fn ld_d_hl(&mut self, mmu: &mut mmu::MMU) {
+    let address = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(address);
+    self.write_byte_reg(RegEnum::D, value);
+  }
+
+  fn ld_e_hl(&mut self, mmu: &mut mmu::MMU) {
+    let address = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(address);
+    self.write_byte_reg(RegEnum::E, value);
+  }
+
+  fn jp_hl(&mut self) {
+    let address = self.read_word_reg(RegEnum::HL);
+    self.PC = address;
+  }
+
+  fn ld_de_nn(&mut self, mmu: &mut mmu::MMU) {
+    let value = mmu.read_word(self.PC);
+    self.write_word_reg(RegEnum::DE, value);
+
+    self.PC += 2;
+  }
+
+  fn ld_a_de(&mut self, mmu: &mut mmu::MMU) {
+    let value = mmu.read(self.read_word_reg(RegEnum::DE));
+    self.write_byte_reg(RegEnum::A, value);
+  }
+
+  fn ld_hli_a(&mut self, mmu: &mut mmu::MMU) {
+    self.ld_hl_a(mmu);
+    self.inc_hl();
+  }
+
+  fn jp_z_nn(&mut self, mmu: &mut mmu::MMU) {
+    if self.util_is_flag_set(FLAG_ZERO) {
+      let address = mmu.read_word(self.PC);
+      self.PC = address;
+      self.BranchTaken = true;
+    } else {
+      self.PC += 2;
+    }
+  }
+
+  fn ld_a_hl(&mut self, mmu: &mut mmu::MMU) {
+    let value = mmu.read(self.read_word_reg(RegEnum::HL));
+    self.write_byte_reg(RegEnum::A, value);
+  }
+
+  fn jr_n(&mut self, mmu: &mut mmu::MMU) {
+    let operand_dest = mmu.read(self.PC) as types::SignedByte;
+    self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
   }
 
   // Helpers
@@ -979,7 +1180,7 @@ impl CPU {
       0x84 => { debug!("CB: RES 0 H : res_0_h() not implemented! {:#X}", opcode); 42 },
       0x85 => { debug!("CB: RES 0 L : res_0_l() not implemented! {:#X}", opcode); 42 },
       0x86 => { debug!("CB: RES 0 (HL) : res_0_hl() not implemented! {:#X}", opcode); 42 },
-      0x87 => { debug!("CB: RES 0 A : res_0_a() not implemented! {:#X}", opcode); 42 },
+      0x87 => { debug!("CB: RES 0 A"); self.res_0_a(); 8 },
       0x88 => { debug!("CB: RES 1 B : res_1_b() not implemented! {:#X}", opcode); 42 },
       0x89 => { debug!("CB: RES 1 C : res_1_c() not implemented! {:#X}", opcode); 42 },
       0x8A => { debug!("CB: RES 1 D : res_1_d() not implemented! {:#X}", opcode); 42 },
@@ -1104,9 +1305,24 @@ impl CPU {
     }
   }
 
+  // CB opcodes
+
   fn swap_a(&mut self) {
     shared_swap_register(self, RegEnum::A);
   }
+
+  fn res_0_a(&mut self) {
+    shared_reset_bit_reg(self, 0, RegEnum::A);
+  }
+}
+
+fn shared_reset_bit_reg(cpu: &mut CPU, bit: types::Byte, regEnum: RegEnum) {
+  let value = cpu.read_byte_reg(regEnum);
+  let result = value & (!(0x1 << bit));
+  cpu.write_byte_reg(regEnum, result);
+
+    // reg->GetValue() & (!(0x1 << bit))
+  // );
 }
 
 fn shared_swap_register(cpu: &mut CPU, regEnum: RegEnum) {
@@ -1118,6 +1334,19 @@ fn shared_swap_register(cpu: &mut CPU, regEnum: RegEnum) {
 
   cpu.util_clear_all_flags();
   cpu.util_toggle_zero_flag_from_result(result);
+}
+
+fn shared_inc_word_reg(cpu: &mut CPU, regEnum: RegEnum) {
+  let result = cpu.read_word_reg(regEnum).wrapping_add(1);
+
+  if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() };
+  cpu.util_toggle_zero_flag_from_word_result(result);
+
+  if result & 0x0F == 0x00 {
+    cpu.util_toggle_flag(FLAG_HALF_CARRY);
+  }
+
+  cpu.write_word_reg(regEnum, result);
 }
 
 fn shared_xor_n(cpu: &mut CPU, byte: types::Byte)
@@ -1136,6 +1365,19 @@ fn shared_ld_n_n(cpu: &mut CPU, regEnum: RegEnum, byte: types::Byte) {
 fn shared_inc_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   let result = cpu.read_byte_reg(regEnum).wrapping_add(1);
   cpu.write_byte_reg(regEnum, result);
+
+  if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
+  cpu.util_toggle_zero_flag_from_result(result);
+
+  if (result & 0x0F) == 0x00 {
+    cpu.util_toggle_flag(FLAG_HALF_CARRY);
+  }
+}
+
+fn shared_add_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
+  let A = cpu.read_byte_reg(RegEnum::A);
+  let result = cpu.read_byte_reg(regEnum).wrapping_add(A);
+  cpu.write_byte_reg(RegEnum::A, result);
 
   if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
   cpu.util_toggle_zero_flag_from_result(result);

@@ -55,7 +55,8 @@ impl MMU {
       0xC000 ... 0xDFFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xC000] },
       0xE000 ... 0xFDFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xE000 - 2000] }, // ECHO work ram
       0xFE00 ... 0xFE9F => { debug!("MMU#read from sprite_info"); self.sprite_info[address as usize - 0xFE00] },
-      0xFF00 ... 0xFF0E => { debug!("MMU#read from io"); self.io[address as usize - 0xFF00] },
+      0xFF00 => { debug!("MMU#read from input"); 0xEF }
+      0xFF01 ... 0xFF0E => { debug!("MMU#read from io"); self.io[address as usize - 0xFF00] },
       0xFF0F => { panic!("Read from InterruptFlags") }, // TODO Should return self.InterruptFlags
       0xFF10 ... 0xFF3F => { debug!("MMU#read from io"); self.io[address as usize - 0xFF00] },
       addr @ 0xFF40 ... 0xFF7F => {
@@ -67,7 +68,7 @@ impl MMU {
         }
       },
       0xFF80 ... 0xFFFE => { debug!("MMU#read from zram"); self.zram[address as usize - 0xFF80] },
-      0xFFFF => { panic!("Read from InterruptEnabled") }, // TODO Should return self.InterruptEnabled
+      0xFFFF => { debug!("Read from InterruptEnabled"); self.InterruptEnabled }, // TODO Should return self.InterruptEnabled
       _ => { panic!("Memory access is out of bounds: {:#X}", address); }
     }
   }
