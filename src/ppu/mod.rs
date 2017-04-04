@@ -145,6 +145,9 @@ impl PPU {
           }
         }
       },
+      0xFF44 => {
+        panic!("Writing to LY in PPU#write: {:#X}", address);
+      },
       _ => {
         // panic!("Unexpected address in PPU#write: {:#X}", address);
       }
