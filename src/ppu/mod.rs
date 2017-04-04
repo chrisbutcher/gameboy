@@ -220,7 +220,7 @@ impl PPU {
         println!("Got colour other than white {:#X}", colour[0]);
       }
 
-      // Plot the pixel to canvas
+      // Plot the pixel to framebuffer
       self.framebuffer[framebuffer_offset as usize + 0] = colour[0];
       self.framebuffer[framebuffer_offset as usize + 1] = colour[1];
       self.framebuffer[framebuffer_offset as usize + 2] = colour[2];
@@ -303,7 +303,7 @@ impl PPU {
       },
       0 => {
         // Hblank
-	      // After the last hblank, push the screen data to canvas
+	      // After the last hblank, push the screen data to framebuffer
         if self.mode_clock >= 204 {
           self.mode_clock = 0;
           self.line += 1;

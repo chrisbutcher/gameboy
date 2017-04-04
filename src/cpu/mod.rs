@@ -260,8 +260,8 @@ impl CPU {
       0x31 => { debug!("LD SP,nn"); self.ld_sp_nn(mmu) },
       0x32 => { debug!("LD (HLD), A"); self.ld_hld_a(mmu) },
       0x33 => { debug!("INC SP : inc_sp() not implemented! {:#X}", opcode) },
-      0x34 => { debug!("INC (HL)"); self.inc_hl_pointer(mmu) },
-      0x35 => { debug!("DEC (HL)"); self.dec_hl_pointer(mmu) },
+      0x34 => { debug!("INC (HL)"); self.inc_hl_indirect(mmu) },
+      0x35 => { debug!("DEC (HL)"); self.dec_hl_indirect(mmu) },
       0x36 => { debug!("LD (HL),n"); self.ld_hl_n(mmu) },
       0x37 => { debug!("SCF : scf() not implemented! {:#X}", opcode) },
       0x38 => { debug!("JR C,n : jr_c_n() not implemented! {:#X}", opcode) },
@@ -477,6 +477,8 @@ impl CPU {
         opcode_cycles::regular(opcode)
       }
     };
+
+    panic!("note - is this factor a problem, given Imran's ppu code example? -- hmm apparently not? http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings");
 
     raw_cycles * 4
   }
@@ -780,7 +782,7 @@ impl CPU {
     shared_inc_word_reg(self, RegEnum::DE);
   }
 
-  fn inc_hl_pointer(&mut self, mmu: &mut mmu::MMU) {
+  fn inc_hl_indirect(&mut self, mmu: &mut mmu::MMU) {
     let HL = self.read_word_reg(RegEnum::HL);
     let value = mmu.read(HL);
     let result = value.wrapping_add(1);
@@ -794,7 +796,7 @@ impl CPU {
     }
   }
 
-  fn dec_hl_pointer(&mut self, mmu: &mut mmu::MMU) {
+  fn dec_hl_indirect(&mut self, mmu: &mut mmu::MMU) {
     let HL = self.read_word_reg(RegEnum::HL);
     let value = mmu.read(HL);
     let result = value.wrapping_sub(1);
