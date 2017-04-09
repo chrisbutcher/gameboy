@@ -62,9 +62,9 @@ impl PPU {
       tileset: [[[0x00; 8]; 8]; 384],
       palette: [
         [255, 255, 255, 255], // RGBA, TODO simplify to RGB
-        [192, 192, 192, 192],
-        [96, 96, 96, 96],
-        [0, 0, 0, 0],
+        [192, 192, 192, 255],
+        [96, 96, 96, 255],
+        [0, 0, 0, 255],
       ],
 
       mode: 2,
@@ -140,7 +140,7 @@ impl PPU {
             2 => { self.palette[i] = [ 96, 96, 96,255] },
             3 => { self.palette[i] = [  0,  0,  0,255] },
             _ => {
-              panic!("Unexpected background pallet value: {:#X}", i);
+              panic!("Unexpected background palette value: {:#X}", i);
             }
           }
         }
@@ -217,7 +217,7 @@ impl PPU {
       let colour = self.palette[self.tileset[tile_index as usize][y as usize][x as usize] as usize];
 
       if colour[0] != 0xFF {
-        println!("Got colour other than white {:#X}", colour[0]);
+        // println!("Got colour other than white {:#X}", colour[0]);
       }
 
       // Plot the pixel to framebuffer
@@ -260,19 +260,19 @@ impl PPU {
   }
 
   pub fn show_debug_tiles(&mut self) {
-    // HACK DEBUGGING
-    for t_column in 0..24 {
-      for t_row in 0..24 {
+    for tile_y in 0..16 {
+      for tile_x in 0..16 {
         for y in 0..8 {
           for x in 0..8 {
-            let test_pixel = 80 * self.tileset[t_column as usize + t_row as usize][y as usize][x as usize];
-            self.debug_renderer.set_draw_color(pixels::Color::RGBA(test_pixel, test_pixel, test_pixel, test_pixel));
-            self.debug_renderer.draw_point(sdl2::rect::Point::new(x * (t_row * 8), y * (t_column * 8)));
+            let target_tile = tile_x + (tile_y * 18);
+            let pixel_palette = self.palette[self.tileset[target_tile as usize][y as usize][x as usize] as usize];
+
+            self.debug_renderer.set_draw_color(pixels::Color::RGBA(pixel_palette[0], pixel_palette[1], pixel_palette[2], pixel_palette[3]));
+            self.debug_renderer.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8)));
           }
         }
       }
     }
-    // HACK DEBUGGING
 
     self.debug_renderer.present();
   }

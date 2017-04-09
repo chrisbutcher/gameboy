@@ -4,3 +4,5 @@ gb-disasm
 .byebug-history
 cpu_dump
 *.swp
+pics
+.DS_Store

@@ -167,8 +167,17 @@ impl CPU {
       // panic!("call tile loading!");
     }
 
-    if self.PC == 0x2817 {
-      // panic!("started drawing tiles, loop is at 2820!");
+    // if self.PC == 0x2817 {
+    //   // panic!("started drawing tiles, loop is at 2820!");
+    // }
+
+    if self.PC == 0x2823 && self.DE.value == 0x8013 {
+      let foo = mmu.ppu.borrow_mut();
+      for i in 0 .. 16 {
+        print!("{:#X} ", foo.video_ram[i]);
+      }
+
+      // panic!("blooooop!");
     }
 
     // let mut actual_output = "";
@@ -184,7 +193,9 @@ impl CPU {
       );
 
       // assert_eq!(expected, actual_output);
-      println!("{}", actual_output);
+      if false {
+        println!("{}", actual_output);
+      }      
     // }
 
     self.PC += 1;
@@ -478,7 +489,7 @@ impl CPU {
       }
     };
 
-    panic!("note - is this factor a problem, given Imran's ppu code example? -- hmm apparently not? http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings");
+    // panic!("note - is this factor a problem, given Imran's ppu code example? -- hmm apparently not? http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings");
 
     raw_cycles * 4
   }
