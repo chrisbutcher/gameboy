@@ -195,10 +195,10 @@ impl PPU {
     // two maps: 32x32 each
 
     // VRAM offset for the tile map
-    let mut tile_map_offset = if self.background_map { 0x1C00 } else { 0x1800 };
+    let mut tile_map_offset: usize = if self.background_map { 0x1C00 } else { 0x1800 };
 
     // Which line of tiles to use in the map
-    tile_map_offset += (((self.line + self.scroll_y) & 255) >> 3) << 5; // Corrected via Cinoop (he had used Imran's)
+    tile_map_offset += ((((self.line + self.scroll_y) & 255) >> 3) << 5) as usize; // Corrected via Cinoop (he had used Imran's)
 
     // Which tile to start with in the map line
     let mut line_offset = self.scroll_x >> 3;
@@ -210,10 +210,18 @@ impl PPU {
     let mut x = self.scroll_x & 7;
 
     // Where to render on the framebuffer
-    let mut framebuffer_offset = self.line.wrapping_mul(160).wrapping_mul(4);
+    let mut framebuffer_offset = self.line as usize * 160 * 4;
 
     // Read tile index from the background map
-    let mut tile_index = self.video_ram[(tile_map_offset + line_offset) as usize];
+    let mut tile_index = self.video_ram[(tile_map_offset as usize + line_offset as usize) as usize];
+
+    // if self.video_ram[0x1A13] == 0x9D {
+    //   // 9800 to 9A33
+    //   for index in 0x1800..0x1A33 {
+    //     println!("{:X}", self.video_ram[index]);
+    //   }
+    //   panic!("hi");
+    // }
 
     // If the tile data set in use is #1, the
 	  // indices are signed; calculate a real tile offset
@@ -234,7 +242,7 @@ impl PPU {
       self.framebuffer[framebuffer_offset as usize + 1] = colour[1];
       self.framebuffer[framebuffer_offset as usize + 2] = colour[2];
       self.framebuffer[framebuffer_offset as usize + 3] = colour[3];
-      framebuffer_offset = framebuffer_offset.wrapping_add(4);
+      framebuffer_offset = framebuffer_offset + 4;
 
       // When this tile ends, read another
       x += 1;
@@ -252,7 +260,7 @@ impl PPU {
 
   pub fn render_screen(&mut self) {
     for y in 0..144 {
-      for x in 0..160 {
+      for mut x in 0..160 {
         let framebuffer_index = y * 160 + x;
 
         let pixel_r = self.framebuffer[framebuffer_index as usize];
@@ -269,8 +277,8 @@ impl PPU {
   }
 
   pub fn show_debug_tiles(&mut self) {
-    for tile_y in 0..16 {
-      for tile_x in 0..16 {
+    for tile_y in 0..17 {
+      for tile_x in 0..17 {
         for y in 0..8 {
           for x in 0..8 {
             let target_tile = tile_x + (tile_y * 18);
