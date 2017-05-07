@@ -55,15 +55,17 @@ pub mod ppu;
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
+  cycles: u32,
 }
 
-const MAX_CYCLES_PER_UPDATE: i32 = 69905;
+const CYCLES_PER_FRAME: u32 = 70224;
 
 impl GameBoy {
   pub fn new() -> GameBoy {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
+      cycles: 0,
     }
   }
 
@@ -113,17 +115,15 @@ impl GameBoy {
 
   fn render_frame(&mut self) {
     // TODO LIMIT to max 60
-    let mut cycles_this_update = 0;
+    self.cycles = self.cycles.wrapping_add(CYCLES_PER_FRAME);
 
-    while cycles_this_update < MAX_CYCLES_PER_UPDATE {
+    while self.cycles <= CYCLES_PER_FRAME {
       let cycles = self.cpu.execute_next_opcode(&mut self.mmu);
-      cycles_this_update += cycles;
+      self.cycles = self.cycles.wrapping_sub(cycles as u32);
       self.update_timers(cycles);
       self.update_graphics(cycles);
       let interrupt_cycles = self.do_interrupts();
-      cycles_this_update += interrupt_cycles;
-
-      // break; // TODO
+      self.cycles = self.cycles.wrapping_sub(interrupt_cycles as u32); // TODO
     }
     self.render_screen();
   }

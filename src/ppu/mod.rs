@@ -1,7 +1,10 @@
 pub use super::types;
+
 pub use super::sdl2;
 pub use super::sdl2::pixels;
 pub use super::sdl2::render::Renderer;
+pub use super::sdl2::video::WindowPos;
+
 use std::cell::RefCell;
 
 static mut COUNTER: i32 = 5;
@@ -43,8 +46,8 @@ pub struct PPU {
 impl PPU {
   pub fn new() -> PPU {
     let sdl_context = sdl2::init().unwrap();
-    let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144);
-    let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192);
+    let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
+    let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192, 160);
 
     let game_renderer = game_window.renderer()
       .present_vsync()
@@ -83,15 +86,21 @@ impl PPU {
     }
   }
 
-  pub fn new_window(sdl_context: sdl2::Sdl, title: &str, width: i32, height: i32) -> (sdl2::video::Window, sdl2::Sdl) {
+  pub fn new_window(sdl_context: sdl2::Sdl, title: &str, width: i32, height: i32, x_offset: i32) -> (sdl2::video::Window, sdl2::Sdl) {
     let video_subsys = sdl_context.video().unwrap();
-    let window = video_subsys.window(title, 160, 144)
+    let mut window = video_subsys.window(title, 160, 144)
       .position_centered()
       .opengl()
       .build()
       .unwrap();
 
-      (window, sdl_context)
+    let position = window.position();
+    window.set_position(
+      WindowPos::Positioned(position.0 + x_offset),
+      WindowPos::Positioned(position.1)
+    );
+
+    (window, sdl_context)
   }
 
   pub fn read(&mut self, address: types::Word) -> types::Byte {
