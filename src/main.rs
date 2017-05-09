@@ -10,7 +10,7 @@ extern crate time;
 extern crate log;
 extern crate env_logger;
 
-extern crate sdl2;
+pub extern crate sdl2;
 use sdl2::event::Event;
 
 pub mod types;
@@ -171,7 +171,7 @@ fn main() {
   debug!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
   debug!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
-  let mut events = None;
+  let mut events;
 
   {
     let ppu = game_boy.mmu.ppu.borrow_mut();

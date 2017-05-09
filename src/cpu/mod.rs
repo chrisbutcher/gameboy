@@ -195,7 +195,7 @@ impl CPU {
       // assert_eq!(expected, actual_output);
       if false {
         println!("{}", actual_output);
-      }      
+      }
     // }
 
     self.PC += 1;
@@ -962,7 +962,7 @@ impl CPU {
 
     if self.util_is_flag_set(FLAG_ZERO) { self.util_set_flag(FLAG_ZERO) } else { self.util_clear_all_flags() };
 
-    if result & 0x10000 != 0x00
+    if result as i32 & 0x10000 != 0x00
     {
       self.util_toggle_flag(FLAG_CARRY);
     }
@@ -1521,7 +1521,7 @@ impl CPU {
       let enabled_interrupts = mmu.InterruptEnabled & mmu.InterruptFlags;
 
       if (enabled_interrupts & 0x01) != 0 {
-        mmu.InterruptFlags &= (255 - 0x01);
+        mmu.InterruptFlags &= 255 - 0x01;
 
         debug!("Handling vblank!");
         self.handle_vblank(mmu)

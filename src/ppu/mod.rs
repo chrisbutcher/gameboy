@@ -5,8 +5,6 @@ pub use super::sdl2::pixels;
 pub use super::sdl2::render::Renderer;
 pub use super::sdl2::video::WindowPos;
 
-use std::cell::RefCell;
-
 static mut COUNTER: i32 = 5;
 
 fn print_call_count() {
@@ -46,15 +44,15 @@ pub struct PPU {
 impl PPU {
   pub fn new() -> PPU {
     let sdl_context = sdl2::init().unwrap();
-    let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
     let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192, 160);
+    let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
 
-    let game_renderer = game_window.renderer()
+    let debug_renderer = debug_window.renderer()
       .present_vsync()
       .build()
       .unwrap();
 
-    let debug_renderer = debug_window.renderer()
+    let game_renderer = game_window.renderer()
       .present_vsync()
       .build()
       .unwrap();
@@ -190,78 +188,60 @@ impl PPU {
   }
 
   // TODO update all comments
+  // NOTE borrowed from github.com/alexcrichton/jba
   pub fn render_scanline(&mut self) {
     // tiles: 8x8 pixels
     // two maps: 32x32 each
 
-    // VRAM offset for the tile map
-    let mut tile_map_offset: usize = if self.background_map { 0x1C00 } else { 0x1800 };
+    let mapbase: usize = if self.background_map { 0x1C00 } else { 0x1800 };
+    let line = self.line as usize + self.scroll_y as usize;
 
-    // Which line of tiles to use in the map
-    tile_map_offset += ((((self.line + self.scroll_y) & 255) >> 3) << 5) as usize; // Corrected via Cinoop (he had used Imran's)
+    let mapbase = mapbase + ((line % 256) >> 3) * 32;
 
-    // Which tile to start with in the map line
-    let mut line_offset = self.scroll_x >> 3;
+    let y = (self.line + self.scroll_y) % 8;
+    let mut x = self.scroll_x % 8;
 
-    // Which line of pixels to use in the tiles
-    let mut y = (self.line + self.scroll_y) & 7;
+    let mut coff = (self.line as usize) * 160 * 4;
 
-    // Where in the tileline to start
-    let mut x = self.scroll_x & 7;
+    let mut i = 0;
+    let tilebase = if !self.background_tile {256} else {0};
 
-    // Where to render on the framebuffer
-    let mut framebuffer_offset = self.line as usize * 160 * 4;
+    loop {
+      let mapoff = ((i as usize + self.scroll_x as usize) % 256) >> 3;
+      let tilei = self.video_ram[mapbase + mapoff];
 
-    // Read tile index from the background map
-    let mut tile_index = self.video_ram[(tile_map_offset as usize + line_offset as usize) as usize];
+      let tilebase = if self.background_tile {
+        tilebase + tilei as usize
+      } else {
+        (tilebase as isize + (tilei as i8 as isize)) as usize
+      };
 
-    // if self.video_ram[0x1A13] == 0x9D {
-    //   // 9800 to 9A33
-    //   for index in 0x1800..0x1A33 {
-    //     println!("{:X}", self.video_ram[index]);
-    //   }
-    //   panic!("hi");
-    // }
+      let row;
+      row = self.tileset[tilebase as usize][y as usize];
 
-    // If the tile data set in use is #1, the
-	  // indices are signed; calculate a real tile offset
-    if self.background_tile && tile_index < 128 {
-      tile_index += 256;
-    }
+      while x < 8 && i < 160 as u8 {
+        let colori = row[x as usize];
+        let color = self.palette[colori as usize];
 
-    for i in 0..160 {
-      // Re-map the tile pixel through the palette
-      let colour = self.palette[self.tileset[tile_index as usize][y as usize][x as usize] as usize];
+        self.framebuffer[coff] = color[0];
+        self.framebuffer[coff + 1] = color[1];
+        self.framebuffer[coff + 2] = color[2];
+        self.framebuffer[coff + 3] = color[3];
 
-      if colour[0] != 0xFF {
-        // println!("Got colour other than white {:#X}", colour[0]);
+        x += 1;
+        i += 1;
+        coff += 4;
       }
 
-      // Plot the pixel to framebuffer
-      self.framebuffer[framebuffer_offset as usize + 0] = colour[0];
-      self.framebuffer[framebuffer_offset as usize + 1] = colour[1];
-      self.framebuffer[framebuffer_offset as usize + 2] = colour[2];
-      self.framebuffer[framebuffer_offset as usize + 3] = colour[3];
-      framebuffer_offset = framebuffer_offset + 4;
-
-      // When this tile ends, read another
-      x += 1;
-      if x == 8 {
-        x = 0;
-        line_offset = (line_offset + 1) & 31;
-        tile_index = self.video_ram[(tile_map_offset as usize + line_offset as usize) as usize];
-        if self.background_tile && tile_index < 128 {
-          tile_index += 256;
-        }
-      }
+      x = 0;
+      if i >= 160 as u8 { break }
     }
-
   }
 
   pub fn render_screen(&mut self) {
     for y in 0..144 {
       for mut x in 0..160 {
-        let framebuffer_index = y * 160 + x;
+        let framebuffer_index = (y * 4) * 160 + (x * 4);
 
         let pixel_r = self.framebuffer[framebuffer_index as usize];
         let pixel_g = self.framebuffer[framebuffer_index as usize + 1];
