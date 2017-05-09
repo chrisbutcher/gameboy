@@ -149,13 +149,9 @@ impl CPU {
     }
   }
 
-  // pub fn write_word_reg() {
-  // }
-
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
     debug!("{:?}\n", self);
 
-    // println!("PC: {:#X}", self.PC);
     let opcode: types::Byte = mmu.read(self.PC);
 
     match env::var("DEBUG") {
@@ -163,40 +159,18 @@ impl CPU {
         _ => {},
     };
 
-    if self.PC == 0x03EC {
-      // panic!("call tile loading!");
-    }
-
-    // if self.PC == 0x2817 {
-    //   // panic!("started drawing tiles, loop is at 2820!");
-    // }
-
-    if self.PC == 0x2823 && self.DE.value == 0x8013 {
-      let foo = mmu.ppu.borrow_mut();
-      for i in 0 .. 16 {
-        print!("{:#X} ", foo.video_ram[i]);
-      }
-
-      // panic!("blooooop!");
-    }
-
-    // let mut actual_output = "";
-    // if self.PC == 0x101 {
-      // let expected = "PC: 101, A: 1, F: b0, B: 0, C: 13, D: 0, E: d8, H: 1, L: 4d, SP: fffe";
-      let actual_output = format!("PC: {:x}, A: {:x}, F: {:x}, B: {:x}, C: {:x}, D: {:x}, E: {:x}, H: {:x}, L: {:x}, SP: {:x}",
-        self.PC,
-        self.AF.read_hi(), self.AF.read_lo(),
-        self.BC.read_hi(), self.BC.read_lo(),
-        self.DE.read_hi(), self.DE.read_lo(),
-        self.HL.read_hi(), self.HL.read_lo(),
-        self.SP.value
-      );
-
-      // assert_eq!(expected, actual_output);
       if false {
+        let actual_output = format!("PC: {:x}, A: {:x}, F: {:x}, B: {:x}, C: {:x}, D: {:x}, E: {:x}, H: {:x}, L: {:x}, SP: {:x}",
+          self.PC,
+          self.AF.read_hi(), self.AF.read_lo(),
+          self.BC.read_hi(), self.BC.read_lo(),
+          self.DE.read_hi(), self.DE.read_lo(),
+          self.HL.read_hi(), self.HL.read_lo(),
+          self.SP.value
+        );
+
         println!("{}", actual_output);
       }
-    // }
 
     self.PC += 1;
 

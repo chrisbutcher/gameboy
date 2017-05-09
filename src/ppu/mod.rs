@@ -240,7 +240,8 @@ impl PPU {
 
   pub fn render_screen(&mut self) {
     for y in 0..144 {
-      for mut x in 0..160 {
+      for x in 0..160 {
+        // NOTE confirmed this is correct in Google Sheets doc
         let framebuffer_index = (y * 4) * 160 + (x * 4);
 
         let pixel_r = self.framebuffer[framebuffer_index as usize];
@@ -331,7 +332,5 @@ impl PPU {
         panic!("Unexpected PPU mode");
       }
     }
-
-    // debug!("PPU#tick()");
   }
 }

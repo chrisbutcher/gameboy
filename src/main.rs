@@ -2,7 +2,7 @@
 #![allow(unused_variables)]
 #![allow(unused_mut)]
 #![allow(unused_must_use)]
-#![allow(non_snake_case)]
+#![allow(non_snake_case)] // TODO remove these
 
 extern crate time;
 
@@ -71,8 +71,7 @@ impl GameBoy {
 
   pub fn initialize(&mut self) {
     // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
-    // self.cpu.PC = 0x0100;
-    self.cpu.PC = 0x0100; // TODO
+    self.cpu.PC = 0x0100;
 
     self.cpu.AF.write(0x01B0);
     self.cpu.BC.write(0x0013);
@@ -114,7 +113,6 @@ impl GameBoy {
   }
 
   fn render_frame(&mut self) {
-    // TODO LIMIT to max 60
     self.cycles = self.cycles.wrapping_add(CYCLES_PER_FRAME);
 
     while self.cycles <= CYCLES_PER_FRAME {
@@ -189,6 +187,7 @@ fn main() {
     }
 
     game_boy.render_frame();
+    // TODO limit to 60fps
   }
 }
 
