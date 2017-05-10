@@ -15,6 +15,8 @@ const FLAG_CARRY: types::Byte = 0x10; // Carry
 
 const FLAG_NONE: types::Byte = 0x00; // None
 
+const DUMP_CPU_REGS_TO_STDOUT: bool = false;
+
 #[derive(Debug, Copy, Clone)]
 pub enum RegEnum {
   A, F, B, C, D, E, H, L, S, P,
@@ -159,22 +161,27 @@ impl CPU {
         _ => {},
     };
 
-      if false {
-        let actual_output = format!("PC: {:x}, A: {:x}, F: {:x}, B: {:x}, C: {:x}, D: {:x}, E: {:x}, H: {:x}, L: {:x}, SP: {:x}",
-          self.PC,
-          self.AF.read_hi(), self.AF.read_lo(),
-          self.BC.read_hi(), self.BC.read_lo(),
-          self.DE.read_hi(), self.DE.read_lo(),
-          self.HL.read_hi(), self.HL.read_lo(),
-          self.SP.value
-        );
+    if DUMP_CPU_REGS_TO_STDOUT {
+      let actual_output = format!("PC: {:x}, A: {:x}, F: {:x}, B: {:x}, C: {:x}, D: {:x}, E: {:x}, H: {:x}, L: {:x}, SP: {:x}, ",
+        self.PC,
+        self.AF.read_hi(), self.AF.read_lo(),
+        self.BC.read_hi(), self.BC.read_lo(),
+        self.DE.read_hi(), self.DE.read_lo(),
+        self.HL.read_hi(), self.HL.read_lo(),
+        self.SP.value
+      );
 
-        println!("{}", actual_output);
-      }
+      print!("{}", actual_output);
+    }
 
     self.PC += 1;
 
     let cycles = self.execute_opcode(opcode, mmu);
+
+    if DUMP_CPU_REGS_TO_STDOUT {
+      print!("Cycles: {:?}", cycles);
+      print!("\n");
+    }
 
     if cycles == 42 {
       panic!("Unexpected opcode: {:#X}", opcode);
@@ -749,7 +756,7 @@ impl CPU {
   }
 
   fn jr_z_n(&mut self, mmu: &mmu::MMU) {
-    if self.util_is_flag_set(FLAG_ZERO) {
+    if self.util_is_flag_set(FLAG_ZERO) && self.PC != 0x370 { // HACK
       let operand_dest = mmu.read(self.PC) as types::SignedByte;
       self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
 

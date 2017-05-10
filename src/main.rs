@@ -156,14 +156,16 @@ impl GameBoy {
   }
 }
 
-// RUST_LOG=debug cargo run tetris.gb
+// RUST_LOG=debug cargo run
 fn main() {
   env_logger::init().unwrap();
   let mut game_boy = GameBoy::new();
 
   game_boy.initialize();
   game_boy.mmu.load_game("tetris.gb");
+  // game_boy.mmu.load_game("instr_timing.gb");
   // game_boy.mmu.load_game("cpu_instrs.gb");
+  // TODO get these test roms to try out http://slack.net/~ant/old/gb-tests/
 
   game_boy.print_game_title();
   debug!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());

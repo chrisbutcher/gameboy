@@ -45,15 +45,18 @@ impl MMU {
   }
 
   pub fn read(&self, address: types::Word) -> types::Byte {
+    // if address == 0xFF85 {
+    //   panic!("hi");
+    // }
+
     match address {
       0x0000 ... 0x7FFF => {
-        // debug!("MMU#read from cartridge");
         self.cartridge.buffer[address as usize]
       },
       0x8000 ... 0x9FFF => { debug!("MMU#read from PPU.video_ram"); self.ppu.borrow_mut().video_ram[address as usize - 0x8000] },
       0xA000 ... 0xBFFF => { debug!("MMU#read from external_ram"); self.external_ram[address as usize - 0xA000] },
       0xC000 ... 0xDFFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xC000] },
-      0xE000 ... 0xFDFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xE000 - 2000] }, // ECHO work ram
+      0xE000 ... 0xFDFF => { debug!("MMU#read from work_ram"); self.work_ram[address as usize - 0xC000 - 0x2000] }, // ECHO work ram
       0xFE00 ... 0xFE9F => { debug!("MMU#read from sprite_info"); self.sprite_info[address as usize - 0xFE00] },
       0xFF00 => { debug!("MMU#read from input"); 0xEF }
       0xFF01 ... 0xFF0E => { debug!("MMU#read from io"); self.io[address as usize - 0xFF00] },
@@ -89,6 +92,10 @@ impl MMU {
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
     debug!("Writing {:#X}, with {:#X}", address, data);
 
+    // if address == 0xFF85 {
+    //   println!("hi : {:#X}", data);
+    // }
+
     match address {
       0x0000 ... 0x7FFF => { debug!("Writing to disallowed memory region: {:#X}", address); }, // no-op
       0x8000 ... 0x9FFF => {
@@ -102,7 +109,7 @@ impl MMU {
       },
       0xA000 ... 0xBFFF => { debug!("MMU#write to external_ram"); self.external_ram[address as usize - 0xA000] = data },
       0xC000 ... 0xDFFF => { debug!("MMU#write to work_ram"); self.work_ram[address as usize - 0xC000] = data },
-      0xE000 ... 0xFDFF => { let echo_ram_offset = 0x2000; self.write(address - echo_ram_offset, data) }, // ECHO work ram
+      0xE000 ... 0xFDFF => { self.write(address - 0xC000 - 0x2000, data) }, // ECHO work ram
       0xFE00 ... 0xFE9F => { debug!("MMU#write to sprite_info"); self.sprite_info[address as usize - 0xFE00] = data },
       0xFEA0 ... 0xFEFF => { debug!("Writing to disallowed memory region: {:#X}", address); }, // no-op
       0xFF00 ... 0xFF0E => { debug!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
