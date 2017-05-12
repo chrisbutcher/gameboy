@@ -3,6 +3,7 @@ target
 gb-disasm
 .byebug-history
 cpu_dump
+cpu_timing_dump
 *.swp
 pics
 .DS_Store

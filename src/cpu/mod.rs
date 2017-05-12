@@ -470,6 +470,8 @@ impl CPU {
       }
     };
 
+    println!("PC {:#X}, opcode: {:#X}, raw_cycles: {:?}, A: {:#X}, flags: {:#X}", self.PC, opcode, raw_cycles, self.AF.read_hi(), self.AF.read_lo());
+
     // panic!("note - is this factor a problem, given Imran's ppu code example? -- hmm apparently not? http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings");
 
     raw_cycles * 4
@@ -756,7 +758,8 @@ impl CPU {
   }
 
   fn jr_z_n(&mut self, mmu: &mmu::MMU) {
-    if self.util_is_flag_set(FLAG_ZERO) && self.PC != 0x370 { // HACK
+    // if self.util_is_flag_set(FLAG_ZERO) && self.PC != 0x370 { // HACK
+    if self.util_is_flag_set(FLAG_ZERO) {
       let operand_dest = mmu.read(self.PC) as types::SignedByte;
       self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
 
@@ -1457,20 +1460,27 @@ fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
 }
 
 fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
-  let value = cpu.read_byte_reg(RegEnum::A);
+  let A_value = cpu.read_byte_reg(RegEnum::A);
   cpu.util_set_flag(FLAG_SUB);
 
-  if value < byte {
+  // println!("A: {:#X}, byte: {:#X}", A_value, byte);
+
+  if A_value < byte {
     cpu.util_toggle_flag(FLAG_CARRY);
   }
 
-  if value == byte {
+  if A_value == byte {
     cpu.util_toggle_flag(FLAG_ZERO);
   }
 
-  if ((value.wrapping_sub(byte)) & 0xF) > (value & 0xF) {
+  if ((A_value.wrapping_sub(byte)) & 0xF) > (A_value & 0xF) {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
+
+  // NOTE borrowed from jba rust
+  // if (A_value & 0xF) < (byte & 0xF) {
+  //   cpu.util_toggle_flag(FLAG_HALF_CARRY);
+  // }
 }
 
 fn shared_or_n(cpu: &mut CPU, byte: types::Byte) {

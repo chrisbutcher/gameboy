@@ -121,6 +121,11 @@ impl MMU {
       },
       0xFF10 ... 0xFF3F => { debug!("MMU#write to io"); self.io[address as usize - 0xFF00] = data },
       0xFF40 ... 0xFF7F => {
+        if address == 0xFF40 {
+          // NOTE LCD powering on
+          // panic!("hi");
+        }
+
         debug!("MMU#write to ppu");
         self.ppu.borrow_mut().write(address, data)
         // self.io[address as usize - 0xFF00] = data

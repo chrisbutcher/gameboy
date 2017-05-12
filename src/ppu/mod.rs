@@ -69,7 +69,7 @@ impl PPU {
       ],
 
       mode: 2,
-      mode_clock: 0,
+      mode_clock: 4, // NOTE 4
       line: 0,
       scroll_x: 0,
       scroll_y: 0,
@@ -104,10 +104,17 @@ impl PPU {
   pub fn read(&mut self, address: types::Word) -> types::Byte {
     match address {
       0xFF40 => {
+        let previous_switch_lcd = self.switch_lcd;
         let switch_background_result = if self.switch_background { 0x01 } else { 0x00 };
         let background_map_result = if self.background_map { 0x08 } else { 0x00 };
         let background_tile_result = if self.background_tile { 0x10 } else { 0x00 };
         let switch_lcd_result = if self.switch_lcd { 0x80 } else { 0x00 };
+
+        if !previous_switch_lcd && self.switch_lcd {
+          self.mode_clock = 4;
+          self.line = 0;
+        }
+
         switch_background_result | background_map_result | background_tile_result | switch_lcd_result
       },
       0xFF42 => {
@@ -278,59 +285,44 @@ impl PPU {
   pub fn tick(&mut self, cycles: i32) {
     self.mode_clock += cycles;
 
-    match self.mode {
-      2 => {
-        // TODO update comments
-        // OAM read mode, scanline active
-        if self.mode_clock >= 80 {
-          self.mode_clock = 0;
+    // HBlank = 0x00, // mode 0
+    // VBlank = 0x01, // mode 1
+    // RdOam  = 0x02, // mode 2
+    // RdVram = 0x03, // mode 3
+
+    println!("mode_clock {:?}", self.mode_clock);
+
+    if self.mode_clock >= 456 {
+      self.mode_clock -= 456;
+      self.line = (self.line + 1) % 154;
+
+      if self.line >= 144 && self.mode != 1 {
+        self.render_screen();
+        self.show_debug_tiles();
+        self.mode = 1;
+        println!("mode 1");
+      }
+    }
+
+    if self.line < 144 {
+      if self.mode_clock <= 80 {
+        if self.mode != 2 {
+          self.mode = 2;
+          println!("mode 2");
+        }
+      } else if self.mode_clock <= 252 {
+        if self.mode != 3 {
           self.mode = 3;
+          println!("mode 3");
         }
-      },
-      3 => {
-        // VRAM read mode, scanline active
-	      // Treat end of mode 3 as end of scanline
-        if self.mode_clock >= 172 {
-          // Enter hblank
-          self.mode_clock = 0;
+      } else {
+        if self.mode != 0 {
           self.mode = 0;
-
-          // Write a scanline to the framebuffer
           self.render_scanline();
+          println!("mode 0");
         }
-      },
-      0 => {
-        // Hblank
-	      // After the last hblank, push the screen data to framebuffer
-        if self.mode_clock >= 204 {
-          self.mode_clock = 0;
-          self.line += 1;
-
-          if self.line == 143 {
-            // Enter vblank
-            self.mode = 1;
-            self.render_screen();
-            self.show_debug_tiles();
-          } else {
-            self.mode = 2; // Re-enter OAM read mode
-          }
-        }
-      },
-      1 => {
-        // Vblank (10 lines)
-        if self.mode_clock >= 456 {
-          self.mode_clock = 0;
-          self.line += 1;
-
-          if self.line > 153 {
-            self.mode = 2;
-            self.line = 0;
-          }
-        }
-      },
-      _ => {
-        panic!("Unexpected PPU mode");
       }
     }
   }
+  
 }
