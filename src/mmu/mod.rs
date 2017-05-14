@@ -46,7 +46,8 @@ impl MMU {
 
   pub fn read(&self, address: types::Word) -> types::Byte {
     // if address == 0xFF85 {
-    //   panic!("hi");
+    //   let val = self.zram[address as usize - 0xFF80];
+    //   println!("reading from 0xFF85. got value: {:X}", val);
     // }
 
     match address {
@@ -93,7 +94,7 @@ impl MMU {
     debug!("Writing {:#X}, with {:#X}", address, data);
 
     // if address == 0xFF85 {
-    //   println!("hi : {:#X}", data);
+    //   println!("writing to 0xFF85 : {:#X}", data);
     // }
 
     match address {

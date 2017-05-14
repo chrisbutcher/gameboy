@@ -411,7 +411,7 @@ impl CPU {
       0xD0 => { debug!("RET NC : ret_nc() not implemented! {:#X}", opcode) },
       0xD1 => { debug!("POP DE"); self.pop_de(mmu) },
       0xD2 => { debug!("JP NC,nn : jp_nc_nn() not implemented! {:#X}", opcode) },
-      0xD3 => { panic!("Unhandled opcode") },
+      0xD3 => { debug!("Unhandled opcode") },
       0xD4 => { debug!("CALL NC,nn : call_nc_nn() not implemented! {:#X}", opcode) },
       0xD5 => { debug!("PUSH DE"); self.push_de(mmu) },
       0xD6 => { debug!("SUB n : sub_n() not implemented! {:#X}", opcode) },
@@ -419,32 +419,32 @@ impl CPU {
       0xD8 => { debug!("RET C : ret_c() not implemented! {:#X}", opcode) },
       0xD9 => { debug!("RETI"); self.reti(mmu) },
       0xDA => { debug!("JP C,nn : jp_c_nn() not implemented! {:#X}", opcode) },
-      0xDB => { panic!("Unhandled opcode") },
+      0xDB => { debug!("Unhandled opcode") },
       0xDC => { debug!("CALL C,nn : call_c_nn() not implemented! {:#X}", opcode) },
-      0xDD => { panic!("Unhandled opcode") },
+      0xDD => { debug!("Unhandled opcode") },
       0xDE => { debug!("SBC n : sbc_n() not implemented! {:#X}", opcode) },
       0xDF => { debug!("RST 18H : rst_18h() not implemented! {:#X}", opcode) },
       0xE0 => { debug!("LD (0xFF00+n),A"); self.ld_0xff00_plus_n_a(mmu) },
       0xE1 => { debug!("POP HL"); self.pop_hl(mmu) },
       0xE2 => { debug!("LD (0xFF00+C),A"); self.ld_0xff00_plus_c_a(mmu) },
-      0xE3 => { panic!("Unhandled opcode") },
-      0xE4 => { panic!("Unhandled opcode") },
+      0xE3 => { debug!("Unhandled opcode") },
+      0xE4 => { debug!("Unhandled opcode") },
       0xE5 => { debug!("PUSH HL"); self.push_hl(mmu) },
       0xE6 => { debug!("AND n"); self.and_n(mmu) },
       0xE7 => { debug!("RST 20H : rst_20h() not implemented! {:#X}", opcode) },
       0xE8 => { debug!("ADD SP,n : add_sp_n() not implemented! {:#X}", opcode) },
       0xE9 => { debug!("JP (HL)"); self.jp_hl() },
       0xEA => { debug!("LD (nn),A"); self.ld_nn_a(mmu) },
-      0xEB => { panic!("Unhandled opcode") },
-      0xEC => { panic!("Unhandled opcode") },
-      0xED => { panic!("Unhandled opcode") },
+      0xEB => { debug!("Unhandled opcode") },
+      0xEC => { debug!("Unhandled opcode") },
+      0xED => { debug!("Unhandled opcode") },
       0xEE => { debug!("XOR n : xor_n() not implemented! {:#X}", opcode) },
       0xEF => { debug!("RST 28H"); self.rst_28h(mmu) },
       0xF0 => { debug!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu) },
       0xF1 => { debug!("POP AF"); self.pop_af(mmu) },
       0xF2 => { debug!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode) },
       0xF3 => { debug!("DI"); self.di(mmu) },
-      0xF4 => { panic!("Unhandled opcode") },
+      0xF4 => { debug!("Unhandled opcode") },
       0xF5 => { debug!("PUSH AF"); self.push_af(mmu) },
       0xF6 => { debug!("OR n : or_n() not implemented! {:#X}", opcode) },
       0xF7 => { debug!("RST 30H : rst_30h() not implemented! {:#X}", opcode) },
@@ -452,8 +452,8 @@ impl CPU {
       0xF9 => { debug!("LD SP,HL : ld_sp_hl() not implemented! {:#X}", opcode) },
       0xFA => { debug!("LD A,(nn)"); self.ld_a_nn(mmu) },
       0xFB => { debug!("EI"); self.ei(mmu) },
-      0xFC => { panic!("Unhandled opcode") },
-      0xFD => { panic!("Unhandled opcode") },
+      0xFC => { debug!("Unhandled opcode") },
+      0xFD => { debug!("Unhandled opcode") },
       0xFE => { debug!("CP"); self.cp_n(mmu) },
       0xFF => { debug!("RST 38H : rst_38h() not implemented! {:#X}", opcode) },
       _ => panic!("Unexpected opcode: {:#X}", opcode)
@@ -470,7 +470,12 @@ impl CPU {
       }
     };
 
-    println!("PC {:#X}, opcode: {:#X}, raw_cycles: {:?}, A: {:#X}, flags: {:#X}", self.PC, opcode, raw_cycles, self.AF.read_hi(), self.AF.read_lo());
+    // println!(
+    //   "PC {:#X}, opcode: {:#X}, raw_cycles: {:?}, A: {:#X}, flags: {:#X}, IME: {:?}, IE: {:#X}, IF: {:#X}",
+    //   self.PC, opcode, raw_cycles, self.AF.read_hi(), self.AF.read_lo(), self.IME, mmu.InterruptEnabled, mmu.InterruptFlags
+    // );
+
+    // println!("PC {:#X}", self.PC);
 
     // panic!("note - is this factor a problem, given Imran's ppu code example? -- hmm apparently not? http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings");
 
@@ -758,7 +763,7 @@ impl CPU {
   }
 
   fn jr_z_n(&mut self, mmu: &mmu::MMU) {
-    // if self.util_is_flag_set(FLAG_ZERO) && self.PC != 0x370 { // HACK
+    // if self.util_is_flag_set(FLAG_ZERO) && self.PC != 0x370 { // HACK to speed things up
     if self.util_is_flag_set(FLAG_ZERO) {
       let operand_dest = mmu.read(self.PC) as types::SignedByte;
       self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);

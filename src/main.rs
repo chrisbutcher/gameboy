@@ -58,6 +58,14 @@ struct GameBoy {
   cycles: u32,
 }
 
+pub enum Interrupts {
+    Vblank  = 0x01,
+    LCDStat = 0x02,
+    Timer   = 0x04,
+    Serial  = 0x08,
+    Joypad  = 0x10
+}
+
 const CYCLES_PER_FRAME: u32 = 70224;
 
 impl GameBoy {
@@ -131,7 +139,8 @@ impl GameBoy {
   }
 
   fn update_graphics(&mut self, cycles: i32) {
-    self.mmu.ppu.borrow_mut().tick(cycles);
+    let interrupt_flags = self.mmu.ppu.borrow_mut().tick(cycles, self.mmu.InterruptFlags);
+    self.mmu.InterruptFlags = interrupt_flags;
   }
 
   fn do_interrupts(&mut self) -> i32 {

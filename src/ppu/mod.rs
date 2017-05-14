@@ -5,6 +5,8 @@ pub use super::sdl2::pixels;
 pub use super::sdl2::render::Renderer;
 pub use super::sdl2::video::WindowPos;
 
+use super::Interrupts;
+
 static mut COUNTER: i32 = 5;
 
 fn print_call_count() {
@@ -282,7 +284,7 @@ impl PPU {
     self.debug_renderer.present();
   }
 
-  pub fn tick(&mut self, cycles: i32) {
+  pub fn tick(&mut self, cycles: i32, mut interrupt_flags: types::Byte) -> types::Byte {
     self.mode_clock += cycles;
 
     // HBlank = 0x00, // mode 0
@@ -290,7 +292,7 @@ impl PPU {
     // RdOam  = 0x02, // mode 2
     // RdVram = 0x03, // mode 3
 
-    println!("mode_clock {:?}", self.mode_clock);
+    // println!("mode_clock {:?}", self.mode_clock);
 
     if self.mode_clock >= 456 {
       self.mode_clock -= 456;
@@ -300,7 +302,12 @@ impl PPU {
         self.render_screen();
         self.show_debug_tiles();
         self.mode = 1;
-        println!("mode 1");
+        interrupt_flags |= Interrupts::Vblank as types::Byte;
+        // TODO it seems that it's not that the game is waiting for a 0 at FF85, but instead is waiting for a VBlank interrupt to
+        // take PC 0x40, to 0x01FD, ....
+        // NOTE ON SECOND THOUGH IT'S WORKING!!
+
+        // println!("mode 1");
       }
     }
 
@@ -308,21 +315,23 @@ impl PPU {
       if self.mode_clock <= 80 {
         if self.mode != 2 {
           self.mode = 2;
-          println!("mode 2");
+          // println!("mode 2");
         }
       } else if self.mode_clock <= 252 {
         if self.mode != 3 {
           self.mode = 3;
-          println!("mode 3");
+          // println!("mode 3");
         }
       } else {
         if self.mode != 0 {
           self.mode = 0;
           self.render_scanline();
-          println!("mode 0");
+          // println!("mode 0");
         }
       }
     }
+
+    interrupt_flags
   }
-  
+
 }
