@@ -4,6 +4,9 @@
 #![allow(unused_must_use)]
 #![allow(non_snake_case)] // TODO remove these
 
+extern crate clap;
+use clap::App;
+
 extern crate time;
 
 #[macro_use]
@@ -59,22 +62,18 @@ struct GameBoy {
 }
 
 pub enum Interrupts {
-    Vblank  = 0x01,
-    LCDStat = 0x02,
-    Timer   = 0x04,
-    Serial  = 0x08,
-    Joypad  = 0x10
+  Vblank = 0x01,
+  LCDStat = 0x02,
+  Timer = 0x04,
+  Serial = 0x08,
+  Joypad = 0x10,
 }
 
 const CYCLES_PER_FRAME: u32 = 70224;
 
 impl GameBoy {
   pub fn new() -> GameBoy {
-    GameBoy {
-      cpu: cpu::CPU::new(),
-      mmu: mmu::MMU::new(),
-      cycles: 0,
-    }
+    GameBoy { cpu: cpu::CPU::new(), mmu: mmu::MMU::new(), cycles: 0 }
   }
 
   pub fn initialize(&mut self) {
@@ -165,15 +164,25 @@ impl GameBoy {
   }
 }
 
+fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
+  App::new("gameboy")
+    .version("0.1.0")
+    .author("Chris Butcher <cbutcher@gmail.com>")
+    .about("Play Game Boy")
+    .args_from_usage("-r, --rom [FILE] 'Sets .gb rom to play'")
+    .get_matches()
+}
+
 // RUST_LOG=debug cargo run
 fn main() {
+  let args = handle_cli_args();
+  let rom_filename = args.value_of("rom").unwrap_or("tetris.gb");
+
   env_logger::init().unwrap();
   let mut game_boy = GameBoy::new();
 
   game_boy.initialize();
-  game_boy.mmu.load_game("tetris.gb");
-  // game_boy.mmu.load_game("instr_timing.gb");
-  // game_boy.mmu.load_game("cpu_instrs.gb");
+  game_boy.mmu.load_game(rom_filename);
   // TODO get these test roms to try out http://slack.net/~ant/old/gb-tests/
 
   game_boy.print_game_title();
@@ -192,8 +201,8 @@ fn main() {
   'main: loop {
     for event in events.poll_iter() {
       match event {
-        Event::Quit {..} => break 'main,
-        _ => { },
+        Event::Quit { .. } => break 'main,
+        _ => {}
       }
     }
 
