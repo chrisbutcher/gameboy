@@ -21,6 +21,7 @@ pub mod cpu;
 pub mod cartridge;
 pub mod mmu;
 pub mod ppu;
+pub mod fps;
 
 // Specs:
 // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
@@ -169,7 +170,7 @@ fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
     .version("0.1.0")
     .author("Chris Butcher <cbutcher@gmail.com>")
     .about("Play Game Boy")
-    .args_from_usage("-r, --rom [FILE] 'Sets .gb rom to play'")
+    .args_from_usage("-r, --rom=[FILE] 'Sets .gb rom to play'")
     .get_matches()
 }
 
@@ -179,8 +180,8 @@ fn main() {
   let rom_filename = args.value_of("rom").unwrap_or("tetris.gb");
 
   env_logger::init().unwrap();
-  let mut game_boy = GameBoy::new();
 
+  let mut game_boy = GameBoy::new();
   game_boy.initialize();
   game_boy.mmu.load_game(rom_filename);
   // TODO get these test roms to try out http://slack.net/~ant/old/gb-tests/
@@ -190,6 +191,7 @@ fn main() {
   debug!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
   let mut events;
+  let mut fps_counter = fps::Counter::new();
 
   {
     let ppu = game_boy.mmu.ppu.borrow_mut();
@@ -205,6 +207,8 @@ fn main() {
         _ => {}
       }
     }
+
+    fps_counter.print_fps();
 
     game_boy.render_frame();
     // TODO limit to 60fps

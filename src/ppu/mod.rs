@@ -137,7 +137,7 @@ impl PPU {
         }
       }
       0xFF44 => {
-        panic!("Writing to LY in PPU#write: {:#X}", address);
+        debug!("Writing to LY in PPU#write: {:#X}", address);
       }
       _ => {
         // panic!("Unexpected address in PPU#write: {:#X}", address);
@@ -182,7 +182,7 @@ impl PPU {
 
     let mapbase = mapbase + ((line % 256) >> 3) * 32;
 
-    let y = (self.line + self.scroll_y) % 8;
+    let y = (self.line.wrapping_add(self.scroll_y)) % 8;
     let mut x = self.scroll_x % 8;
 
     let mut coff = (self.line as usize) * 160 * 4;

@@ -162,7 +162,7 @@ impl MMU {
       0xFF0F => {
         self.InterruptFlags = data;
         if data > 0x01 {
-          panic!("Write to InterruptFlags, with {:b}", data);
+          debug!("Write to InterruptFlags, with {:b}", data);
         }
       }
       0xFF10...0xFF3F => {
