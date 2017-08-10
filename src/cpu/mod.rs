@@ -252,7 +252,10 @@ impl CPU {
       }
       0x02 => panic!("LD (BC),A : ld_bc_a() not implemented! {:#X}", opcode),
       0x03 => panic!("INC BC : inc_bc() not implemented! {:#X}", opcode),
-      0x04 => panic!("INC B : inc_b() not implemented! {:#X}", opcode),
+      0x04 => {
+        debug!("INC B : inc_b()");
+        self.inc_b()
+      }
       0x05 => {
         debug!("DEC B");
         self.dec_b()
@@ -296,12 +299,18 @@ impl CPU {
         self.inc_de()
       }
       0x14 => panic!("INC D : inc_d() not implemented! {:#X}", opcode),
-      0x15 => panic!("DEC D : dec_d() not implemented! {:#X}", opcode),
+      0x15 => {
+        debug!("DEC D");
+        self.dec_d()
+      }
       0x16 => {
         debug!("LD D,n");
         self.ld_d_n(mmu)
       }
-      0x17 => panic!("RLA : rla() not implemented! {:#X}", opcode),
+      0x17 => {
+        debug!("RLA : rla()");
+        self.rla();
+      },
       0x18 => {
         debug!("JR n");
         self.jr_n(mmu)
@@ -319,8 +328,14 @@ impl CPU {
         debug!("INC E");
         self.inc_e()
       }
-      0x1D => panic!("DEC E : dec_e() not implemented! {:#X}", opcode),
-      0x1E => panic!("LD E,n : ld_e_n() not implemented! {:#X}", opcode),
+      0x1D => {
+        debug!("DEC E");
+        self.dec_e();
+      }
+      0x1E => {
+        debug!("LD E,n");
+        self.ld_e_n(mmu)
+      }
       0x1F => {
         debug!("RRA");
         self.rra()
@@ -341,7 +356,10 @@ impl CPU {
         debug!("INC HL");
         self.inc_hl()
       }
-      0x24 => panic!("INC H : inc_h() not implemented! {:#X}", opcode),
+      0x24 => {
+        debug!("INC H");
+        self.inc_h();
+      }
       0x25 => panic!("DEC H : dec_h() not implemented! {:#X}", opcode),
       0x26 => panic!("LD H,n : ld_h_n() not implemented! {:#X}", opcode),
       0x27 => panic!("DAA : daa() not implemented! {:#X}", opcode),
@@ -360,7 +378,10 @@ impl CPU {
         self.inc_l()
       }
       0x2D => panic!("DEC L : dec_l() not implemented! {:#X}", opcode),
-      0x2E => panic!("LD L,n : ld_l_n() not implemented! {:#X}", opcode),
+      0x2E => {
+        debug!("LD L,n : ld_l_n()");
+        self.ld_l_n(mmu)
+      },
       0x2F => {
         debug!("CPL");
         self.cpl()
@@ -437,7 +458,10 @@ impl CPU {
         debug!("LD D,(HL)");
         self.ld_d_hl(mmu)
       }
-      0x57 => panic!("LD D,A : ld_d_a() not implemented! {:#X}", opcode),
+      0x57 => {
+        debug!("LD D,A : ld_d_a()");
+        self.ld_d_a()
+      },
       0x58 => panic!("LD E,B : ld_e_b() not implemented! {:#X}", opcode),
       0x59 => panic!("LD E,C : ld_e_c() not implemented! {:#X}", opcode),
       0x5A => panic!("LD E,D : ld_e_d() not implemented! {:#X}", opcode),
@@ -459,7 +483,10 @@ impl CPU {
       0x64 => panic!("LD H,H : ld_h_h() not implemented! {:#X}", opcode),
       0x65 => panic!("LD H,L : ld_h_l() not implemented! {:#X}", opcode),
       0x66 => panic!("LD H,(HL) : ld_h_hl() not implemented! {:#X}", opcode),
-      0x67 => panic!("LD H,A : ld_h_a() not implemented! {:#X}", opcode),
+      0x67 => {
+        debug!("LD H,A : ld_h_a()");
+        self.ld_h_a()
+      },
       0x68 => panic!("LD L,B : ld_l_b() not implemented! {:#X}", opcode),
       0x69 => panic!("LD L,C : ld_l_c() not implemented! {:#X}", opcode),
       0x6A => panic!("LD L,D : ld_l_d() not implemented! {:#X}", opcode),
@@ -491,7 +518,10 @@ impl CPU {
         debug!("LD A,D");
         self.ld_a_d()
       }
-      0x7B => panic!("LD A,E : ld_a_e() not implemented! {:#X}", opcode),
+      0x7B => {
+        debug!("LD A,E : ld_a_e()");
+        self.ld_a_e()
+      },
       0x7C => {
         debug!("LD A,H");
         self.ld_a_h()
@@ -524,7 +554,10 @@ impl CPU {
       0x8D => panic!("ADC A,L : adc_a_l() not implemented! {:#X}", opcode),
       0x8E => panic!("ADC A,(HL) : adc_a_hl() not implemented! {:#X}", opcode),
       0x8F => panic!("ADC A,A : adc_a_a() not implemented! {:#X}", opcode),
-      0x90 => panic!("SUB B : sub_b() not implemented! {:#X}", opcode),
+      0x90 => {
+        debug!("SUB B");
+        self.sub_b()
+      }
       0x91 => panic!("SUB C : sub_c() not implemented! {:#X}", opcode),
       0x92 => panic!("SUB D : sub_d() not implemented! {:#X}", opcode),
       0x93 => panic!("SUB E : sub_e() not implemented! {:#X}", opcode),
@@ -850,6 +883,11 @@ impl CPU {
     self.PC += 1;
   }
 
+  fn ld_b_n(&mut self, mmu: &mmu::MMU) {
+    let value = mmu.read(self.PC);
+    shared_ld_n_n(self, RegEnum::B, value);
+  }
+
   fn ld_c_n(&mut self, mmu: &mmu::MMU) {
     let value = mmu.read(self.PC);
     shared_ld_n_n(self, RegEnum::C, value);
@@ -860,9 +898,9 @@ impl CPU {
     shared_ld_n_n(self, RegEnum::D, value);
   }
 
-  fn ld_b_n(&mut self, mmu: &mmu::MMU) {
+  fn ld_e_n(&mut self, mmu: &mmu::MMU) {
     let value = mmu.read(self.PC);
-    shared_ld_n_n(self, RegEnum::B, value);
+    shared_ld_n_n(self, RegEnum::E, value);
   }
 
   fn ld_hld_a(&mut self, mmu: &mut mmu::MMU) {
@@ -882,6 +920,18 @@ impl CPU {
 
   fn dec_c(&mut self) {
     shared_dec_byte_reg(self, RegEnum::C);
+  }
+
+  fn dec_d(&mut self) {
+    shared_dec_byte_reg(self, RegEnum::D);
+  }
+
+  fn dec_e(&mut self) {
+    shared_dec_byte_reg(self, RegEnum::E);
+  }
+
+  fn sub_b(&mut self) {
+    shared_sub_byte_reg(self, RegEnum::B);
   }
 
   fn jr_nz_n(&mut self, mmu: &mmu::MMU) {
@@ -919,9 +969,19 @@ impl CPU {
     self.write_byte_reg(RegEnum::C, operand)
   }
 
+  fn ld_d_a(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::A);
+    self.write_byte_reg(RegEnum::D, operand)
+  }
+
   fn ld_e_a(&mut self) {
     let operand = self.read_byte_reg(RegEnum::A);
     self.write_byte_reg(RegEnum::E, operand)
+  }
+
+  fn ld_h_a(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::A);
+    self.write_byte_reg(RegEnum::H, operand)
   }
 
   fn ld_a_d(&mut self) {
@@ -931,6 +991,11 @@ impl CPU {
 
   fn ld_a_h(&mut self) {
     let operand = self.read_byte_reg(RegEnum::H);
+    self.write_byte_reg(RegEnum::A, operand)
+  }
+
+  fn ld_a_e(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::E);
     self.write_byte_reg(RegEnum::A, operand)
   }
 
@@ -944,6 +1009,12 @@ impl CPU {
   fn ld_a_n(&mut self, mmu: &mmu::MMU) {
     let operand = mmu.read(self.PC);
     self.write_byte_reg(RegEnum::A, operand);
+    self.PC += 1;
+  }
+
+  fn ld_l_n(&mut self, mmu: &mmu::MMU) {
+    let operand = mmu.read(self.PC);
+    self.write_byte_reg(RegEnum::L, operand);
     self.PC += 1;
   }
 
@@ -1011,12 +1082,20 @@ impl CPU {
     shared_inc_byte_reg(self, RegEnum::A);
   }
 
+  fn inc_b(&mut self) {
+    shared_inc_byte_reg(self, RegEnum::B);
+  }
+
   fn inc_c(&mut self) {
     shared_inc_byte_reg(self, RegEnum::C);
   }
 
   fn inc_e(&mut self) {
     shared_inc_byte_reg(self, RegEnum::E);
+  }
+
+  fn inc_h(&mut self) {
+    shared_inc_byte_reg(self, RegEnum::H);
   }
 
   fn inc_l(&mut self) {
@@ -1218,10 +1297,9 @@ impl CPU {
   }
 
   fn pop_bc(&mut self, mmu: &mut mmu::MMU) {
-    let current_SP = self.read_word_reg(RegEnum::SP);
-    let value = mmu.read_word(current_SP);
-    self.write_word_reg(RegEnum::BC, value);
-    self.stack_pop(mmu);
+    // let current_SP = self.read_word_reg(RegEnum::SP);
+    let value = self.stack_pop(mmu);//mmu.read_word(current_SP);
+    self.write_word_reg(RegEnum::BC, value); // TODO do the same change to the other pop_ operations?
   }
 
   fn pop_de(&mut self, mmu: &mut mmu::MMU) {
@@ -1676,6 +1754,10 @@ impl CPU {
   fn rl_c(&mut self) {
     shared_rl_n(self, RegEnum::C);
   }
+
+  fn rla(&mut self) {
+    shared_rl_n(self, RegEnum::A);
+  }
 }
 
 fn shared_reset_bit_reg(cpu: &mut CPU, bit: types::Byte, regEnum: RegEnum) {
@@ -1729,18 +1811,6 @@ fn shared_swap_register(cpu: &mut CPU, regEnum: RegEnum) {
 
 fn shared_inc_word_reg(cpu: &mut CPU, regEnum: RegEnum) {
   let result = cpu.read_word_reg(regEnum).wrapping_add(1);
-
-  if cpu.util_is_flag_set(FLAG_CARRY) {
-    cpu.util_set_flag(FLAG_CARRY)
-  } else {
-    cpu.util_clear_all_flags()
-  };
-  cpu.util_toggle_zero_flag_from_word_result(result);
-
-  if result & 0x0F == 0x00 {
-    cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  }
-
   cpu.write_word_reg(regEnum, result);
 }
 
@@ -1786,10 +1856,29 @@ fn shared_dec_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   cpu.write_byte_reg(regEnum, result);
 
   if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
-  cpu.util_set_flag(FLAG_SUB);
+  cpu.util_toggle_flag(FLAG_SUB);
   cpu.util_toggle_zero_flag_from_result(result);
 
   if (result & 0x0F) == 0x0F {
+    cpu.util_toggle_flag(FLAG_HALF_CARRY);
+  }
+}
+
+fn shared_sub_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
+  let A = cpu.read_byte_reg(RegEnum::A);
+  let number = cpu.read_byte_reg(regEnum);
+  let result = A - number;
+  let carry_bits = A ^ number ^ result;
+
+  cpu.write_byte_reg(RegEnum::A, carry_bits as types::Byte);
+  cpu.util_set_flag(FLAG_SUB);
+  cpu.util_toggle_zero_flag_from_result(result as types::Byte);
+
+  if carry_bits & 0x100 != 0 {
+    cpu.util_toggle_flag(FLAG_CARRY);
+  }
+
+  if carry_bits & 0x10 != 0 {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
 }
@@ -1816,26 +1905,11 @@ fn shared_rotate_rr(cpu: &mut CPU, regEnum: RegEnum) {
 
 fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
   panic!("not implemented!")
-  //   int carry = IsSetFlag(FLAG_CARRY) ? 1 : 0;
-  //   int result = AF.GetHigh() + number + carry;
-  //   ClearAllFlags();
-  //   ToggleZeroFlagFromResult(static_cast<u8> (result));
-  //   if (result > 0xFF)
-  //   {
-  //       ToggleFlag(FLAG_CARRY);
-  //   }
-  //   if (((AF.GetHigh()& 0x0F) + (number & 0x0F) + carry) > 0x0F)
-  //   {
-  //       ToggleFlag(FLAG_HALF);
-  //   }
-  //   AF.SetHigh(static_cast<u8> (result));
 }
 
 fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
   let A_value = cpu.read_byte_reg(RegEnum::A);
   cpu.util_set_flag(FLAG_SUB);
-
-  // println!("A: {:#X}, byte: {:#X}", A_value, byte);
 
   if A_value < byte {
     cpu.util_toggle_flag(FLAG_CARRY);
@@ -1848,11 +1922,6 @@ fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
   if ((A_value.wrapping_sub(byte)) & 0xF) > (A_value & 0xF) {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
-
-  // NOTE borrowed from jba rust
-  // if (A_value & 0xF) < (byte & 0xF) {
-  //   cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  // }
 }
 
 fn shared_or_n(cpu: &mut CPU, byte: types::Byte) {
