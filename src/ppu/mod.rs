@@ -105,7 +105,10 @@ impl PPU {
         switch_background_result | background_map_result | background_tile_result | switch_lcd_result
       }
       0xFF42 => self.scroll_y as types::Byte,
-      0xFF43 => self.scroll_x as types::Byte,
+      0xFF43 => {
+        println!("Getting scroll_x, it's {:x}", self.scroll_x);
+        self.scroll_x as types::Byte
+      },
       0xFF44 => self.line as types::Byte,
       _ => {
         panic!("Unexpected address in PPU#read: {:#X}", address);
@@ -122,7 +125,14 @@ impl PPU {
         self.switch_lcd = if value & 0x80 != 0 { true } else { false };
       }
       0xFF42 => self.scroll_y = value,
-      0xFF43 => self.scroll_x = value,
+      0xFF43 => {
+        // if value == 0x1b {
+        //   panic!("hi!");
+        // }
+
+        println!("Setting scroll_x to {:x}", value);
+        self.scroll_x = value
+      },
       0xFF47 => {
         for i in 0..4 {
           match (value >> (i * 2)) & 3 {

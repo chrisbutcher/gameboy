@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<!-- saved from url=(0055)http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM -->
+<html lang="en" dir="ltr" class="client-js"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Gameboy Bootstrap ROM - GbdevWiki</title>
+<meta name="generator" content="MediaWiki 1.25.1">
+<link rel="shortcut icon" href="http://gbdev.gg8.se/favicon.ico">
+<link rel="search" type="application/opensearchdescription+xml" href="http://gbdev.gg8.se/wiki/opensearch_desc.php" title="GbdevWiki (en)">
+<link rel="EditURI" type="application/rsd+xml" href="http://gbdev.gg8.se/wiki/api.php?action=rsd">
+<link rel="alternate" hreflang="x-default" href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM">
+<link rel="alternate" type="application/atom+xml" title="GbdevWiki Atom feed" href="http://gbdev.gg8.se/wiki/index.php?title=Special:RecentChanges&amp;feed=atom">
+<link rel="stylesheet" href="./Gameboy Bootstrap ROM - GbdevWiki_files/load.php">
+<!--[if IE 6]><link rel="stylesheet" href="/wiki/skins/MonoBook/IE60Fixes.css?303" media="screen" /><![endif]-->
+<!--[if IE 7]><link rel="stylesheet" href="/wiki/skins/MonoBook/IE70Fixes.css?303" media="screen" /><![endif]--><style>
+.mw-collapsible-toggle{float:right;-moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;user-select:none}  .mw-content-ltr .mw-collapsible-toggle,.mw-content-rtl .mw-content-ltr .mw-collapsible-toggle{float:right} .mw-content-rtl .mw-collapsible-toggle,.mw-content-ltr .mw-content-rtl .mw-collapsible-toggle{float:left}.mw-customtoggle,.mw-collapsible-toggle{cursor:pointer} caption .mw-collapsible-toggle,.mw-content-ltr caption .mw-collapsible-toggle,.mw-content-rtl caption .mw-collapsible-toggle,.mw-content-rtl .mw-content-ltr caption .mw-collapsible-toggle,.mw-content-ltr .mw-content-rtl caption .mw-collapsible-toggle{float:none} li .mw-collapsible-toggle,.mw-content-ltr li .mw-collapsible-toggle,.mw-content-rtl li .mw-collapsible-toggle,.mw-content-rtl .mw-content-ltr li .mw-collapsible-toggle,.mw-content-ltr .mw-content-rtl li .mw-collapsible-toggle{float:none} .mw-collapsible-toggle-li{list-style:none}
+/* cache key: gbdevwiki-gbdevwiki_:resourceloader:filter:minify-css:7:e1ffd603cbaaa5f1a36e0d13fe843535 */
+.suggestions{overflow:hidden;position:absolute;top:0;left:0;width:0;border:none;z-index:1099;padding:0;margin:-1px 0 0 0}.suggestions-special{position:relative;background-color:white;cursor:pointer;border:solid 1px #aaaaaa;padding:0;margin:0;margin-top:-2px;display:none;padding:0.25em 0.25em;line-height:1.25em}.suggestions-results{background-color:white;cursor:pointer;border:solid 1px #aaaaaa;padding:0;margin:0}.suggestions-result{color:black;margin:0;line-height:1.5em;padding:0.01em 0.25em;text-align:left; overflow:hidden;-o-text-overflow:ellipsis; text-overflow:ellipsis;white-space:nowrap}.suggestions-result-current{background-color:#4C59A6;color:white}.suggestions-special .special-label{color:gray;text-align:left}.suggestions-special .special-query{color:black;font-style:italic;text-align:left}.suggestions-special .special-hover{background-color:silver}.suggestions-result-current .special-label,.suggestions-result-current .special-query{color:white}.highlight{font-weight:bold}
+/* cache key: gbdevwiki-gbdevwiki_:resourceloader:filter:minify-css:7:f8d0c6895ce3ae14434c16b8fca59432 */
+.postedit-container{margin:0 auto;position:fixed;top:0;height:0;left:50%;z-index:1000;font-size:13px}.postedit-container:hover{cursor:pointer}.postedit{position:relative;top:0.6em;left:-50%;padding:.6em 3.6em .6em 1.1em;line-height:1.5625em;color:#626465;background-color:#f4f4f4;border:1px solid #dcd9d9;text-shadow:0 0.0625em 0 rgba(255,255,255,0.5);border-radius:5px;box-shadow:0 2px 5px 0 #ccc;-webkit-transition:all 0.25s ease-in-out;-moz-transition:all 0.25s ease-in-out;-ms-transition:all 0.25s ease-in-out;-o-transition:all 0.25s ease-in-out;transition:all 0.25s ease-in-out}.skin-monobook .postedit{top:6em !important}.postedit-faded{opacity:0}.postedit-icon{padding-left:41px;  line-height:25px;background-repeat:no-repeat;background-position:8px 50%}.postedit-icon-checkmark{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABblBMVEUAAAD///////9PfTf///80aRdTgjn///9Feij///////////9Rfzf///////////9PfjZRgDh1o1xOfTb///////+bwYqLtnj///////9PfTa82K////9WhT6YxIL///9QgDdTgzr////////j7uDl7eLq8efi693k7OH///////9UhjuBr2rp9uRUhjr///9YljVKgir///9WiTlYjT3////9/v57vFlbkT5PjC9dlD/5/fhuq09stUTs9uhxuElctCpfnT1huDFloEZloUZmpENmvDZpvDxpvTxqvjxrvT5rvT9rwTxsqktswD5uwkBvuUdxw0NztFBztU9ztVBzwkp0tlJ1xkd2t1R3uVR4w1F4xk54x014yE15uVZ5v1R5xVB6v1R7yFJ8wVh9xVl9yFR9yVd9ylN+xVh+yFd/x1l/yFeAylmEx1+Ny2uY0Hqe04Wj1Ymv3Ze33qLD47TJ5L3O6cPU7Mrq9eb2+/Q4j37OAAAAQHRSTlMAAQIEBAUFBQwPFB4fJCUoKiosQEhJS01RUlZZXmdydXaChYuSlJSWmJmoq6uur8LExcvM19fg5ejt8fX2+Pr7SljgewAAAKpJREFUGBkFwQNCAwAAAMDLtl3LtrG4rWXbtvX77gAgZ6grFwC0bhwNVgKgdPZx8b0dgLi+s7Wn0VoAqpfOI9+BNADZI7fLrz2pSEwGHZuH+78lSK8ZLkLezF3ooyUG3VPXq2USei9WngeyoG195yBYWDF3E/2pAhl1e9Gr8bGT+bfOFCC2fnvh4X7rcqIAQNNu+HT6sxkAjceTL/2ZAIhv+PorBwBJxfkA//dFHSCBy/UTAAAAAElFTkSuQmCC);background-image:url(http://gbdev.gg8.se/wiki/resources/src/mediawiki.action/images/green-checkmark.png?2015-05-25T21:00:00Z)!ie;background-position:left}.postedit-close{position:absolute;padding:0 .8em;right:0;top:0;font-size:1.25em;font-weight:bold;line-height:2.3em;color:black;text-shadow:0 0.0625em 0 white;text-decoration:none;opacity:0.2;filter:alpha(opacity=20)}.postedit-close:hover{color:black;text-decoration:none;opacity:0.4;filter:alpha(opacity=40)}
+/* cache key: gbdevwiki-gbdevwiki_:resourceloader:filter:minify-css:7:13d4fa21bba270816326a4ec1d0f0753 */</style><style>
+.suggestions a.mw-searchSuggest-link,.suggestions a.mw-searchSuggest-link:hover,.suggestions a.mw-searchSuggest-link:active,.suggestions a.mw-searchSuggest-link:focus{color:black;text-decoration:none}.suggestions-result-current a.mw-searchSuggest-link,.suggestions-result-current a.mw-searchSuggest-link:hover,.suggestions-result-current a.mw-searchSuggest-link:active,.suggestions-result-current a.mw-searchSuggest-link:focus{color:white}.suggestions a.mw-searchSuggest-link .special-query{ overflow:hidden;-o-text-overflow:ellipsis; text-overflow:ellipsis;white-space:nowrap}
+/* cache key: gbdevwiki-gbdevwiki_:resourceloader:filter:minify-css:7:ae3fa4570b5ac0c6cf7b3776c8ae4d6f */</style><meta name="ResourceLoaderDynamicStyles" content="">
+<link rel="stylesheet" href="./Gameboy Bootstrap ROM - GbdevWiki_files/load(1).php">
+<style>a:lang(ar),a:lang(kk-arab),a:lang(mzn),a:lang(ps),a:lang(ur){text-decoration:none}
+/* cache key: gbdevwiki-gbdevwiki_:resourceloader:filter:minify-css:7:6e7fe7968357bf072d7ae91837483523 */</style>
+<script src="./Gameboy Bootstrap ROM - GbdevWiki_files/load(2).php"></script><script src="./Gameboy Bootstrap ROM - GbdevWiki_files/load(3).php"></script>
+<script>if(window.mw){
+mw.config.set({"wgCanonicalNamespace":"","wgCanonicalSpecialPageName":false,"wgNamespaceNumber":0,"wgPageName":"Gameboy_Bootstrap_ROM","wgTitle":"Gameboy Bootstrap ROM","wgCurRevisionId":615,"wgRevisionId":615,"wgArticleId":10,"wgIsArticle":true,"wgIsRedirect":false,"wgAction":"view","wgUserName":null,"wgUserGroups":["*"],"wgCategories":[],"wgBreakFrames":false,"wgPageContentLanguage":"en","wgPageContentModel":"wikitext","wgSeparatorTransformTable":["",""],"wgDigitTransformTable":["",""],"wgDefaultDateFormat":"dmy","wgMonthNames":["","January","February","March","April","May","June","July","August","September","October","November","December"],"wgMonthNamesShort":["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"wgRelevantPageName":"Gameboy_Bootstrap_ROM","wgRelevantArticleId":10,"wgIsProbablyEditable":false,"wgRestrictionEdit":[],"wgRestrictionMove":[]});
+}</script><script>if(window.mw){
+mw.loader.implement("user.options",function($,jQuery){mw.user.options.set({"variant":"en"});});mw.loader.implement("user.tokens",function($,jQuery){mw.user.tokens.set({"editToken":"+\\","patrolToken":"+\\","watchToken":"+\\"});});
+/* cache key: gbdevwiki-gbdevwiki_:resourceloader:filter:minify-js:7:a5c52c063dc436c1ca7c9f456936a5e9 */
+}</script>
+<script>if(window.mw){
+mw.loader.load(["mediawiki.page.startup","mediawiki.legacy.wikibits","mediawiki.legacy.ajax"]);
+}</script><script src="./Gameboy Bootstrap ROM - GbdevWiki_files/load(4).php"></script>
+<style type="text/css">
+:root #content > #center > .dose > .dosesingle,
+:root #content > #right > .dose > .dosesingle
+{ display: none !important; }</style></head>
+<body class="mediawiki ltr sitedir-ltr ns-0 ns-subject page-Gameboy_Bootstrap_ROM skin-monobook action-view">
+<div id="globalWrapper">
+		<div id="column-content">
+			<div id="content" class="mw-body" role="main">
+				<a id="top"></a>
+				
+				<div class="mw-indicators">
+</div>
+				<h1 id="firstHeading" class="firstHeading" lang="en">Gameboy Bootstrap ROM</h1>
+
+				<div id="bodyContent" class="mw-body-content">
+					<div id="siteSub">From GbdevWiki</div>
+					<div id="contentSub"></div>
+										<div id="jump-to-nav" class="mw-jump">Jump to: <a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#column-one">navigation</a>, <a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#searchInput">search</a></div>
+
+					<!-- start content -->
+					<div id="mw-content-text" lang="en" dir="ltr" class="mw-content-ltr"><div id="toc" class="toc"><div id="toctitle"><h2>Contents</h2><span class="toctoggle">&nbsp;[<a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#" id="togglelink">hide</a>]&nbsp;</span></div>
+<ul>
+<li class="toclevel-1 tocsection-1"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#The_DMG_bootstrap"><span class="tocnumber">1</span> <span class="toctext">The DMG bootstrap</span></a></li>
+<li class="toclevel-1 tocsection-2"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#The_SGB_bootstrap"><span class="tocnumber">2</span> <span class="toctext">The SGB bootstrap</span></a></li>
+<li class="toclevel-1 tocsection-3"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#The_CGB_bootstrap"><span class="tocnumber">3</span> <span class="toctext">The CGB bootstrap</span></a></li>
+<li class="toclevel-1 tocsection-4"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#The_.27Pokemon.27_CGB_bootstrap"><span class="tocnumber">4</span> <span class="toctext">The 'Pokemon' CGB bootstrap</span></a></li>
+<li class="toclevel-1 tocsection-5"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#Impact"><span class="tocnumber">5</span> <span class="toctext">Impact</span></a></li>
+<li class="toclevel-1 tocsection-6"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#Other_findings"><span class="tocnumber">6</span> <span class="toctext">Other findings</span></a></li>
+<li class="toclevel-1 tocsection-7"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#Patents"><span class="tocnumber">7</span> <span class="toctext">Patents</span></a></li>
+<li class="toclevel-1 tocsection-8"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#Contents_of_the_ROM"><span class="tocnumber">8</span> <span class="toctext">Contents of the ROM</span></a></li>
+<li class="toclevel-1 tocsection-9"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM#References"><span class="tocnumber">9</span> <span class="toctext">References</span></a></li>
+</ul>
+</div>
+
+<h2><span class="mw-headline" id="The_DMG_bootstrap">The DMG bootstrap</span></h2>
+<p>On July 17, 2003, neviksti published that he had been able to extract the contents of the Gameboy boot ROM from a DMG-01 on the Cherryroms.com forums. The boot ROM is a bootstrap program which is a 256 bytes big piece of code which checks the cartridge header is correct, scrolls the Nintendo bootup graphics and plays the "po-ling" sound.
+</p><p><br>
+When the Gameboy is turned on, the bootstrap ROM is situated in a memory page at positions $0-$FF (0-255). The CPU enters at $0 at startup, and the last two instructions of the code writes to a special register which disables the internal ROM page, thus making the lower 256 bytes of the cartridge ROM readable. The last instruction is situated at position $FE and is two bytes big, which means that right after that instruction has finished, the CPU executes the instruction at $100, which is the entry point code on a cartridge.
+</p><p>Neviksti managed to read out this memory area by opening the CPU of a Gameboy he got from <a href="http://gbdev.gg8.se/wiki/index.php?title=User:Duo&amp;action=edit&amp;redlink=1" class="new" title="User:Duo (page does not exist)">Duo</a>, and looking at it with a microscope. That way he managed to read the code bit by bit.
+</p>
+<h2><span class="mw-headline" id="The_SGB_bootstrap">The SGB bootstrap</span></h2>
+<p>On September 16th, 2009, Costis Sideris was able to extract the Super Gameboy bootrom using a form of clock glitching involving an FPGA. See <a rel="nofollow" class="external text" href="http://www.its.caltech.edu/~costis/sgb_hack/">Costis' page describing the dumping</a>. The clock crystal for the SGB was disconnected and instead controlled by the FPGA. After viewing an address bus trace (which shows the address as the bootrom is reading/writing to the $FFxx i/o space, but not the data), he found which exact clock cycle the write to the $FF50 register (which disables the bootrom) was. He then caused the FPGA to clock the SGB CPU at 4 times the normal speed for that write cycle only. This caused the CPU to glitch, the disable write to fail to properly occur, and the program counter to continue past there to $100 and onward, into cartridge rom space. A program was placed in that area which wrote the bootrom out byte by byte to the FPGA (using a bogus cartridge-address-space address which the FPGA recognized).
+</p><p>When the Super Gameboy is turned on, the first part of the bootrom is not very different from the DMG one; it sets up sound registers and clears vram, but also writes 0x30 to the $ff00 keypad port (which the sgb uses as a bit-banged serial output port in addition to its keypad reading function). After that however, it clears WRAM bytes $c05f to $c058, and then copies the cartridge header ($104 to $14f) to WRAM at $c000-$c057, placing count and sum bytes at $c000-$c001, $c010-$c011, $c020-$c021, $c030-$c031, $c040-$c041 and $c050-$c051. This data is then bit-banged as a giant packet over the $ff00 port to the snes. See Just Dessert's disassembly at <a rel="nofollow" class="external text" href="http://www.bannister.org/forums/ubbthreads.php?ubb=showflat&amp;Number=54179#Post54179">the MESS forums</a>. Unlike the DMG and CGB bootroms, the bootrom does NOT lock out the cartridge if the header sum or logo is wrong; its the SNES which does that!
+</p>
+<h2><span class="mw-headline" id="The_CGB_bootstrap">The CGB bootstrap</span></h2>
+<p>Neviksti has also tried to extract the bootstrap from a Gameboy Color (CGB-01) CPU. However, because that CPU uses NAND ROM and is laid out in a different way, he had no success in extracting that ROM.
+Based on some limited preliminary decapsulation work done by Dr. Decapitator, it was determined that the CGB CPU die has three roms on it: one 256 bytes, one 512 bytes, and one 1792 bytes.
+</p><p>On September 21st, 2009, Costis Sideris was able to extract the Gameboy Color bootrom using a combination of clock and power glitching involving an FPGA. See <a rel="nofollow" class="external text" href="http://www.fpgb.org/?p=17">Costis' page describing the dumping</a>. The clock crystal for the CGB was disconnected and instead controlled by the FPGA, as well as the 3.3v power pin for the CGB CPU. After viewing an address bus trace (which shows the address as the bootrom is reading/writing to the $FFxx i/o space, but not the data), he found which exact clock cycle the write to the $FF50 register (which disables the bootrom) was, but attempting a similar clock glitch attack as the SGB didn't work. Instead, he used a much more 'brute force' attack after observing that unlike the DMG and SGB, the CGB cpu uses dynamic logic and loses its state when not clocked for a few seconds. He HALTED the cpu clock before the write, and in addition dropped the 3.3v line down to near 0v (to help randomize the internal register contents). This caused both the disable write to fail to properly occur, and the CPU's program counter and other registers to be filled with random values. After doing this several times, the program counter ended up pointing into external cartridge rom space, which contained a long chain of NOPS and a dumping program. The dumping program wrote the bootrom out byte by byte to the FPGA (using a bogus cartridge-address-space address which the FPGA recognized). The rom dump includes the 256 byte rom (0x0000-0x00FF) and the 1792 byte rom (0x0200-0x08FF) which Dr. Decapitator observed, but not the 512 byte rom, which may be cpu microcode or lcd color lookup related.
+</p>
+<h2><span class="mw-headline" id="The_.27Pokemon.27_CGB_bootstrap">The 'Pokemon' CGB bootstrap</span></h2>
+<p>An interesting 'prototype' or alternate version of the CGB bootrom can be found included in the "Pokemon Stadium" N64 cartridge rom. This might possibly have been a leftover from an earlier prototype "Pokemon Stadium" cartridge which actually had a variant CGB CPU on it which would retrieve its rom from the n64 rom. The final n64 cartridge does not have a CGB CPU on it, but it does emulate the CGB hardware using N64 software, but is locked to only running the pokemon CGB games, which are copied, ram and rom, out of the cart on startup. The pokemon stadium 'emulator' code probably does use the bootstrap when starting up.
+</p>
+<h2><span class="mw-headline" id="Impact">Impact</span></h2>
+<p>Apart from amazement, the dumping of the DMG bootrom led to the inclusion of a feature to emulate the bootstrap ROM in the emulators <a href="http://gbdev.gg8.se/wiki/articles/KiGB" title="KiGB">KiGB</a> and <a href="http://gbdev.gg8.se/wiki/articles/BGB" title="BGB">BGB</a>. The dumping of the SGB bootrom led to the inclusion of support for it in the <a href="http://gbdev.gg8.se/wiki/index.php?title=MESS&amp;action=edit&amp;redlink=1" class="new" title="MESS (page does not exist)">MESS</a> emulator.
+</p>
+<h2><span class="mw-headline" id="Other_findings">Other findings</span></h2>
+<p>As a result of the process, neviksti also published pictures of the rest of the chip. All material published in conjunction with the hack can be found here: <a rel="nofollow" class="external autonumber" href="http://www.neviksti.com/DMG/">[1]</a>
+</p>
+<h2><span class="mw-headline" id="Patents">Patents</span></h2>
+<p>The following invention is claimed for the bootstrap:
+</p>
+<ul><li> <a rel="nofollow" class="external text" href="http://www.google.com/search?q=patent+%235134391">US Patent #5,134,391</a> - System for preventing the use of an unauthorized external memory</li></ul>
+<h2><span class="mw-headline" id="Contents_of_the_ROM">Contents of the ROM</span></h2>
+<p>Below is the disassembled code of the bootstrap ROM, together with Neviksti's comments.
+A binary file of the 256 byte area can be downloaded here: <a rel="nofollow" class="external autonumber" href="http://www.neviksti.com/DMG/DMG_ROM.bin">[2]</a>. The disassembled ROM file can also be found here: <a rel="nofollow" class="external autonumber" href="http://www.neviksti.com/DMG/DMG_ROM.asm">[3]</a>.
+</p>
+<pre>	LD SP,$fffe		; $0000  Setup Stack
+
+	XOR A			; $0003  Zero the memory from $8000-$9FFF (VRAM)
+	LD HL,$9fff		; $0004
+Addr_0007:
+	LD (HL-),A		; $0007
+	BIT 7,H		; $0008
+	JR NZ, Addr_0007	; $000a
+
+	LD HL,$ff26		; $000c  Setup Audio
+	LD C,$11		; $000f
+	LD A,$80		; $0011 
+	LD (HL-),A		; $0013
+	LD ($FF00+C),A	; $0014
+	INC C			; $0015
+	LD A,$f3		; $0016
+	LD ($FF00+C),A	; $0018
+	LD (HL-),A		; $0019
+	LD A,$77		; $001a
+	LD (HL),A		; $001c
+
+	LD A,$fc		; $001d  Setup BG palette
+	LD ($FF00+$47),A	; $001f
+
+	LD DE,$0104		; $0021  Convert and load logo data from cart into Video RAM
+	LD HL,$8010		; $0024
+Addr_0027:
+	LD A,(DE)		; $0027
+	CALL $0095		; $0028
+	CALL $0096		; $002b
+	INC DE		; $002e
+	LD A,E		; $002f
+	CP $34		; $0030
+	JR NZ, Addr_0027	; $0032
+
+	LD DE,$00d8		; $0034  Load 8 additional bytes into Video RAM
+	LD B,$08		; $0037
+Addr_0039:
+	LD A,(DE)		; $0039
+	INC DE		; $003a
+	LD (HL+),A		; $003b
+	INC HL		; $003c
+	DEC B			; $003d
+	JR NZ, Addr_0039	; $003e
+
+	LD A,$19		; $0040  Setup background tilemap
+	LD ($9910),A	; $0042
+	LD HL,$992f		; $0045
+Addr_0048:
+	LD C,$0c		; $0048
+Addr_004A:
+	DEC A			; $004a
+	JR Z, Addr_0055	; $004b
+	LD (HL-),A		; $004d
+	DEC C			; $004e
+	JR NZ, Addr_004A	; $004f
+	LD L,$0f		; $0051
+	JR Addr_0048	; $0053
+
+	; === Scroll logo on screen, and play logo sound===
+
+Addr_0055:
+	LD H,A		; $0055  Initialize scroll count, H=0
+	LD A,$64		; $0056
+	LD D,A		; $0058  set loop count, D=$64
+	LD ($FF00+$42),A	; $0059  Set vertical scroll register
+	LD A,$91		; $005b
+	LD ($FF00+$40),A	; $005d  Turn on LCD, showing Background
+	INC B			; $005f  Set B=1
+Addr_0060:
+	LD E,$02		; $0060
+Addr_0062:
+	LD C,$0c		; $0062
+Addr_0064:
+	LD A,($FF00+$44)	; $0064  wait for screen frame
+	CP $90		; $0066
+	JR NZ, Addr_0064	; $0068
+	DEC C			; $006a
+	JR NZ, Addr_0064	; $006b
+	DEC E			; $006d
+	JR NZ, Addr_0062	; $006e
+
+	LD C,$13		; $0070
+	INC H			; $0072  increment scroll count
+	LD A,H		; $0073
+	LD E,$83		; $0074
+	CP $62		; $0076  $62 counts in, play sound #1
+	JR Z, Addr_0080	; $0078
+	LD E,$c1		; $007a
+	CP $64		; $007c
+	JR NZ, Addr_0086	; $007e  $64 counts in, play sound #2
+Addr_0080:
+	LD A,E		; $0080  play sound
+	LD ($FF00+C),A	; $0081
+	INC C			; $0082
+	LD A,$87		; $0083
+	LD ($FF00+C),A	; $0085
+Addr_0086:
+	LD A,($FF00+$42)	; $0086
+	SUB B			; $0088
+	LD ($FF00+$42),A	; $0089  scroll logo up if B=1
+	DEC D			; $008b  
+	JR NZ, Addr_0060	; $008c
+
+	DEC B			; $008e  set B=0 first time
+	JR NZ, Addr_00E0	; $008f    ... next time, cause jump to "Nintendo Logo check"
+
+	LD D,$20		; $0091  use scrolling loop to pause
+	JR Addr_0060	; $0093
+
+	; ==== Graphic routine ====
+
+	LD C,A		; $0095  "Double up" all the bits of the graphics data
+	LD B,$04		; $0096     and store in Video RAM
+Addr_0098:
+	PUSH BC		; $0098
+	RL C			; $0099
+	RLA			; $009b
+	POP BC		; $009c
+	RL C			; $009d
+	RLA			; $009f
+	DEC B			; $00a0
+	JR NZ, Addr_0098	; $00a1
+	LD (HL+),A		; $00a3
+	INC HL		; $00a4
+	LD (HL+),A		; $00a5
+	INC HL		; $00a6
+	RET			; $00a7
+
+Addr_00A8:
+	;Nintendo Logo
+	.DB $CE,$ED,$66,$66,$CC,$0D,$00,$0B,$03,$73,$00,$83,$00,$0C,$00,$0D 
+	.DB $00,$08,$11,$1F,$88,$89,$00,$0E,$DC,$CC,$6E,$E6,$DD,$DD,$D9,$99 
+	.DB $BB,$BB,$67,$63,$6E,$0E,$EC,$CC,$DD,$DC,$99,$9F,$BB,$B9,$33,$3E 
+
+Addr_00D8:
+	;More video data
+	.DB $3C,$42,$B9,$A5,$B9,$A5,$42,$3C
+
+	; ===== Nintendo logo comparison routine =====
+
+Addr_00E0:	
+	LD HL,$0104		; $00e0	; point HL to Nintendo logo in cart
+	LD DE,$00a8		; $00e3	; point DE to Nintendo logo in DMG rom
+
+Addr_00E6:
+	LD A,(DE)		; $00e6
+	INC DE		; $00e7
+	CP (HL)		; $00e8	;compare logo data in cart to DMG rom
+	JR NZ,$fe		; $00e9	;if not a match, lock up here
+	INC HL		; $00eb
+	LD A,L		; $00ec
+	CP $34		; $00ed	;do this for $30 bytes
+	JR NZ, Addr_00E6	; $00ef
+
+	LD B,$19		; $00f1
+	LD A,B		; $00f3
+Addr_00F4:
+	ADD (HL)		; $00f4
+	INC HL		; $00f5
+	DEC B			; $00f6
+	JR NZ, Addr_00F4	; $00f7
+	ADD (HL)		; $00f9
+	JR NZ,$fe		; $00fa	; if $19 + bytes from $0134-$014D  don't add to $00
+						;  ... lock up
+
+	LD A,$01		; $00fc
+	LD ($FF00+$50),A	; $00fe	;turn off DMG rom</pre>
+<h2><span class="mw-headline" id="References">References</span></h2>
+<p><a rel="nofollow" class="external text" href="http://web.archive.org/web/20060507053755/http://forums.cherryroms.com/viewtopic.php?t=3848&amp;start=75">Mirror of the original Cherryroms thread on archive.org</a>
+</p>
+<!-- 
+NewPP limit report
+CPU time usage: 0.070 seconds
+Real time usage: 0.075 seconds
+Preprocessor visited node count: 43/1000000
+Preprocessor generated node count: 60/1000000
+Post‐expand include size: 0/2097152 bytes
+Template argument size: 0/2097152 bytes
+Highest expansion depth: 2/40
+Expensive parser function count: 0/100
+-->
+
+<!-- 
+Transclusion expansion time report (%,ms,calls,template)
+100.00%    0.000      1 - -total
+-->
+
+<!-- Saved in parser cache with key gbdevwiki-gbdevwiki_:pcache:idhash:10-0!*!0!!en!*!* and timestamp 20170809114658 and revision id 615
+ -->
+</div><div class="printfooter">
+Retrieved from "<a dir="ltr" href="http://gbdev.gg8.se/wiki/index.php?title=Gameboy_Bootstrap_ROM&amp;oldid=615">http://gbdev.gg8.se/wiki/index.php?title=Gameboy_Bootstrap_ROM&amp;oldid=615</a>"</div>
+					<div id="catlinks" class="catlinks catlinks-allhidden"></div>					<!-- end content -->
+										<div class="visualClear"></div>
+				</div>
+			</div>
+		</div>
+		<div id="column-one">
+			<h2>Navigation menu</h2>
+					<div id="p-cactions" class="portlet" role="navigation">
+			<h3>Views</h3>
+
+			<div class="pBody">
+				<ul>
+				<li id="ca-nstab-main" class="selected"><a href="http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM" title="View the content page [ctrl-option-c]" accesskey="c">Page</a></li>
+				<li id="ca-talk" class="new"><a href="http://gbdev.gg8.se/wiki/index.php?title=Talk:Gameboy_Bootstrap_ROM&amp;action=edit&amp;redlink=1" title="Discussion about the content page [ctrl-option-t]" accesskey="t">Discussion</a></li>
+				<li id="ca-viewsource"><a href="http://gbdev.gg8.se/wiki/index.php?title=Gameboy_Bootstrap_ROM&amp;action=edit" title="This page is protected.
+You can view its source [ctrl-option-e]" accesskey="e">View source</a></li>
+				<li id="ca-history"><a href="http://gbdev.gg8.se/wiki/index.php?title=Gameboy_Bootstrap_ROM&amp;action=history" title="Past revisions of this page [ctrl-option-h]" accesskey="h">History</a></li>
+				</ul>
+							</div>
+		</div>
+				<div class="portlet" id="p-personal" role="navigation">
+				<h3>Personal tools</h3>
+
+				<div class="pBody">
+					<ul>
+													<li id="pt-login"><a href="http://gbdev.gg8.se/wiki/index.php?title=Special:UserLogin&amp;returnto=Gameboy+Bootstrap+ROM" title="You are encouraged to log in; however, it is not mandatory [ctrl-option-o]" accesskey="o">Log in</a></li>
+											</ul>
+				</div>
+			</div>
+			<div class="portlet" id="p-logo" role="banner">
+				<a href="http://gbdev.gg8.se/wiki/articles/Main_Page" class="mw-wiki-logo" title="Visit the main page"></a>
+			</div>
+				<div class="generated-sidebar portlet" id="p-site_navigation" role="navigation">
+		<h3>site navigation</h3>
+		<div class="pBody">
+							<ul>
+											<li id="n-GB-dev-forum"><a href="http://gbdev.gg8.se/forums/" rel="nofollow">GB dev forum</a></li>
+											<li id="n-GB-dev-file-hub"><a href="http://gbdev.gg8.se/files/" rel="nofollow">GB dev file hub</a></li>
+											<li id="n-Front-page"><a href="http://gbdev.gg8.se/" rel="nofollow">Front page</a></li>
+									</ul>
+					</div>
+		</div>
+		<div class="generated-sidebar portlet" id="p-wiki_navigation" role="navigation">
+		<h3>wiki navigation</h3>
+		<div class="pBody">
+							<ul>
+											<li id="n-mainpage-description"><a href="http://gbdev.gg8.se/wiki/articles/Main_Page" title="Visit the main page [ctrl-option-z]" accesskey="z">Main page</a></li>
+											<li id="n-recentchanges"><a href="http://gbdev.gg8.se/wiki/articles/Special:RecentChanges" title="A list of recent changes in the wiki [ctrl-option-r]" accesskey="r">Recent changes</a></li>
+											<li id="n-randompage"><a href="http://gbdev.gg8.se/wiki/articles/Special:Random" title="Load a random page [ctrl-option-x]" accesskey="x">Random page</a></li>
+											<li id="n-help"><a href="https://www.mediawiki.org/wiki/Special:MyLanguage/Help:Contents" title="The place to find out">Help</a></li>
+									</ul>
+					</div>
+		</div>
+			<div id="p-search" class="portlet" role="search">
+			<h3><label for="searchInput">Search</label></h3>
+
+			<div id="searchBody" class="pBody">
+				<form action="http://gbdev.gg8.se/wiki/index.php" id="searchform">
+					<input type="hidden" name="title" value="Special:Search">
+					<input type="search" name="search" placeholder="Search" title="Search GbdevWiki [ctrl-option-f]" accesskey="f" id="searchInput" autocomplete="off">
+					<input type="submit" name="go" value="Go" title="Go to a page with this exact name if exists" id="searchGoButton" class="searchButton">&nbsp;
+						<input type="submit" name="fulltext" value="Search" title="Search the pages for this text" id="mw-searchButton" class="searchButton">
+				</form>
+
+							</div>
+		</div>
+			<div class="portlet" id="p-tb" role="navigation">
+			<h3>Tools</h3>
+
+			<div class="pBody">
+				<ul>
+											<li id="t-whatlinkshere"><a href="http://gbdev.gg8.se/wiki/articles/Special:WhatLinksHere/Gameboy_Bootstrap_ROM" title="A list of all wiki pages that link here [ctrl-option-j]" accesskey="j">What links here</a></li>
+											<li id="t-recentchangeslinked"><a href="http://gbdev.gg8.se/wiki/articles/Special:RecentChangesLinked/Gameboy_Bootstrap_ROM" title="Recent changes in pages linked from this page [ctrl-option-k]" accesskey="k">Related changes</a></li>
+											<li id="t-specialpages"><a href="http://gbdev.gg8.se/wiki/articles/Special:SpecialPages" title="A list of all special pages [ctrl-option-q]" accesskey="q">Special pages</a></li>
+											<li id="t-print"><a href="http://gbdev.gg8.se/wiki/index.php?title=Gameboy_Bootstrap_ROM&amp;printable=yes" rel="alternate" title="Printable version of this page [ctrl-option-p]" accesskey="p">Printable version</a></li>
+											<li id="t-permalink"><a href="http://gbdev.gg8.se/wiki/index.php?title=Gameboy_Bootstrap_ROM&amp;oldid=615" title="Permanent link to this revision of the page">Permanent link</a></li>
+											<li id="t-info"><a href="http://gbdev.gg8.se/wiki/index.php?title=Gameboy_Bootstrap_ROM&amp;action=info" title="More information about this page">Page information</a></li>
+									</ul>
+							</div>
+		</div>
+			</div><!-- end of the left (by default at least) column -->
+		<div class="visualClear"></div>
+					<div id="footer" role="contentinfo">
+						<div id="f-poweredbyico">
+									<a href="http://www.mediawiki.org/"><img src="./Gameboy Bootstrap ROM - GbdevWiki_files/poweredby_mediawiki_88x31.png" alt="Powered by MediaWiki" srcset="/wiki/resources/assets/poweredby_mediawiki_132x47.png 1.5x, /wiki/resources/assets/poweredby_mediawiki_176x62.png 2x" width="88" height="31"></a>
+							</div>
+					<ul id="f-list">
+									<li id="lastmod"> This page was last modified on 5 January 2016, at 07:10.</li>
+									<li id="privacy"><a href="http://gbdev.gg8.se/wiki/articles/GbdevWiki:Privacy_policy" title="GbdevWiki:Privacy policy">Privacy policy</a></li>
+									<li id="about"><a href="http://gbdev.gg8.se/wiki/articles/GbdevWiki:About" title="GbdevWiki:About">About GbdevWiki</a></li>
+									<li id="disclaimer"><a href="http://gbdev.gg8.se/wiki/articles/GbdevWiki:General_disclaimer" title="GbdevWiki:General disclaimer">Disclaimers</a></li>
+							</ul>
+		</div>
+		</div>
+		<script>if(window.jQuery)jQuery.ready();</script><script>if(window.mw){
+mw.loader.state({"site":"loading","user":"ready","user.groups":"ready"});
+}</script>
+<script>if(window.mw){
+mw.loader.load(["mediawiki.toc","mediawiki.action.view.postEdit","mediawiki.user","mediawiki.hidpi","mediawiki.page.ready","mediawiki.searchSuggest"],null,true);
+}</script>
+<script>if(window.mw){
+document.write("\u003Cscript src=\"http://gbdev.gg8.se/wiki/load.php?debug=false\u0026amp;lang=en\u0026amp;modules=site\u0026amp;only=scripts\u0026amp;skin=monobook\u0026amp;*\"\u003E\u003C/script\u003E");
+}</script><script src="./Gameboy Bootstrap ROM - GbdevWiki_files/load(5).php"></script>
+<script>if(window.mw){
+mw.config.set({"wgBackendResponseTime":488});
+}</script>
+<div class="suggestions" style="display: none; font-size: 11px;"><div class="suggestions-results"></div><div class="suggestions-special"></div></div></body></html>

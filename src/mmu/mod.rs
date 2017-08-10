@@ -1,12 +1,18 @@
-use std::cell::RefCell;
-use std::fs::File;
 use std::io::prelude::*;
+use std::fs::File;
+use std::io::BufWriter;
+use std::cell::RefCell;
+use std::rc::Rc;
 
+pub use super::bootrom;
 pub use super::cartridge;
 pub use super::ppu;
 pub use super::types;
 
 pub struct MMU {
+  pub bootrom: bootrom::Bootrom,
+  pub bootroom_active: bool,
+
   pub cartridge: cartridge::Cartridge, // 0000-7fff
   // GPU's video ram                      8000-9FFF
   pub external_ram: Vec<types::Byte>, // A000-BFFF
@@ -19,11 +25,18 @@ pub struct MMU {
   // Switches banks via the MBC (memory bank controller)
   pub InterruptEnabled: types::Byte,
   pub InterruptFlags: types::Byte,
+
+  pub log_writer: Rc<RefCell<BufWriter<File>>>,
 }
 
 impl MMU {
   pub fn new() -> MMU {
+    let mut file = File::create("chris_cpu_regs_dump.log").unwrap();
+    let mut log_writer = BufWriter::new(file);
+
     MMU {
+      bootrom: bootrom::Bootrom::new(),
+      bootroom_active: true,
       cartridge: cartridge::Cartridge::new(),
       external_ram: vec![ 0x00; 0x2000 ],
       work_ram: vec![ 0x00; 0x2000 ],
@@ -35,6 +48,8 @@ impl MMU {
 
       InterruptEnabled: 0x00,
       InterruptFlags: 0x00,
+
+      log_writer: Rc::new(RefCell::new(log_writer)),
     }
   }
 
@@ -49,8 +64,14 @@ impl MMU {
     //   println!("reading from 0xFF85. got value: {:X}", val);
     // }
 
-    match address {
-      0x0000...0x7FFF => self.cartridge.buffer[ address as usize ],
+    let result = match address {
+      0x0000...0x7FFF => {
+        if address <= 0x0100 && self.bootroom_active {
+          self.bootrom.buffer [ address as usize ]
+        } else {
+          self.cartridge.buffer[ address as usize ]
+        }
+      },
       0x8000...0x9FFF => {
         debug!("MMU#read from PPU.video_ram");
         self.ppu.borrow_mut().video_ram[ address as usize - 0x8000 ]
@@ -103,7 +124,12 @@ impl MMU {
       _ => {
         panic!("Memory access is out of bounds: {:#X}", address);
       }
-    }
+    };
+
+    // TODO add BufWriter to MMU and log out all reads, writes to set of files to compare from both emulators
+    let log_line = format!("Reading from {:04x}, read_result: {:02x}\n", address, result);
+    self.log_writer.borrow_mut().write(log_line.as_bytes());
+    result
   }
 
   pub fn read_word(&self, address: types::Word) -> types::Word {
@@ -115,12 +141,15 @@ impl MMU {
   pub fn write_word(&mut self, address: types::Word, data: types::Word) {
     let lo_data = (0x00FF & data) as types::Byte;
     let hi_data = ((0xFF00 & data) >> 8) as types::Byte;
-    self.write(address, lo_data);
     self.write(address + 1, hi_data);
+    self.write(address, lo_data);
   }
 
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
     debug!("Writing {:#X}, with {:#X}", address, data);
+
+    let log_line = format!("Writing to {:04x}, value: {:02x}\n", address, data);
+    self.log_writer.borrow_mut().write(log_line.as_bytes());
 
     // if address == 0xFF85 {
     //   println!("writing to 0xFF85 : {:#X}", data);
@@ -173,6 +202,10 @@ impl MMU {
         if address == 0xFF40 {
           // NOTE LCD powering on
           // panic!("hi");
+        }
+
+        if address == 0xFF50 {
+          self.bootroom_active = false;
         }
 
         debug!("MMU#write to ppu");
