@@ -251,7 +251,10 @@ impl CPU {
         self.ld_bc_nn(mmu)
       }
       0x02 => panic!("LD (BC),A : ld_bc_a() not implemented! {:#X}", opcode),
-      0x03 => panic!("INC BC : inc_bc() not implemented! {:#X}", opcode),
+      0x03 => {
+        debug!("INC BC");
+        self.inc_bc();
+      }
       0x04 => {
         debug!("INC B : inc_b()");
         self.inc_b()
@@ -526,7 +529,10 @@ impl CPU {
         debug!("LD A,H");
         self.ld_a_h()
       }
-      0x7D => panic!("LD A,L : ld_a_l() not implemented! {:#X}", opcode),
+      0x7D => {
+        debug!("LD A,L");
+        self.ld_a_l()
+      }
       0x7E => {
         debug!("LD A,(HL)");
         self.ld_a_hl(mmu)
@@ -538,7 +544,10 @@ impl CPU {
       0x83 => panic!("ADD A,E : add_a_e() not implemented! {:#X}", opcode),
       0x84 => panic!("ADD A,H : add_a_h() not implemented! {:#X}", opcode),
       0x85 => panic!("ADD A,L : add_a_l() not implemented! {:#X}", opcode),
-      0x86 => panic!("ADD A,(HL) : add_a_hl() not implemented! {:#X}", opcode),
+      0x86 => {
+        debug!("ADD A,(HL)");
+        self.add_a_hl(mmu)
+      }
       0x87 => {
         debug!("ADD A,A");
         self.add_a_a()
@@ -651,7 +660,10 @@ impl CPU {
       0xBB => panic!("CP E : cp_e() not implemented! {:#X}", opcode),
       0xBC => panic!("CP H : cp_h() not implemented! {:#X}", opcode),
       0xBD => panic!("CP L : cp_l() not implemented! {:#X}", opcode),
-      0xBE => panic!("CP (HL) : cp_hl() not implemented! {:#X}", opcode),
+      0xBE => {
+        debug!("CP (HL)");
+        self.cp_hl(mmu)
+      }
       0xBF => panic!("CP A : cp_a() not implemented! {:#X}", opcode),
       0xC0 => {
         debug!("RET NZ");
@@ -994,6 +1006,11 @@ impl CPU {
     self.write_byte_reg(RegEnum::A, operand)
   }
 
+  fn ld_a_l(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::L);
+    self.write_byte_reg(RegEnum::A, operand)
+  }
+
   fn ld_a_e(&mut self) {
     let operand = self.read_byte_reg(RegEnum::E);
     self.write_byte_reg(RegEnum::A, operand)
@@ -1045,6 +1062,13 @@ impl CPU {
     let value = mmu.read(self.PC);
     shared_cp(self, value);
     self.PC += 1;
+  }
+
+  fn cp_hl(&mut self, mmu: &mut mmu::MMU) {
+    let address = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(address);
+    shared_cp(self, value);
+    // self.PC += 1;
   }
 
   fn ld_nn_a(&mut self, mmu: &mut mmu::MMU) {
@@ -1162,12 +1186,16 @@ impl CPU {
     }
   }
 
-  fn inc_hl(&mut self) {
-    shared_inc_word_reg(self, RegEnum::HL);
+  fn inc_bc(&mut self) {
+    shared_inc_word_reg(self, RegEnum::BC);
   }
 
   fn inc_de(&mut self) {
     shared_inc_word_reg(self, RegEnum::DE);
+  }
+
+  fn inc_hl(&mut self) {
+    shared_inc_word_reg(self, RegEnum::HL);
   }
 
   fn inc_hl_indirect(&mut self, mmu: &mut mmu::MMU) {
@@ -1329,6 +1357,12 @@ impl CPU {
 
   fn add_a_a(&mut self) {
     shared_add_byte_reg(self, RegEnum::A);
+  }
+
+  fn add_a_hl(&mut self, mmu: &mut mmu::MMU) {
+    let address = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(address);
+    shared_add_n(self, value);
   }
 
   fn add_hl_de(&mut self) {
@@ -1841,6 +1875,19 @@ fn shared_inc_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
 fn shared_add_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   let A = cpu.read_byte_reg(RegEnum::A);
   let result = cpu.read_byte_reg(regEnum).wrapping_add(A);
+  cpu.write_byte_reg(RegEnum::A, result);
+
+  if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
+  cpu.util_toggle_zero_flag_from_result(result);
+
+  if (result & 0x0F) == 0x00 {
+    cpu.util_toggle_flag(FLAG_HALF_CARRY);
+  }
+}
+
+fn shared_add_n(cpu: &mut CPU, byte: types::Byte) {
+  let A = cpu.read_byte_reg(RegEnum::A);
+  let result = byte.wrapping_add(A);
   cpu.write_byte_reg(RegEnum::A, result);
 
   if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
