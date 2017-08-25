@@ -132,6 +132,7 @@ impl GameBoy {
       let interrupt_cycles = self.do_interrupts();
       self.cycles = self.cycles.wrapping_sub(interrupt_cycles as u32); // TODO
     }
+    // TODO Perf testing & flame graph via: http://carol-nichols.com/2017/04/20/rust-profiling-with-dtrace-on-osx/ <<<<<<
     self.render_screen();
   }
 
@@ -154,7 +155,7 @@ impl GameBoy {
 
   pub fn print_game_title(&self) {
     return; // TODO turn this back on later
-    
+
     let mut title = String::with_capacity(14);
 
     for i in 0x134..0x142 {

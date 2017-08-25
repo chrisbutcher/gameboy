@@ -128,7 +128,7 @@ impl MMU {
 
     // TODO add BufWriter to MMU and log out all reads, writes to set of files to compare from both emulators
     let log_line = format!("Reading from {:04x}, read_result: {:02x}\n", address, result);
-    self.log_writer.borrow_mut().write(log_line.as_bytes());
+    // self.log_writer.borrow_mut().write(log_line.as_bytes());
     result
   }
 
@@ -149,7 +149,7 @@ impl MMU {
     debug!("Writing {:#X}, with {:#X}", address, data);
 
     let log_line = format!("Writing to {:04x}, value: {:02x}\n", address, data);
-    self.log_writer.borrow_mut().write(log_line.as_bytes());
+    // self.log_writer.borrow_mut().write(log_line.as_bytes());
 
     // if address == 0xFF85 {
     //   println!("writing to 0xFF85 : {:#X}", data);
