@@ -1,7 +1,5 @@
-use std::io;
-use std::io::prelude::*;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read};
 
 pub use super::types;
 

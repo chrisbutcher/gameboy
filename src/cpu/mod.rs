@@ -3,11 +3,6 @@ use std::fmt;
 use std::io;
 
 use std::io::prelude::*;
-use std::fs::File;
-use std::io::BufWriter;
-use std::cell::RefCell;
-use std::rc::Rc;
-
 pub use super::cartridge;
 pub use super::mmu;
 pub use super::types;
