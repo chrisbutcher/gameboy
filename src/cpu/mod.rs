@@ -19,21 +19,7 @@ const DUMP_CPU_REGS_TO_LOGS: bool = true;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RegEnum {
-  A,
-  F,
-  B,
-  C,
-  D,
-  E,
-  H,
-  L,
-  S,
-  P,
-  AF,
-  BC,
-  DE,
-  HL,
-  SP,
+  A, F, B, C, D, E, H, L, S, P, AF, BC, DE, HL, SP,
 }
 
 pub struct Register {
@@ -104,17 +90,9 @@ impl fmt::Debug for CPU {
     write!(
       f,
       "[PC] {:#X}\n[Regs] A:{:#X}, F:{:#X}, B:{:#X}, C:{:#X}, D:{:#X}, E:{:#X}, H:{:#X}, L:{:#X}\n[Flags]: {} [SP] {:#X}",
-      self.PC,
-      self.AF.read_hi(),
-      self.AF.read_lo(),
-      self.BC.read_hi(),
-      self.BC.read_lo(),
-      self.DE.read_hi(),
-      self.DE.read_lo(),
-      self.HL.read_hi(),
-      self.HL.read_lo(),
-      formatted_flags(self),
-      self.SP.read()
+      self.PC, self.AF.read_hi(), self.AF.read_lo(), self.BC.read_hi(), self.BC.read_lo(),
+      self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo(),
+      formatted_flags(self), self.SP.read()
     )
   }
 }
@@ -122,11 +100,7 @@ impl fmt::Debug for CPU {
 impl CPU {
   pub fn new() -> CPU {
     CPU {
-      AF: Register::new(),
-      BC: Register::new(),
-      DE: Register::new(),
-      HL: Register::new(),
-      SP: Register::new(),
+      AF: Register::new(), BC: Register::new(), DE: Register::new(), HL: Register::new(), SP: Register::new(),
       PC: 0x0000,
 
       BranchTaken: false,
@@ -888,16 +862,6 @@ impl CPU {
         opcode_cycles::regular(opcode)
       }
     };
-
-    // println!(
-    //   "PC {:#X}, opcode: {:#X}, raw_cycles: {:?}, A: {:#X}, flags: {:#X}, IME: {:?}, IE: {:#X}, IF: {:#X}",
-    //   self.PC, opcode, raw_cycles, self.AF.read_hi(), self.AF.read_lo(), self.IME, mmu.InterruptEnabled, mmu.InterruptFlags
-    // );
-
-    // println!("PC {:#X}", self.PC);
-
-    // panic!("note - is this factor a problem, given Imran's ppu code example? -- hmm apparently not? http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings");
-
     raw_cycles * 4
   }
 
@@ -1183,7 +1147,6 @@ impl CPU {
     let address = self.read_word_reg(RegEnum::HL);
     let value = mmu.read(address);
     shared_cp(self, value);
-    // self.PC += 1;
   }
 
   fn ld_nn_a(&mut self, mmu: &mut mmu::MMU) {
