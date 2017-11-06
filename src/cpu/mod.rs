@@ -8,14 +8,16 @@ pub use super::mmu;
 pub use super::types;
 pub mod opcode_cycles;
 
+extern crate socket_state_reporter;
+use self::socket_state_reporter::StateReporter;
+
 const FLAG_ZERO: types::Byte = 0x80; // Zero
 const FLAG_SUB: types::Byte = 0x40; // Negative,
 const FLAG_HALF_CARRY: types::Byte = 0x20; // Half-carry
 const FLAG_CARRY: types::Byte = 0x10; // Carry
-
 const FLAG_NONE: types::Byte = 0x00; // None
 
-const DUMP_CPU_REGS_TO_LOGS: bool = true;
+const SYNC_STATE: bool = true;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RegEnum {
@@ -73,6 +75,9 @@ pub struct CPU {
   pub BranchTaken: bool,
   pub IME: bool, // Master interrupt toggle
   pub IMECycles: i32, // Master interrupt toggle
+
+  pub state_reporter: StateReporter,
+  pub tick_counter: u64,
 }
 
 fn formatted_flags(cpu: &CPU) -> String {
@@ -99,6 +104,8 @@ impl fmt::Debug for CPU {
 
 impl CPU {
   pub fn new() -> CPU {
+    let state_reporter = StateReporter::new("5555");
+
     CPU {
       AF: Register::new(), BC: Register::new(), DE: Register::new(), HL: Register::new(), SP: Register::new(),
       PC: 0x0000,
@@ -106,6 +113,9 @@ impl CPU {
       BranchTaken: false,
       IME: false,
       IMECycles: 0,
+
+      state_reporter: state_reporter,
+      tick_counter: 0u64,
     }
   }
 
@@ -164,34 +174,28 @@ impl CPU {
   }
 
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
-    debug!("{:?}\n", self);
-
     let opcode: types::Byte = mmu.read(self.PC);
 
-    match env::var("DEBUG") {
-      Ok(_) => {
-        let mut stdin = io::stdin();
-        let _ = stdin.read(&mut [ 0u8 ]).unwrap();
-      }
-      _ => {}
-    };
-
-    if DUMP_CPU_REGS_TO_LOGS {
-      let log_line = format!(
+    if SYNC_STATE {
+      let registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
-         self.PC, self.SP.value,
-         self.AF.read_hi(), self.AF.read_lo(), self.BC.read_hi(), self.BC.read_lo(),
-         self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo()
-       );
+        self.PC, self.SP.value,
+        self.AF.read_hi(), self.AF.read_lo(), self.BC.read_hi(), self.BC.read_lo(),
+        self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo()
+      );
 
+      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}", self.tick_counter, registers, opcode);
+      self.state_reporter.send_message(msg.as_bytes());
+      let received = self.state_reporter.receive_message();
+      if received == "kill" {
+        panic!("Server stopped.");
+      }
 
-       mmu.log_writer.borrow_mut().write(log_line.as_bytes());
-      // print!("{}", log_line);
+      self.tick_counter += 1;
     }
 
     self.PC += 1;
 
-    mmu.log_writer.borrow_mut().write(format!("Executing OP code: {:02x}\n", opcode).as_bytes());
     let cycles = self.execute_opcode(opcode, mmu);
 
     if cycles == 42 {
@@ -986,13 +990,15 @@ impl CPU {
   }
 
   fn jr_nz_n(&mut self, mmu: &mmu::MMU) {
-    let operand_dest = mmu.read(self.PC) as types::SignedByte; // NOTE moved this out of if block just to replicate memory reading behavior of mooneye
-    if !self.util_is_flag_set(FLAG_ZERO) {
-      self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
+    let addr = self.PC;
+    let offset = mmu.read(self.PC) as i8;
+    self.PC = self.PC.wrapping_add(1);
 
+    // println!("{}", offset);
+
+    if !self.util_is_flag_set(FLAG_ZERO) {
+      self.PC = self.PC.wrapping_add(offset as types::Word);
       self.BranchTaken = true;
-    } else {
-      self.PC += 1;
     }
   }
 
@@ -1132,6 +1138,8 @@ impl CPU {
   fn ld_a_0xff00_plus_n(&mut self, mmu: &mut mmu::MMU) {
     let operand = mmu.read(self.PC) as types::Word;
     let value = mmu.read(0xFF00 + operand);
+
+    println!("Value FF{:02x} => value: {:02x}", operand, value);
 
     self.write_byte_reg(RegEnum::A, value);
     self.PC += 1;

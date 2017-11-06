@@ -109,7 +109,9 @@ impl PPU {
         println!("Getting scroll_x, it's {:x}", self.scroll_x);
         self.scroll_x as types::Byte
       },
-      0xFF44 => self.line as types::Byte,
+      0xFF44 => {
+        self.line as types::Byte
+      }
       _ => {
         panic!("Unexpected address in PPU#read: {:#X}", address);
       }
@@ -277,8 +279,6 @@ impl PPU {
     // RdOam  = 0x02, // mode 2
     // RdVram = 0x03, // mode 3
 
-    // println!("mode_clock {:?}", self.mode_clock);
-
     if self.mode_clock >= 456 {
       self.mode_clock -= 456;
       self.line = (self.line + 1) % 154;
@@ -300,18 +300,15 @@ impl PPU {
       if self.mode_clock <= 80 {
         if self.mode != 2 {
           self.mode = 2;
-          // println!("mode 2");
         }
       } else if self.mode_clock <= 252 {
         if self.mode != 3 {
           self.mode = 3;
-          // println!("mode 3");
         }
       } else {
         if self.mode != 0 {
           self.mode = 0;
           self.render_scanline();
-          // println!("mode 0");
         }
       }
     }

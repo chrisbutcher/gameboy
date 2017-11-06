@@ -8,9 +8,13 @@ time = "0.1.36"
 log = "0.3.6"
 env_logger = "0.3"
 clap = "2"
-kafka = "0.6"
+zmq = "0.8"
 
 [dependencies.sdl2]
 version = "0.29"
 default-features = false
 features = ["image","gfx"]
+
+[dependencies.socket_state_reporter]
+path = "../socket-state-reporter"
+

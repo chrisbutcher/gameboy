@@ -4,10 +4,11 @@ use std::io::BufWriter;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+pub use super::types;
 pub use super::bootrom;
 pub use super::cartridge;
 pub use super::ppu;
-pub use super::types;
+pub use super::input;
 
 pub struct MMU {
   pub bootrom: bootrom::Bootrom,
@@ -22,18 +23,15 @@ pub struct MMU {
   pub zram: Vec<types::Byte>, // FF80-FFFF (zero page ram)
 
   pub ppu: RefCell<ppu::PPU>,
+  pub input: input::Input,
+
   // Switches banks via the MBC (memory bank controller)
   pub InterruptEnabled: types::Byte,
   pub InterruptFlags: types::Byte,
-
-  pub log_writer: Rc<RefCell<BufWriter<File>>>,
 }
 
 impl MMU {
   pub fn new() -> MMU {
-    let mut file = File::create("chris_cpu_regs_dump.log").unwrap();
-    let mut log_writer = BufWriter::new(file);
-
     MMU {
       bootrom: bootrom::Bootrom::new(),
       bootroom_active: true,
@@ -45,11 +43,10 @@ impl MMU {
       zram: vec![ 0x00; 0x80 ],
 
       ppu: RefCell::new(ppu::PPU::new()),
+      input: input::Input::new(),
 
       InterruptEnabled: 0x00,
       InterruptFlags: 0x00,
-
-      log_writer: Rc::new(RefCell::new(log_writer)),
     }
   }
 
@@ -59,18 +56,13 @@ impl MMU {
   }
 
   pub fn read(&self, address: types::Word) -> types::Byte {
-    // if address == 0xFF85 {
-    //   let val = self.zram[address as usize - 0xFF80];
-    //   println!("reading from 0xFF85. got value: {:X}", val);
-    // }
-
     let result = match address {
       0x0000...0x7FFF => {
-        if address <= 0x0100 && self.bootroom_active {
-          self.bootrom.buffer [ address as usize ]
-        } else {
+        // if address <= 0x0100 && self.bootroom_active {
+        //   self.bootrom.buffer [ address as usize ]
+        // } else {
           self.cartridge.buffer[ address as usize ]
-        }
+        // }
       },
       0x8000...0x9FFF => {
         debug!("MMU#read from PPU.video_ram");
@@ -93,22 +85,27 @@ impl MMU {
         self.sprite_info[ address as usize - 0xFE00 ]
       }
       0xFF00 => {
+        panic!("read from 0xFF00");
         debug!("MMU#read from input");
-        0xEF
+        self.input.read(address)
       }
       0xFF01...0xFF0E => {
         debug!("MMU#read from io");
         self.io[ address as usize - 0xFF00 ]
       }
-      0xFF0F => panic!("Read from InterruptFlags"), // TODO Should return self.InterruptFlags
+      0xFF0F => {
+        panic!("Read from InterruptFlags") // TODO Should return self.InterruptFlags
+      }
       0xFF10...0xFF3F => {
         debug!("MMU#read from io");
         self.io[ address as usize - 0xFF00 ]
       }
       addr @ 0xFF40...0xFF7F => {
+        if address == 0xFF68 {
+          panic!("ho!");
+        }
         debug!("MMU#read from ppu");
         match addr {
-          // 0xFF40 | 0xFF42 | 0xFF43 | 0xFF44 => {  self.ppu.borrow_mut().read(addr) },
           0xFF40...0xFF7F => self.ppu.borrow_mut().read(addr),
           _ => self.io[ addr as usize - 0xFF00 ],
         }
@@ -126,9 +123,6 @@ impl MMU {
       }
     };
 
-    // TODO add BufWriter to MMU and log out all reads, writes to set of files to compare from both emulators
-    let log_line = format!("Reading from {:04x}, read_result: {:02x}\n", address, result);
-    // self.log_writer.borrow_mut().write(log_line.as_bytes());
     result
   }
 
@@ -146,15 +140,6 @@ impl MMU {
   }
 
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
-    debug!("Writing {:#X}, with {:#X}", address, data);
-
-    let log_line = format!("Writing to {:04x}, value: {:02x}\n", address, data);
-    // self.log_writer.borrow_mut().write(log_line.as_bytes());
-
-    // if address == 0xFF85 {
-    //   println!("writing to 0xFF85 : {:#X}", data);
-    // }
-
     match address {
       0x0000...0x7FFF => {
         debug!("Writing to disallowed memory region: {:#X}", address);
@@ -184,7 +169,11 @@ impl MMU {
       0xFEA0...0xFEFF => {
         debug!("Writing to disallowed memory region: {:#X}", address);
       } // no-op
-      0xFF00...0xFF0E => {
+      0xFF00 => {
+        panic!("write to 0xFF00");
+        self.input.write(address, data)
+      }
+      0xFF01...0xFF0E => {
         debug!("MMU#write to io");
         self.io[ address as usize - 0xFF00 ] = data
       }
@@ -246,7 +235,6 @@ fn can_write_to_memory_in_allowed_regions() {
   mmu.write(0x8000, 0xFF);
   assert_eq!(mmu.read(0x8000), 0xFF);
 }
-
 
 #[test]
 fn cannot_write_to_memory_in_disallowed_regions() {
