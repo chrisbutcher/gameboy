@@ -9,6 +9,12 @@ use super::Interrupts;
 
 static mut COUNTER: i32 = 5;
 
+extern crate socket_state_reporter;
+use self::socket_state_reporter::StateReporter;
+
+const SYNC_STATE: bool = false;
+const SKIP_RENDERING: bool = true;
+
 fn print_call_count() {
   unsafe {
     COUNTER += 1;
@@ -25,7 +31,7 @@ pub struct PPU {
   // pub framebuffer: [[[types::Byte; 4]; 144]; 160],
   pub framebuffer: [ types::Byte; 160 * 144 * 4 ],
   pub video_ram: Vec<types::Byte>,
-  pub tileset: [ [ [ types::Byte; 8 ]; 8 ]; 384 ], // HACK 512 should be 384
+  pub tileset: [ [ [ types::Byte; 8 ]; 8 ]; 384 ],
   pub palette: [ [ types::Byte; 4 ]; 4 ],
 
   pub mode: u8,
@@ -38,9 +44,16 @@ pub struct PPU {
   pub background_map: bool,
   pub background_tile: bool,
 
+  pub horiz_blanking: bool,
+
+  pub InterruptFlags: types::Byte,
+
   pub sdl_context: sdl2::Sdl,
   pub game_renderer: Renderer<'static>,
   pub debug_renderer: Renderer<'static>,
+
+  pub state_reporter: StateReporter,
+  pub tick_counter: u64,
 }
 
 impl PPU {
@@ -62,8 +75,8 @@ impl PPU {
                  [ 96, 96, 96, 255 ],
                  [ 0, 0, 0, 255 ] ],
 
-      mode: 2,
-      mode_clock: 4, // NOTE 4
+      mode: 0,
+      mode_clock: 0, // NOTE 4
       line: 0,
       scroll_x: 0,
       scroll_y: 0,
@@ -72,9 +85,16 @@ impl PPU {
       background_map: false,
       background_tile: false,
 
+      horiz_blanking: false,
+
+      InterruptFlags: 0x00,
+
       sdl_context: sdl_context,
       game_renderer: game_renderer,
       debug_renderer: debug_renderer,
+
+      state_reporter: StateReporter::new("5555"),
+      tick_counter: 0,
     }
   }
 
@@ -91,16 +111,10 @@ impl PPU {
   pub fn read(&mut self, address: types::Word) -> types::Byte {
     match address {
       0xFF40 => {
-        let previous_switch_lcd = self.switch_lcd;
         let switch_background_result = if self.switch_background { 0x01 } else { 0x00 };
         let background_map_result = if self.background_map { 0x08 } else { 0x00 };
         let background_tile_result = if self.background_tile { 0x10 } else { 0x00 };
         let switch_lcd_result = if self.switch_lcd { 0x80 } else { 0x00 };
-
-        if !previous_switch_lcd && self.switch_lcd {
-          self.mode_clock = 4;
-          self.line = 0;
-        }
 
         switch_background_result | background_map_result | background_tile_result | switch_lcd_result
       }
@@ -121,17 +135,30 @@ impl PPU {
   pub fn write(&mut self, address: types::Word, value: types::Byte) {
     match address {
       0xFF40 => {
+        let previous_switch_lcd = self.switch_lcd;
+
         self.switch_background = if value & 0x01 != 0 { true } else { false };
         self.background_map = if value & 0x08 != 0 { true } else { false };
         self.background_tile = if value & 0x10 != 0 { true } else { false };
-        self.switch_lcd = if value & 0x80 != 0 { true } else { false };
+        self.switch_lcd = value & 0x80 == 0x80;
+
+        if previous_switch_lcd && !self.switch_lcd {
+          if SYNC_STATE {
+              self.state_reporter.send_message(format!("switch_lcd: {}", self.switch_lcd).as_bytes());
+              let received = self.state_reporter.receive_message();
+              if received == "kill" {
+                  panic!("Server stopped.");
+              }
+          }
+
+          self.mode_clock = 0;
+          self.line = 0;
+          self.mode = 0;
+          // self.clear_screen();
+        }
       }
       0xFF42 => self.scroll_y = value,
       0xFF43 => {
-        // if value == 0x1b {
-        //   panic!("hi!");
-        // }
-
         println!("Setting scroll_x to {:x}", value);
         self.scroll_x = value
       },
@@ -159,6 +186,8 @@ impl PPU {
 
   // TODO reword all comments
   pub fn update_tile(&mut self, address: types::Word, value: types::Byte) {
+    if SKIP_RENDERING { return }
+
     // Get the "base address" for this tile row
     let base_address = address & 0x1FFE;
 
@@ -186,6 +215,8 @@ impl PPU {
   // TODO update all comments
   // NOTE borrowed from github.com/alexcrichton/jba
   pub fn render_scanline(&mut self) {
+    if SKIP_RENDERING { return }
+
     // tiles: 8x8 pixels
     // two maps: 32x32 each
 
@@ -233,6 +264,8 @@ impl PPU {
   }
 
   pub fn render_screen(&mut self) {
+    if SKIP_RENDERING { return }
+
     for y in 0..144 {
       for x in 0..160 {
         // NOTE confirmed this is correct in Google Sheets doc
@@ -252,6 +285,8 @@ impl PPU {
   }
 
   pub fn show_debug_tiles(&mut self) {
+    if SKIP_RENDERING { return }
+
     for tile_y in 0..17 {
       for tile_x in 0..17 {
         for y in 0..8 {
@@ -271,48 +306,69 @@ impl PPU {
     self.debug_renderer.present();
   }
 
-  pub fn tick(&mut self, cycles: i32, mut interrupt_flags: types::Byte) -> types::Byte {
-    self.mode_clock += cycles;
+  pub fn tick(&mut self, cycles: i32) {
+    self.tick_counter += 1;
 
-    // HBlank = 0x00, // mode 0
-    // VBlank = 0x01, // mode 1
-    // RdOam  = 0x02, // mode 2
-    // RdVram = 0x03, // mode 3
-
-    if self.mode_clock >= 456 {
-      self.mode_clock -= 456;
-      self.line = (self.line + 1) % 154;
-
-      if self.line >= 144 && self.mode != 1 {
-        self.render_screen();
-        self.show_debug_tiles();
-        self.mode = 1;
-        interrupt_flags |= Interrupts::Vblank as types::Byte;
-        // TODO it seems that it's not that the game is waiting for a 0 at FF85, but instead is waiting for a VBlank interrupt to
-        // take PC 0x40, to 0x01FD, ....
-        // NOTE ON SECOND THOUGH IT'S WORKING!!
-
-        // println!("mode 1");
+    if SYNC_STATE {
+      self.state_reporter.send_message(format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}", self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.switch_lcd).as_bytes());
+      let received = self.state_reporter.receive_message();
+      if received == "kill" {
+        panic!("Server stopped.");
       }
     }
 
-    if self.line < 144 {
-      if self.mode_clock <= 80 {
-        if self.mode != 2 {
-          self.mode = 2;
+    if !self.switch_lcd { return }
+    self.horiz_blanking = false;
+
+    let mut ticks_remaining = cycles;
+
+    while ticks_remaining > 0 {
+      let current_ticks = if ticks_remaining >= 80 { 80 } else { ticks_remaining };
+      self.mode_clock += current_ticks;
+      ticks_remaining -= current_ticks;
+
+      // Full line takes 114 ticks
+      if self.mode_clock >= 456 {
+        self.mode_clock -= 456;
+        self.line = (self.line + 1) % 154;
+
+        if self.line >= 144 && self.mode != 1 {
+          self.change_mode(1);
         }
-      } else if self.mode_clock <= 252 {
-        if self.mode != 3 {
-          self.mode = 3;
-        }
-      } else {
-        if self.mode != 0 {
-          self.mode = 0;
-          self.render_scanline();
+      }
+
+      if self.line < 144 {
+        if self.mode_clock <= 80 {
+          if self.mode != 2 { self.change_mode(2); }
+        } else if self.mode_clock <= (80 + 172) {
+          if self.mode != 3 { self.change_mode(3); }
+        } else {
+          if self.mode != 0 { self.change_mode(0); }
         }
       }
     }
+  }
 
-    interrupt_flags
+  fn change_mode(&mut self, mode: u8) {
+    self.mode = mode;
+
+    if match self.mode {
+      0 => {
+        self.render_scanline();
+        self.horiz_blanking = true;
+        // self.m0_inte
+        false
+      },
+      1 => {
+        self.InterruptFlags |= 0x01;
+        // self.updated = true;
+        // self.m1_inte
+        false
+      },
+      2 => false, //self.m2_inte,
+      _ => false,
+    } {
+      self.InterruptFlags |= 0x02;
+    }
   }
 }

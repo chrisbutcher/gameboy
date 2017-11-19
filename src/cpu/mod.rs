@@ -8,14 +8,14 @@ pub use super::mmu;
 pub use super::types;
 pub mod opcode_cycles;
 
-extern crate socket_state_reporter;
-use self::socket_state_reporter::StateReporter;
-
 const FLAG_ZERO: types::Byte = 0x80; // Zero
 const FLAG_SUB: types::Byte = 0x40; // Negative,
 const FLAG_HALF_CARRY: types::Byte = 0x20; // Half-carry
 const FLAG_CARRY: types::Byte = 0x10; // Carry
 const FLAG_NONE: types::Byte = 0x00; // None
+
+extern crate socket_state_reporter;
+use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = true;
 
@@ -74,7 +74,11 @@ pub struct CPU {
 
   pub BranchTaken: bool,
   pub IME: bool, // Master interrupt toggle
-  pub IMECycles: i32, // Master interrupt toggle
+  // pub IMECycles: i32, // Master interrupt toggle
+  pub ei_cycles: u8,
+  pub di_cycles: u8,
+
+  pub halted: bool,
 
   pub state_reporter: StateReporter,
   pub tick_counter: u64,
@@ -111,8 +115,12 @@ impl CPU {
       PC: 0x0000,
 
       BranchTaken: false,
-      IME: false,
-      IMECycles: 0,
+      IME: true,
+      // IMECycles: 0,
+      ei_cycles: 0,
+      di_cycles: 0,
+
+      halted: false,
 
       state_reporter: state_reporter,
       tick_counter: 0u64,
@@ -174,7 +182,22 @@ impl CPU {
   }
 
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
+    self.update_ime();
+    match self.handle_interrupts(mmu) {
+        0 => {},
+        interrupt_cycles => return interrupt_cycles,
+    };
+
+    if self.halted {
+      return 1
+    }
+
     let opcode: types::Byte = mmu.read(self.PC);
+    // println!("pc: {:4x}, opcode: {:2x}", self.PC, opcode);
+
+    // LATEST:
+    // Reading from FF40 (LCD control)
+    // Gets wrong answer, need PPU read at FF40 to be same!
 
     if SYNC_STATE {
       let registers = format!(
@@ -184,7 +207,7 @@ impl CPU {
         self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo()
       );
 
-      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}", self.tick_counter, registers, opcode);
+      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, IME: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.IME, mmu.InterruptEnabled, mmu.InterruptFlags);
       self.state_reporter.send_message(msg.as_bytes());
       let received = self.state_reporter.receive_message();
       if received == "kill" {
@@ -1120,12 +1143,6 @@ impl CPU {
     self.PC += 1;
   }
 
-  fn di(&mut self, mmu: &mut mmu::MMU) {
-    mmu.InterruptEnabled = 0x00;
-    self.IME = false;
-    self.IMECycles = 0;
-  }
-
   fn ld_0xff00_plus_n_a(&mut self, mmu: &mut mmu::MMU) {
     let value = self.read_byte_reg(RegEnum::A);
     let operand = mmu.read(self.PC) as types::Word;
@@ -1139,15 +1156,15 @@ impl CPU {
     let operand = mmu.read(self.PC) as types::Word;
     let value = mmu.read(0xFF00 + operand);
 
-    println!("Value FF{:02x} => value: {:02x}", operand, value);
-
     self.write_byte_reg(RegEnum::A, value);
     self.PC += 1;
   }
 
   fn cp_n(&mut self, mmu: &mut mmu::MMU) {
     let value = mmu.read(self.PC);
+    let a = self.read_byte_reg(RegEnum::A);
     shared_cp(self, value);
+    self.write_byte_reg(RegEnum::A, a);
     self.PC += 1;
   }
 
@@ -1287,7 +1304,6 @@ impl CPU {
   }
 
   fn jr_z_n(&mut self, mmu: &mmu::MMU) {
-    // if self.util_is_flag_set(FLAG_ZERO) && self.PC != 0x370 { // HACK to speed things up
     if self.util_is_flag_set(FLAG_ZERO) {
       let operand_dest = mmu.read(self.PC) as types::SignedByte;
       self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
@@ -1340,8 +1356,11 @@ impl CPU {
   }
 
   fn ei(&mut self, mmu: &mut mmu::MMU) {
-    self.IME = true;
-    self.IMECycles = 4;
+    self.ei_cycles = 2;
+  }
+
+  fn di(&mut self, mmu: &mut mmu::MMU) {
+    self.di_cycles = 2;
   }
 
   fn cpl(&mut self) {
@@ -1458,7 +1477,7 @@ impl CPU {
 
   fn reti(&mut self, mmu: &mut mmu::MMU) {
     self.PC = self.stack_pop(mmu);
-    self.IME = true;
+    self.ei_cycles = 1;
   }
 
   fn rst_28h(&mut self, mmu: &mut mmu::MMU) {
@@ -2157,20 +2176,25 @@ fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
 }
 
 fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
-  let A_value = cpu.read_byte_reg(RegEnum::A);
+  let a = cpu.read_byte_reg(RegEnum::A);
+  let result = a.wrapping_sub(byte);
+
+  // let A_value = cpu.read_byte_reg(RegEnum::A);
   cpu.util_set_flag(FLAG_SUB);
 
-  if A_value < byte {
+  if a < byte {
     cpu.util_toggle_flag(FLAG_CARRY);
   }
 
-  if A_value == byte {
+  if result == 0x00 {
     cpu.util_toggle_flag(FLAG_ZERO);
   }
 
-  if ((A_value.wrapping_sub(byte)) & 0xF) > (A_value & 0xF) {
+  if (result & 0xF) > (a & 0xF) {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
+
+  cpu.write_byte_reg(RegEnum::A, result);
 }
 
 fn shared_or_n(cpu: &mut CPU, byte: types::Byte) {
@@ -2191,48 +2215,43 @@ impl CPU {
   // Interrupt handling
 
   pub fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
-    let interrupt_to_handle = self.IME && mmu.InterruptEnabled != 0 && mmu.InterruptFlags != 0;
-    // println!("{}", should_handle_interrupt);
-    // println!("{}", self.IME);
-    // if should_handle_interrupt {
-    // panic!("should_handle_interrupt == true");
-    // }
-    if interrupt_to_handle {
-      // mask off interrupts that aren't enabled
-      let enabled_interrupts = mmu.InterruptEnabled & mmu.InterruptFlags;
+    if self.IME == false && self.halted == false { return 0 }
 
-      if (enabled_interrupts & 0x01) != 0 {
-        mmu.InterruptFlags &= 255 - 0x01;
+    let interrupt_to_handle = mmu.InterruptEnabled & mmu.InterruptFlags;
+    if interrupt_to_handle == 0 { return 0 }
 
-        debug!("Handling vblank!");
-        self.handle_vblank(mmu)
-      } else {
-        0
-      }
-    } else {
-      0
-    }
-  }
-
-  // RST40
-  fn handle_vblank(&mut self, mmu: &mut mmu::MMU) -> i32 {
-    // Disable further interrupts
-    // Z80._r.ime = 0;
+    self.halted = false;
+    if self.IME == false { return 0 }
     self.IME = false;
+
+    let interrupt_offset = interrupt_to_handle.trailing_zeros() as types::Word;
+    if interrupt_offset >= 5 { panic!("Invalid interrupt"); }
+
+    mmu.InterruptFlags &= !(1 << interrupt_offset);
 
     let current_PC = self.PC;
     self.stack_push(current_PC, mmu);
-    // Save current SP (PC?) on the stack
-    // Z80._r.sp -= 2;
-    // MMU.ww(Z80._r.sp, Z80._r.pc);
 
-    self.PC = 0x0040;
-    // Jump to handler
-    // Z80._r.pc = 0x0040;
-    // Z80._r.m = 3;
-    // Z80._r.t = 12;
+    if interrupt_offset != 0 {
+      panic!("Doing interrupt other than vblank, {}", interrupt_offset);
+    }
 
-    12
+    self.PC = 0x0040 | ((interrupt_offset) << 3);
+
+    16
+  }
+
+  fn update_ime(&mut self) {
+    self.di_cycles = match self.di_cycles {
+        2 => 1,
+        1 => { self.IME = false; 0 },
+        _ => 0,
+    };
+    self.ei_cycles = match self.ei_cycles {
+        2 => 1,
+        1 => { self.IME = true; 0 },
+        _ => 0,
+    };
   }
 }
 

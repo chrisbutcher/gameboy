@@ -7,30 +7,26 @@ pub struct Input {
 
 impl Input {
   pub fn new() -> Input {
-    Input {
+    let mut input = Input {
       rows: [0x0F, 0x0F],
       column: 0x00,
-    }
+    };
+    input.update();
+    input
   }
 
   pub fn read(&self, address: types::Word) -> types::Byte {
-    match self.column {
-      0x10 => {
-        println!("Input, read via 0x10");
-        self.rows[0]
-      },
-      0x20 => {
-        println!("Input, read via 0x20");
-        self.rows[1]
-      },
-      _ => {
-        println!("Input, 0x00");
-        0x00
-      }
-    }
+    self.column
   }
 
   pub fn write(&mut self, address: types::Word, data: types::Byte) {
-    self.column = data & 0x30;
+    self.column = data;
+    self.update();
+  }
+
+  pub fn update(&mut self) {
+    self.column &= 0x30;
+    if self.column & 0x10 == 0x10 { self.column |= self.rows[0]; }
+    if self.column & 0x20 == 0x20 { self.column |= self.rows[1]; }
   }
 }

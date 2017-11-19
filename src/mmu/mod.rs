@@ -85,7 +85,6 @@ impl MMU {
         self.sprite_info[ address as usize - 0xFE00 ]
       }
       0xFF00 => {
-        panic!("read from 0xFF00");
         debug!("MMU#read from input");
         self.input.read(address)
       }
@@ -94,7 +93,7 @@ impl MMU {
         self.io[ address as usize - 0xFF00 ]
       }
       0xFF0F => {
-        panic!("Read from InterruptFlags") // TODO Should return self.InterruptFlags
+        self.InterruptFlags
       }
       0xFF10...0xFF3F => {
         debug!("MMU#read from io");
@@ -104,9 +103,11 @@ impl MMU {
         if address == 0xFF68 {
           panic!("ho!");
         }
-        debug!("MMU#read from ppu");
         match addr {
-          0xFF40...0xFF7F => self.ppu.borrow_mut().read(addr),
+          0xFF40...0xFF7F => {
+            let result = self.ppu.borrow_mut().read(addr);
+            result
+          },
           _ => self.io[ addr as usize - 0xFF00 ],
         }
       }
@@ -170,7 +171,6 @@ impl MMU {
         debug!("Writing to disallowed memory region: {:#X}", address);
       } // no-op
       0xFF00 => {
-        panic!("write to 0xFF00");
         self.input.write(address, data)
       }
       0xFF01...0xFF0E => {
@@ -179,9 +179,6 @@ impl MMU {
       }
       0xFF0F => {
         self.InterruptFlags = data;
-        if data > 0x01 {
-          debug!("Write to InterruptFlags, with {:b}", data);
-        }
       }
       0xFF10...0xFF3F => {
         debug!("MMU#write to io");
@@ -207,10 +204,6 @@ impl MMU {
       }
       0xFFFF => {
         self.InterruptEnabled = data;
-
-        if data != 0x00 {
-          // println!("Write to InterruptEnabled other than 0");
-        }
       }
       _ => {
         panic!("Memory access is out of bounds: {:#X}", address);

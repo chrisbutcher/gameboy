@@ -4,6 +4,11 @@
 #![allow(unused_must_use)]
 #![allow(non_snake_case)] // TODO remove these
 
+extern crate socket_state_reporter;
+use self::socket_state_reporter::StateReporter;
+
+const SYNC_STATE: bool = false;
+
 extern crate clap;
 use clap::App;
 
@@ -29,6 +34,8 @@ struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
   cycles: u32,
+
+  state_reporter: StateReporter,
 }
 
 pub enum Interrupts {
@@ -43,7 +50,13 @@ const CYCLES_PER_FRAME: u32 = 70224;
 
 impl GameBoy {
   pub fn new() -> GameBoy {
-    GameBoy { cpu: cpu::CPU::new(), mmu: mmu::MMU::new(), cycles: 0 }
+    GameBoy {
+      cpu: cpu::CPU::new(),
+      mmu: mmu::MMU::new(),
+      cycles: 0,
+
+      state_reporter: StateReporter::new("5555"),
+    }
   }
 
   pub fn initialize(&mut self) {
@@ -89,17 +102,45 @@ impl GameBoy {
     self.mmu.write(0xFFFF, 0x00);
   }
 
-  fn render_frame(&mut self) {
-    self.cycles = self.cycles.wrapping_add(CYCLES_PER_FRAME);
+  // NOTE
+  // To get around mutable references being consume more than once, just re-bind as immutable when possible
+  // let mut foo = blah;
+  // do_something(&mut foo);
+  // let foo = foo;
 
-    while self.cycles <= CYCLES_PER_FRAME {
+  // NOTE
+  // When printing things, rather than giving ownership, just pass & reference so that after the print you can still
+  // use it
+  fn render_frame(&mut self) {
+
+    // self.cycles = self.cycles.wrapping_add(cycles_per_frame);
+    // self.cycles = 0;
+
+    let cycles_per_frame = (4194304f64 / 1000.0 * 16.0).round() as u32;
+    let mut cycles_this_frame = 0;
+
+    while cycles_this_frame < cycles_per_frame {
       let cycles = self.cpu.execute_next_opcode(&mut self.mmu);
-      self.cycles = self.cycles.wrapping_sub(cycles as u32);
+
+      cycles_this_frame = cycles_this_frame.wrapping_add(cycles as u32);
       self.update_timers(cycles);
       self.update_graphics(cycles);
-      let interrupt_cycles = self.do_interrupts();
-      self.cycles = self.cycles.wrapping_sub(interrupt_cycles as u32); // TODO
+
+      if SYNC_STATE {
+        self.state_reporter.send_message(format!("{}", cycles).as_bytes());
+        let received = self.state_reporter.receive_message();
+        if received == "kill" {
+          println!("{:#?}", &self.cpu);
+          panic!("Server stopped.");
+        }
+      }
+
+      // let interrupt_cycles = self.do_interrupts();
+      // cycles_this_frame = cycles_this_frame.wrapping_add(interrupt_cycles as u32);
     }
+
+    cycles_this_frame.wrapping_sub(cycles_per_frame);
+
     // TODO Perf testing & flame graph via: http://carol-nichols.com/2017/04/20/rust-profiling-with-dtrace-on-osx/ <<<<<<
     self.render_screen();
   }
@@ -109,12 +150,9 @@ impl GameBoy {
   }
 
   fn update_graphics(&mut self, cycles: i32) {
-    let interrupt_flags = self.mmu.ppu.borrow_mut().tick(cycles, self.mmu.InterruptFlags);
-    self.mmu.InterruptFlags = interrupt_flags;
-  }
-
-  fn do_interrupts(&mut self) -> i32 {
-    self.cpu.handle_interrupts(&mut self.mmu)
+    self.mmu.ppu.borrow_mut().tick(cycles);
+    self.mmu.InterruptFlags |= self.mmu.ppu.borrow_mut().InterruptFlags;
+    self.mmu.ppu.borrow_mut().InterruptFlags = 0x00;
   }
 
   fn render_screen(&mut self) {
@@ -180,7 +218,7 @@ fn main() {
       }
     }
 
-    fps_counter.print_fps();
+    // fps_counter.print_fps();
 
     game_boy.render_frame();
     // TODO limit to 60fps
