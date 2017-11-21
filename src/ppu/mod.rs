@@ -13,7 +13,7 @@ extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const SKIP_RENDERING: bool = true;
+const SKIP_RENDERING: bool = false;
 
 fn print_call_count() {
   unsafe {
@@ -26,9 +26,6 @@ fn print_call_count() {
 // Modes: Sprite Read, Video Read, Horizontal Blank, Vertical Blank
 // Starts in vertical blank
 pub struct PPU {
-  // Framebuffer -- 3d array of pixels. 160 x 144 x 4 (-- previous NOTE 3 bytes to support GBC, first byte for b&w)
-  // pub framebuffer: [[[types::Byte; 160]; 144]; 4],
-  // pub framebuffer: [[[types::Byte; 4]; 144]; 160],
   pub framebuffer: [ types::Byte; 160 * 144 * 4 ],
   pub video_ram: Vec<types::Byte>,
   pub tileset: [ [ [ types::Byte; 8 ]; 8 ]; 384 ],
@@ -39,10 +36,15 @@ pub struct PPU {
   pub line: u8,
   pub scroll_x: u8,
   pub scroll_y: u8,
-  pub switch_background: bool,
-  pub switch_lcd: bool,
-  pub background_map: bool,
-  pub background_tile: bool,
+
+  pub lcdc_display_enabled: bool,
+  pub lcdc_window_tilemap: bool,
+  pub lcdc_window_enabled: bool,
+  pub lcdc_bg_and_windown_tile_base: bool,
+  pub lcdc_bg_tilemap_base: bool,
+  pub lcdc_obj_sprite_size: bool,
+  pub lcdc_obj_sprite_display_enabled: bool,
+  pub lcdc_bg_enabled: bool,
 
   pub horiz_blanking: bool,
 
@@ -80,10 +82,15 @@ impl PPU {
       line: 0,
       scroll_x: 0,
       scroll_y: 0,
-      switch_background: false,
-      switch_lcd: false,
-      background_map: false,
-      background_tile: false,
+
+      lcdc_display_enabled: false,
+      lcdc_window_tilemap: true,
+      lcdc_window_enabled: false,
+      lcdc_bg_and_windown_tile_base: true,
+      lcdc_bg_tilemap_base: true,
+      lcdc_obj_sprite_size: false,
+      lcdc_obj_sprite_display_enabled: false,
+      lcdc_bg_enabled: false,
 
       horiz_blanking: false,
 
@@ -111,12 +118,14 @@ impl PPU {
   pub fn read(&mut self, address: types::Word) -> types::Byte {
     match address {
       0xFF40 => {
-        let switch_background_result = if self.switch_background { 0x01 } else { 0x00 };
-        let background_map_result = if self.background_map { 0x08 } else { 0x00 };
-        let background_tile_result = if self.background_tile { 0x10 } else { 0x00 };
-        let switch_lcd_result = if self.switch_lcd { 0x80 } else { 0x00 };
-
-        switch_background_result | background_map_result | background_tile_result | switch_lcd_result
+        (if self.lcdc_display_enabled { 0x80 } else { 0 }) |
+          (if self.lcdc_window_tilemap { 0x40 } else { 0 }) |
+          (if self.lcdc_window_enabled { 0x20 } else { 0 }) |
+          (if self.lcdc_bg_and_windown_tile_base { 0x10 } else { 0 }) |
+          (if self.lcdc_bg_tilemap_base { 0x08 } else { 0 }) |
+          (if self.lcdc_obj_sprite_size { 0x04 } else { 0 }) |
+          (if self.lcdc_obj_sprite_display_enabled { 0x02 } else { 0 }) |
+          (if self.lcdc_bg_enabled { 0x01 } else { 0 })
       }
       0xFF42 => self.scroll_y as types::Byte,
       0xFF43 => {
@@ -135,21 +144,25 @@ impl PPU {
   pub fn write(&mut self, address: types::Word, value: types::Byte) {
     match address {
       0xFF40 => {
-        let previous_switch_lcd = self.switch_lcd;
+        let previous_lcdc_display_enabled = self.lcdc_display_enabled;
 
-        self.switch_background = if value & 0x01 != 0 { true } else { false };
-        self.background_map = if value & 0x08 != 0 { true } else { false };
-        self.background_tile = if value & 0x10 != 0 { true } else { false };
-        self.switch_lcd = value & 0x80 == 0x80;
+        self.lcdc_display_enabled = if value & 0x80 != 0 { true } else { false };
+        self.lcdc_window_tilemap = if value & 0x40 != 0 { true } else { false };
+        self.lcdc_window_enabled = if value & 0x20 != 0 { true } else { false };
+        self.lcdc_bg_and_windown_tile_base = if value & 0x10 != 0 { true } else { false };
+        self.lcdc_bg_tilemap_base = if value & 0x08 != 0 { true } else { false };
+        self.lcdc_obj_sprite_size = if value & 0x04 != 0 { true } else { false };
+        self.lcdc_obj_sprite_display_enabled = if value & 0x02 != 0 { true } else { false };
+        self.lcdc_bg_enabled = if value & 0x01 != 0 { true } else { false };
 
-        if previous_switch_lcd && !self.switch_lcd {
-          if SYNC_STATE {
-              self.state_reporter.send_message(format!("switch_lcd: {}", self.switch_lcd).as_bytes());
-              let received = self.state_reporter.receive_message();
-              if received == "kill" {
-                  panic!("Server stopped.");
-              }
-          }
+        if previous_lcdc_display_enabled && !self.lcdc_display_enabled {
+          // if SYNC_STATE {
+          //     self.state_reporter.send_message(format!("lcdc_display_enabled: {}", self.lcdc_display_enabled).as_bytes());
+          //     let received = self.state_reporter.receive_message();
+          //     if received == "kill" {
+          //         panic!("Server stopped.");
+          //     }
+          // }
 
           self.mode_clock = 0;
           self.line = 0;
@@ -220,7 +233,7 @@ impl PPU {
     // tiles: 8x8 pixels
     // two maps: 32x32 each
 
-    let mapbase: usize = if self.background_map { 0x1C00 } else { 0x1800 };
+    let mapbase: usize = if self.lcdc_bg_tilemap_base { 0x1C00 } else { 0x1800 };
     let line = self.line as usize + self.scroll_y as usize;
 
     let mapbase = mapbase + ((line % 256) >> 3) * 32;
@@ -231,13 +244,13 @@ impl PPU {
     let mut coff = (self.line as usize) * 160 * 4;
 
     let mut i = 0;
-    let tilebase = if !self.background_tile { 256 } else { 0 };
+    let tilebase = if !self.lcdc_bg_and_windown_tile_base { 256 } else { 0 };
 
     loop {
       let mapoff = ((i as usize + self.scroll_x as usize) % 256) >> 3;
       let tilei = self.video_ram[ mapbase + mapoff ];
 
-      let tilebase = if self.background_tile { tilebase + tilei as usize } else { (tilebase as isize + (tilei as i8 as isize)) as usize };
+      let tilebase = if self.lcdc_bg_and_windown_tile_base { tilebase + tilei as usize } else { (tilebase as isize + (tilei as i8 as isize)) as usize };
 
       let row;
       row = self.tileset[ tilebase as usize ][ y as usize ];
@@ -310,14 +323,14 @@ impl PPU {
     self.tick_counter += 1;
 
     if SYNC_STATE {
-      self.state_reporter.send_message(format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}", self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.switch_lcd).as_bytes());
+      self.state_reporter.send_message(format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}", self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.lcdc_display_enabled).as_bytes());
       let received = self.state_reporter.receive_message();
       if received == "kill" {
         panic!("Server stopped.");
       }
     }
 
-    if !self.switch_lcd { return }
+    if !self.lcdc_display_enabled { return }
     self.horiz_blanking = false;
 
     let mut ticks_remaining = cycles;

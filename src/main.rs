@@ -111,6 +111,9 @@ impl GameBoy {
   // NOTE
   // When printing things, rather than giving ownership, just pass & reference so that after the print you can still
   // use it
+
+  // Avoid large array allocations [0; SIZE], use vec![] instead or box [] to put data on heap, not stack
+
   fn render_frame(&mut self) {
 
     // self.cycles = self.cycles.wrapping_add(cycles_per_frame);

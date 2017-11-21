@@ -17,7 +17,7 @@ const FLAG_NONE: types::Byte = 0x00; // None
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
-const SYNC_STATE: bool = true;
+const SYNC_STATE: bool = false;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RegEnum {
@@ -199,7 +199,7 @@ impl CPU {
     // Reading from FF40 (LCD control)
     // Gets wrong answer, need PPU read at FF40 to be same!
 
-    if SYNC_STATE {
+    if SYNC_STATE && self.tick_counter >= 1070716 {
       let registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
         self.PC, self.SP.value,
@@ -213,9 +213,9 @@ impl CPU {
       if received == "kill" {
         panic!("Server stopped.");
       }
-
-      self.tick_counter += 1;
     }
+
+    self.tick_counter += 1;
 
     self.PC += 1;
 
@@ -1255,6 +1255,7 @@ impl CPU {
   fn or_n(&mut self, mmu: &mmu::MMU) {
     let value = mmu.read(self.PC);
     shared_or_n(self, value);
+    self.PC += 1;
   }
 
   fn or_b(&mut self) {
@@ -1500,13 +1501,14 @@ impl CPU {
 
   fn add_a_n(&mut self, mmu: &mut mmu::MMU) {
     let value = mmu.read(self.PC);
-    shared_add_n(self, value);
+    shared_add_n(self, value, false);
+    self.PC += 1;
   }
 
   fn add_a_hl(&mut self, mmu: &mut mmu::MMU) {
     let address = self.read_word_reg(RegEnum::HL);
     let value = mmu.read(address);
-    shared_add_n(self, value);
+    shared_add_n(self, value, false);
   }
 
   fn add_hl_bc(&mut self) {
@@ -2078,17 +2080,21 @@ fn shared_add_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   }
 }
 
-fn shared_add_n(cpu: &mut CPU, byte: types::Byte) {
+fn shared_add_n(cpu: &mut CPU, byte: types::Byte, carry_preserve: bool) {
+  let c = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
   let A = cpu.read_byte_reg(RegEnum::A);
-  let result = byte.wrapping_add(A);
-  cpu.write_byte_reg(RegEnum::A, result);
+  let result = A.wrapping_add(byte).wrapping_add(c);
 
-  if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
   cpu.util_toggle_zero_flag_from_result(result);
 
-  if (result & 0x0F) == 0x00 {
+  if (A & 0xF) + (byte & 0xF) + c > 0xF {
     cpu.util_toggle_flag(FLAG_HALF_CARRY);
   }
+
+  cpu.util_untoggle_flag(FLAG_SUB);
+
+  if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
+  cpu.write_byte_reg(RegEnum::A, result);
 }
 
 fn shared_add_word_and_word_regs(cpu: &mut CPU, regEnum1: RegEnum, regEnum2: RegEnum) {
