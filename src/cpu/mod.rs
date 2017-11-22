@@ -17,7 +17,7 @@ const FLAG_NONE: types::Byte = 0x00; // None
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
-const SYNC_STATE: bool = false;
+const SYNC_STATE: bool = true;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RegEnum {
@@ -199,7 +199,7 @@ impl CPU {
     // Reading from FF40 (LCD control)
     // Gets wrong answer, need PPU read at FF40 to be same!
 
-    if SYNC_STATE && self.tick_counter >= 1070716 {
+    if SYNC_STATE && self.tick_counter >= 1070715 {
       let registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
         self.PC, self.SP.value,
@@ -1724,90 +1724,81 @@ impl CPU {
       0x3D => panic!("CB: SRL L : srl_l() not implemented! {:#X}", opcode),
       0x3E => panic!("CB: SRL (HL) : srl_hl() not implemented! {:#X}", opcode),
       0x3F => panic!("CB: SRL A : srl_a() not implemented! {:#X}", opcode),
-      0x40 => panic!("CB: BIT 0 B : bit_0_b() not implemented! {:#X}", opcode),
-      0x41 => panic!("CB: BIT 0 C : bit_0_c() not implemented! {:#X}", opcode),
-      0x42 => panic!("CB: BIT 0 D : bit_0_d() not implemented! {:#X}", opcode),
-      0x43 => panic!("CB: BIT 0 E : bit_0_e() not implemented! {:#X}", opcode),
-      0x44 => panic!("CB: BIT 0 H : bit_0_h() not implemented! {:#X}", opcode),
-      0x45 => panic!("CB: BIT 0 L : bit_0_l() not implemented! {:#X}", opcode),
-      0x46 => panic!("CB: BIT 0 (HL) : bit_0_hl() not implemented! {:#X}", opcode),
-      0x47 => panic!("CB: BIT 0 A : bit_0_a() not implemented! {:#X}", opcode),
-      0x48 => panic!("CB: BIT 1 B : bit_1_b() not implemented! {:#X}", opcode),
-      0x49 => panic!("CB: BIT 1 C : bit_1_c() not implemented! {:#X}", opcode),
-      0x4A => panic!("CB: BIT 1 D : bit_1_d() not implemented! {:#X}", opcode),
-      0x4B => panic!("CB: BIT 1 E : bit_1_e() not implemented! {:#X}", opcode),
-      0x4C => panic!("CB: BIT 1 H : bit_1_h() not implemented! {:#X}", opcode),
-      0x4D => panic!("CB: BIT 1 L : bit_1_l() not implemented! {:#X}", opcode),
-      0x4E => panic!("CB: BIT 1 (HL) : bit_1_hl() not implemented! {:#X}", opcode),
-      0x4F => panic!("CB: BIT 1 A : bit_1_a() not implemented! {:#X}", opcode),
-      0x50 => panic!("CB: BIT 2 B : bit_2_b() not implemented! {:#X}", opcode),
-      0x51 => panic!("CB: BIT 2 C : bit_2_c() not implemented! {:#X}", opcode),
-      0x52 => panic!("CB: BIT 2 D : bit_2_d() not implemented! {:#X}", opcode),
-      0x53 => panic!("CB: BIT 2 E : bit_2_e() not implemented! {:#X}", opcode),
-      0x54 => panic!("CB: BIT 2 H : bit_2_h() not implemented! {:#X}", opcode),
-      0x55 => panic!("CB: BIT 2 L : bit_2_l() not implemented! {:#X}", opcode),
-      0x56 => panic!("CB: BIT 2 (HL) : bit_2_hl() not implemented! {:#X}", opcode),
-      0x57 => panic!("CB: BIT 2 A : bit_2_a() not implemented! {:#X}", opcode),
-      0x58 => panic!("CB: BIT 3 B : bit_3_b() not implemented! {:#X}", opcode),
-      0x59 => panic!("CB: BIT 3 C : bit_3_c() not implemented! {:#X}", opcode),
-      0x5A => panic!("CB: BIT 3 D : bit_3_d() not implemented! {:#X}", opcode),
-      0x5B => panic!("CB: BIT 3 E : bit_3_e() not implemented! {:#X}", opcode),
-      0x5C => panic!("CB: BIT 3 H : bit_3_h() not implemented! {:#X}", opcode),
-      0x5D => panic!("CB: BIT 3 L : bit_3_l() not implemented! {:#X}", opcode),
-      0x5E => panic!("CB: BIT 3 (HL) : bit_3_hl() not implemented! {:#X}", opcode),
-      0x5F => panic!("CB: BIT 3 A : bit_3_a() not implemented! {:#X}", opcode),
-      0x60 => panic!("CB: BIT 4 B : bit_4_b() not implemented! {:#X}", opcode),
-      0x61 => panic!("CB: BIT 4 C : bit_4_c() not implemented! {:#X}", opcode),
-      0x62 => panic!("CB: BIT 4 D : bit_4_d() not implemented! {:#X}", opcode),
-      0x63 => panic!("CB: BIT 4 E : bit_4_e() not implemented! {:#X}", opcode),
-      0x64 => panic!("CB: BIT 4 H : bit_4_h() not implemented! {:#X}", opcode),
-      0x65 => panic!("CB: BIT 4 L : bit_4_l() not implemented! {:#X}", opcode),
-      0x66 => panic!("CB: BIT 4 (HL) : bit_4_hl() not implemented! {:#X}", opcode),
-      0x67 => panic!("CB: BIT 4 A : bit_4_a() not implemented! {:#X}", opcode),
-      0x68 => panic!("CB: BIT 5 B : bit_5_b() not implemented! {:#X}", opcode),
-      0x69 => panic!("CB: BIT 5 C : bit_5_c() not implemented! {:#X}", opcode),
-      0x6A => panic!("CB: BIT 5 D : bit_5_d() not implemented! {:#X}", opcode),
-      0x6B => panic!("CB: BIT 5 E : bit_5_e() not implemented! {:#X}", opcode),
-      0x6C => panic!("CB: BIT 5 H : bit_5_h() not implemented! {:#X}", opcode),
-      0x6D => panic!("CB: BIT 5 L : bit_5_l() not implemented! {:#X}", opcode),
-      0x6E => panic!("CB: BIT 5 (HL) : bit_5_hl() not implemented! {:#X}", opcode),
-      0x6F => panic!("CB: BIT 5 A : bit_5_a() not implemented! {:#X}", opcode),
-      0x70 => panic!("CB: BIT 6 B : bit_6_b() not implemented! {:#X}", opcode),
-      0x71 => panic!("CB: BIT 6 C : bit_6_c() not implemented! {:#X}", opcode),
-      0x72 => panic!("CB: BIT 6 D : bit_6_d() not implemented! {:#X}", opcode),
-      0x73 => panic!("CB: BIT 6 E : bit_6_e() not implemented! {:#X}", opcode),
-      0x74 => panic!("CB: BIT 6 H : bit_6_h() not implemented! {:#X}", opcode),
-      0x75 => panic!("CB: BIT 6 L : bit_6_l() not implemented! {:#X}", opcode),
-      0x76 => panic!("CB: BIT 6 (HL) : bit_6_hl() not implemented! {:#X}", opcode),
-      0x77 => panic!("CB: BIT 6 A : bit_6_a() not implemented! {:#X}", opcode),
-      0x78 => panic!("CB: BIT 7 B : bit_7_b() not implemented! {:#X}", opcode),
-      0x79 => panic!("CB: BIT 7 C : bit_7_c() not implemented! {:#X}", opcode),
-      0x7A => panic!("CB: BIT 7 D : bit_7_d() not implemented! {:#X}", opcode),
-      0x7B => panic!("CB: BIT 7 E : bit_7_e() not implemented! {:#X}", opcode),
-      0x7C => {
-        debug!("CB: BIT 7 H");
-        self.bit_7_h()
+      0x40 => { debug!("CB: BIT 0 B"); shared_bit_n_reg(self, 0, RegEnum::B) }
+      0x41 => { debug!("CB: BIT 0 C"); shared_bit_n_reg(self, 0, RegEnum::C) }
+      0x42 => { debug!("CB: BIT 0 D"); shared_bit_n_reg(self, 0, RegEnum::D) }
+      0x43 => { debug!("CB: BIT 0 E"); shared_bit_n_reg(self, 0, RegEnum::E) }
+      0x44 => { debug!("CB: BIT 0 H"); shared_bit_n_reg(self, 0, RegEnum::H) }
+      0x45 => { debug!("CB: BIT 0 L"); shared_bit_n_reg(self, 0, RegEnum::L) }
+      0x46 => { panic!("CB: BIT 0 (HL) not implemented, {:#X}", opcode) }
+      0x47 => { debug!("CB: BIT 0 A"); shared_bit_n_reg(self, 0, RegEnum::A) }
+      0x48 => { debug!("CB: BIT 1 B"); shared_bit_n_reg(self, 1, RegEnum::B) }
+      0x49 => { debug!("CB: BIT 1 C"); shared_bit_n_reg(self, 1, RegEnum::C) }
+      0x4A => { debug!("CB: BIT 1 D"); shared_bit_n_reg(self, 1, RegEnum::D) }
+      0x4B => { debug!("CB: BIT 1 E"); shared_bit_n_reg(self, 1, RegEnum::E) }
+      0x4C => { debug!("CB: BIT 1 H"); shared_bit_n_reg(self, 1, RegEnum::H) }
+      0x4D => { debug!("CB: BIT 1 L"); shared_bit_n_reg(self, 1, RegEnum::L) }
+      0x4E => { panic!("CB: BIT 1 (HL) not implemented, {:#X}", opcode) }
+      0x4F => { debug!("CB: BIT 1 A"); shared_bit_n_reg(self, 1, RegEnum::A) }
+      0x50 => { debug!("CB: BIT 2 B"); shared_bit_n_reg(self, 2, RegEnum::B) }
+      0x51 => { debug!("CB: BIT 2 C"); shared_bit_n_reg(self, 2, RegEnum::C) }
+      0x52 => { debug!("CB: BIT 2 D"); shared_bit_n_reg(self, 2, RegEnum::D) }
+      0x53 => { debug!("CB: BIT 2 E"); shared_bit_n_reg(self, 2, RegEnum::E) }
+      0x54 => { debug!("CB: BIT 2 H"); shared_bit_n_reg(self, 2, RegEnum::H) }
+      0x55 => { debug!("CB: BIT 2 L"); shared_bit_n_reg(self, 2, RegEnum::L) }
+      0x56 => { panic!("CB: BIT 2 (HL) not implemented, {:#X}", opcode) }
+      0x57 => { debug!("CB: BIT 2 A"); shared_bit_n_reg(self, 2, RegEnum::A) }
+      0x58 => { debug!("CB: BIT 3 B"); shared_bit_n_reg(self, 3, RegEnum::B) }
+      0x59 => { debug!("CB: BIT 3 C"); shared_bit_n_reg(self, 3, RegEnum::C) }
+      0x5A => { debug!("CB: BIT 3 D"); shared_bit_n_reg(self, 3, RegEnum::D) }
+      0x5B => { debug!("CB: BIT 3 E"); shared_bit_n_reg(self, 3, RegEnum::E) }
+      0x5C => { debug!("CB: BIT 3 H"); shared_bit_n_reg(self, 3, RegEnum::H) }
+      0x5D => { debug!("CB: BIT 3 L"); shared_bit_n_reg(self, 3, RegEnum::L) }
+      0x5E => { panic!("CB: BIT 3 (HL) not implemented, {:#X}", opcode) }
+      0x5F => { debug!("CB: BIT 3 A"); shared_bit_n_reg(self, 3, RegEnum::A) }
+      0x60 => { debug!("CB: BIT 4 B"); shared_bit_n_reg(self, 4, RegEnum::B) }
+      0x61 => { debug!("CB: BIT 4 C"); shared_bit_n_reg(self, 4, RegEnum::C) }
+      0x62 => { debug!("CB: BIT 4 D"); shared_bit_n_reg(self, 4, RegEnum::D) }
+      0x63 => { debug!("CB: BIT 4 E"); shared_bit_n_reg(self, 4, RegEnum::E) }
+      0x64 => { debug!("CB: BIT 4 H"); shared_bit_n_reg(self, 4, RegEnum::H) }
+      0x65 => { debug!("CB: BIT 4 L"); shared_bit_n_reg(self, 4, RegEnum::L) }
+      0x66 => { panic!("CB: BIT 4 (HL) not implemented, {:#X}", opcode) }
+      0x67 => { debug!("CB: BIT 4 A"); shared_bit_n_reg(self, 4, RegEnum::A) }
+      0x68 => { debug!("CB: BIT 5 B"); shared_bit_n_reg(self, 5, RegEnum::B) }
+      0x69 => { debug!("CB: BIT 5 C"); shared_bit_n_reg(self, 5, RegEnum::C) }
+      0x6A => { debug!("CB: BIT 5 D"); shared_bit_n_reg(self, 5, RegEnum::D) }
+      0x6B => { debug!("CB: BIT 5 E"); shared_bit_n_reg(self, 5, RegEnum::E) }
+      0x6C => { debug!("CB: BIT 5 H"); shared_bit_n_reg(self, 5, RegEnum::H) }
+      0x6D => { debug!("CB: BIT 5 L"); shared_bit_n_reg(self, 5, RegEnum::L) }
+      0x6E => { panic!("CB: BIT 5 (HL) not implemented, {:#X}", opcode) }
+      0x6F => { debug!("CB: BIT 5 A"); shared_bit_n_reg(self, 5, RegEnum::A) }
+      0x70 => { debug!("CB: BIT 6 B"); shared_bit_n_reg(self, 6, RegEnum::B) }
+      0x71 => { debug!("CB: BIT 6 C"); shared_bit_n_reg(self, 6, RegEnum::C) }
+      0x72 => { debug!("CB: BIT 6 D"); shared_bit_n_reg(self, 6, RegEnum::D) }
+      0x73 => { debug!("CB: BIT 6 E"); shared_bit_n_reg(self, 6, RegEnum::E) }
+      0x74 => { debug!("CB: BIT 6 H"); shared_bit_n_reg(self, 6, RegEnum::H) }
+      0x75 => { debug!("CB: BIT 6 L"); shared_bit_n_reg(self, 6, RegEnum::L) }
+      0x76 => { panic!("CB: BIT 6 (HL) not implemented, {:#X}", opcode) }
+      0x77 => { debug!("CB: BIT 6 A"); shared_bit_n_reg(self, 6, RegEnum::A) }
+      0x78 => { debug!("CB: BIT 7 B"); shared_bit_n_reg(self, 7, RegEnum::B) }
+      0x79 => { debug!("CB: BIT 7 C"); shared_bit_n_reg(self, 7, RegEnum::C) }
+      0x7A => { debug!("CB: BIT 7 D"); shared_bit_n_reg(self, 7, RegEnum::D) }
+      0x7B => { debug!("CB: BIT 7 E"); shared_bit_n_reg(self, 7, RegEnum::E) }
+      0x7C => { debug!("CB: BIT 7 H"); shared_bit_n_reg(self, 7, RegEnum::H) }
+      0x7D => { debug!("CB: BIT 7 L"); shared_bit_n_reg(self, 7, RegEnum::L) }
+      0x7E => {
+        debug!("CB: BIT 7 (HL)");
+        shared_bit_n_hl(self, 7, mmu)
       }
-      0x7D => panic!("CB: BIT 7 L : bit_7_l() not implemented! {:#X}", opcode),
-      0x7E => panic!("CB: BIT 7 (HL) : bit_7_hl() not implemented! {:#X}", opcode),
-      0x7F => {
-        debug!("CB: BIT 7 A");
-        self.bit_7_a()
-      }
+      0x7F => { debug!("CB: BIT 7 A"); shared_bit_n_reg(self, 7, RegEnum::A) }
       0x80 => panic!("CB: RES 0 B : res_0_b() not implemented! {:#X}", opcode),
       0x81 => panic!("CB: RES 0 C : res_0_c() not implemented! {:#X}", opcode),
       0x82 => panic!("CB: RES 0 D : res_0_d() not implemented! {:#X}", opcode),
       0x83 => panic!("CB: RES 0 E : res_0_e() not implemented! {:#X}", opcode),
       0x84 => panic!("CB: RES 0 H : res_0_h() not implemented! {:#X}", opcode),
       0x85 => panic!("CB: RES 0 L : res_0_l() not implemented! {:#X}", opcode),
-      0x86 => {
-        debug!("CB: RES 0 (HL)");
-        self.res_bit_hl(0, mmu)
-      }
-      0x87 => {
-        debug!("CB: RES 0 A");
-        self.res_bit_a(0)
-      }
+      0x86 => { debug!("CB: RES 0 (HL)"); self.res_bit_hl(0, mmu) }
+      0x87 => { debug!("CB: RES 0 A"); self.res_bit_a(0) }
       0x88 => panic!("CB: RES 1 B : res_1_b() not implemented! {:#X}", opcode),
       0x89 => panic!("CB: RES 1 C : res_1_c() not implemented! {:#X}", opcode),
       0x8A => panic!("CB: RES 1 D : res_1_d() not implemented! {:#X}", opcode),
@@ -1953,8 +1944,8 @@ impl CPU {
     shared_bit_n_reg(self, 7, RegEnum::A);
   }
 
-  fn bit_7_h(&mut self) {
-    shared_bit_n_reg(self, 7, RegEnum::H);
+  fn bit_7_h(&mut self, bit_number: u8, register: RegEnum) {
+    shared_bit_n_reg(self, bit_number, register);
   }
 
   fn rl_c(&mut self) {
@@ -1978,14 +1969,28 @@ fn shared_reset_bit_reg(cpu: &mut CPU, bit: types::Byte, regEnum: RegEnum) {
 
 fn shared_bit_n_reg(cpu: &mut CPU, bit: types::Byte, regEnum: RegEnum) {
   if (cpu.read_byte_reg(regEnum) & (1 << bit)) == 0 {
-    // cpu.util_toggle_flag(FLAG_ZERO);
-    cpu.util_set_flag(FLAG_ZERO); // TODO verify between these two
+    cpu.util_set_flag(FLAG_ZERO);
   } else {
     cpu.util_untoggle_flag(FLAG_ZERO);
   }
 
   cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  cpu.util_untoggle_flag(FLAG_SUB); // TODO verify
+  cpu.util_untoggle_flag(FLAG_SUB);
+}
+
+// TODO reduce duplication between this and shared_bit_n_reg
+fn shared_bit_n_hl(cpu: &mut CPU, bit: types::Byte, mmu: &mmu::MMU) {
+  let address = cpu.read_word_reg(RegEnum::HL);
+  let value = mmu.read(address);
+
+  if (value & (1 << bit)) == 0 {
+    cpu.util_set_flag(FLAG_ZERO);
+  } else {
+    cpu.util_untoggle_flag(FLAG_ZERO);
+  }
+
+  cpu.util_toggle_flag(FLAG_HALF_CARRY);
+  cpu.util_untoggle_flag(FLAG_SUB);
 }
 
 fn shared_rl_n(cpu: &mut CPU, regEnum: RegEnum) {

@@ -13,7 +13,7 @@ extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const SKIP_RENDERING: bool = false;
+const SKIP_RENDERING: bool = true;
 
 fn print_call_count() {
   unsafe {
@@ -156,14 +156,6 @@ impl PPU {
         self.lcdc_bg_enabled = if value & 0x01 != 0 { true } else { false };
 
         if previous_lcdc_display_enabled && !self.lcdc_display_enabled {
-          // if SYNC_STATE {
-          //     self.state_reporter.send_message(format!("lcdc_display_enabled: {}", self.lcdc_display_enabled).as_bytes());
-          //     let received = self.state_reporter.receive_message();
-          //     if received == "kill" {
-          //         panic!("Server stopped.");
-          //     }
-          // }
-
           self.mode_clock = 0;
           self.line = 0;
           self.mode = 0;
@@ -171,10 +163,7 @@ impl PPU {
         }
       }
       0xFF42 => self.scroll_y = value,
-      0xFF43 => {
-        println!("Setting scroll_x to {:x}", value);
-        self.scroll_x = value
-      },
+      0xFF43 => self.scroll_x = value,
       0xFF47 => {
         for i in 0..4 {
           match (value >> (i * 2)) & 3 {
