@@ -13,7 +13,7 @@ extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const SKIP_RENDERING: bool = true;
+const SKIP_RENDERING: bool = false;
 
 fn print_call_count() {
   unsafe {
@@ -118,7 +118,8 @@ impl PPU {
   pub fn read(&mut self, address: types::Word) -> types::Byte {
     match address {
       0xFF40 => {
-        (if self.lcdc_display_enabled { 0x80 } else { 0 }) |
+        // Us 0b1000_0000 instead of 0x80
+        (if self.lcdc_display_enabled { 0b1000_0000 } else { 0 }) |
           (if self.lcdc_window_tilemap { 0x40 } else { 0 }) |
           (if self.lcdc_window_enabled { 0x20 } else { 0 }) |
           (if self.lcdc_bg_and_windown_tile_base { 0x10 } else { 0 }) |

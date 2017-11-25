@@ -17,7 +17,7 @@ const FLAG_NONE: types::Byte = 0x00; // None
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
-const SYNC_STATE: bool = true;
+const SYNC_STATE: bool = false;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RegEnum {
@@ -181,6 +181,11 @@ impl CPU {
     }
   }
 
+  fn explode(&mut self, message: String) {
+    println!("PC: {:?} tick_counter: {}", self, self.tick_counter);
+    panic!(message)
+  }
+
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
     self.update_ime();
     match self.handle_interrupts(mmu) {
@@ -199,7 +204,7 @@ impl CPU {
     // Reading from FF40 (LCD control)
     // Gets wrong answer, need PPU read at FF40 to be same!
 
-    if SYNC_STATE && self.tick_counter >= 1070715 {
+    if SYNC_STATE && self.tick_counter >= 6946903 {
       let registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
         self.PC, self.SP.value,
@@ -246,7 +251,7 @@ impl CPU {
         debug!("LD BC,nn");
         self.ld_bc_nn(mmu)
       }
-      0x02 => panic!("LD (BC),A : ld_bc_a() not implemented! {:#X}", opcode),
+      0x02 => self.explode(format!("LD (BC),A : ld_bc_a() not implemented! {:#X}", opcode)),
       0x03 => {
         debug!("INC BC");
         self.inc_bc();
@@ -263,8 +268,8 @@ impl CPU {
         debug!("LD B,n");
         self.ld_b_n(mmu)
       }
-      0x07 => panic!("RLCA : rlca() not implemented! {:#X}", opcode),
-      0x08 => panic!("LD (nn),SP : ld_nn_sp() not implemented! {:#X}", opcode),
+      0x07 => self.explode(format!("RLCA : rlca() not implemented! {:#X}", opcode)),
+      0x08 => self.explode(format!("LD (nn),SP : ld_nn_sp() not implemented! {:#X}", opcode)),
       0x09 => {
         debug!("ADD HL,BC");
         self.add_hl_bc()
@@ -289,8 +294,8 @@ impl CPU {
         debug!("LD C,n");
         self.ld_c_n(mmu)
       }
-      0x0F => panic!("RRCA : rrca() not implemented! {:#X}", opcode),
-      0x10 => panic!("STOP : stop() not implemented! {:#X}", opcode),
+      0x0F => self.explode(format!("RRCA : rrca() not implemented! {:#X}", opcode)),
+      0x10 => self.explode(format!("STOP : stop() not implemented! {:#X}", opcode)),
       0x11 => {
         debug!("LD DE,nn");
         self.ld_de_nn(mmu)
@@ -303,7 +308,7 @@ impl CPU {
         debug!("INC DE");
         self.inc_de()
       }
-      0x14 => panic!("INC D : inc_d() not implemented! {:#X}", opcode),
+      0x14 => self.explode(format!("INC D : inc_d() not implemented! {:#X}", opcode)),
       0x15 => {
         debug!("DEC D");
         self.dec_d()
@@ -328,7 +333,7 @@ impl CPU {
         debug!("LD A,(DE)");
         self.ld_a_de(mmu)
       }
-      0x1B => panic!("DEC DE : dec_de() not implemented! {:#X}", opcode),
+      0x1B => self.explode(format!("DEC DE : dec_de() not implemented! {:#X}", opcode)),
       0x1C => {
         debug!("INC E");
         self.inc_e()
@@ -365,19 +370,19 @@ impl CPU {
         debug!("INC H");
         self.inc_h();
       }
-      0x25 => panic!("DEC H : dec_h() not implemented! {:#X}", opcode),
-      0x26 => panic!("LD H,n : ld_h_n() not implemented! {:#X}", opcode),
-      0x27 => panic!("DAA : daa() not implemented! {:#X}", opcode),
+      0x25 => self.explode(format!("DEC H : dec_h() not implemented! {:#X}", opcode)),
+      0x26 => self.explode(format!("LD H,n : ld_h_n() not implemented! {:#X}", opcode)),
+      0x27 => self.explode(format!("DAA : daa() not implemented! {:#X}", opcode)),
       0x28 => {
         debug!("JR Z,n");
         self.jr_z_n(mmu)
       }
-      0x29 => panic!("ADD HL,HL : add_hl_hl() not implemented! {:#X}", opcode),
+      0x29 => self.explode(format!("ADD HL,HL : add_hl_hl() not implemented! {:#X}", opcode)),
       0x2A => {
         debug!("LD A,(HLI)");
         self.ld_a_hli(mmu)
       }
-      0x2B => panic!("DEC HL : dec_hl() not implemented! {:#X}", opcode),
+      0x2B => self.explode(format!("DEC HL : dec_hl() not implemented! {:#X}", opcode)),
       0x2C => {
         debug!("INC L");
         self.inc_l()
@@ -394,7 +399,7 @@ impl CPU {
         debug!("CPL");
         self.cpl()
       }
-      0x30 => panic!("JR NC,n : jr_nc_n() not implemented! {:#X}", opcode),
+      0x30 => self.explode(format!("JR NC,n : jr_nc_n() not implemented! {:#X}", opcode)),
       0x31 => {
         debug!("LD SP,nn");
         self.ld_sp_nn(mmu)
@@ -403,7 +408,7 @@ impl CPU {
         debug!("LD (HLD), A");
         self.ld_hld_a(mmu)
       }
-      0x33 => panic!("INC SP : inc_sp() not implemented! {:#X}", opcode),
+      0x33 => self.explode(format!("INC SP : inc_sp() not implemented! {:#X}", opcode)),
       0x34 => {
         debug!("INC (HL)");
         self.inc_hl_indirect(mmu)
@@ -416,14 +421,14 @@ impl CPU {
         debug!("LD (HL),n");
         self.ld_hl_n(mmu)
       }
-      0x37 => panic!("SCF : scf() not implemented! {:#X}", opcode),
-      0x38 => panic!("JR C,n : jr_c_n() not implemented! {:#X}", opcode),
-      0x39 => panic!("ADD HL,SP : add_hl_sp() not implemented! {:#X}", opcode),
+      0x37 => self.explode(format!("SCF : scf() not implemented! {:#X}", opcode)),
+      0x38 => self.explode(format!("JR C,n : jr_c_n() not implemented! {:#X}", opcode)),
+      0x39 => self.explode(format!("ADD HL,SP : add_hl_sp() not implemented! {:#X}", opcode)),
       0x3A => {
         debug!("LD A,(HLD)");
         self.ld_a_hld(mmu)
       }
-      0x3B => panic!("DEC SP : dec_sp() not implemented! {:#X}", opcode),
+      0x3B => self.explode(format!("DEC SP : dec_sp() not implemented! {:#X}", opcode)),
       0x3C => {
         debug!("INC A");
         self.inc_a()
@@ -436,16 +441,16 @@ impl CPU {
         debug!("LD A,n");
         self.ld_a_n(mmu)
       }
-      0x3F => panic!("CCF : ccf() not implemented! {:#X}", opcode),
+      0x3F => self.explode(format!("CCF : ccf() not implemented! {:#X}", opcode)),
       0x40 => {
         debug!("LD B,B");
         self.ld_b_b()
       }
-      0x41 => panic!("LD B,C : ld_b_c() not implemented! {:#X}", opcode),
-      0x42 => panic!("LD B,D : ld_b_d() not implemented! {:#X}", opcode),
-      0x43 => panic!("LD B,E : ld_b_e() not implemented! {:#X}", opcode),
-      0x44 => panic!("LD B,H : ld_b_h() not implemented! {:#X}", opcode),
-      0x45 => panic!("LD B,L : ld_b_l() not implemented! {:#X}", opcode),
+      0x41 => self.explode(format!("LD B,C : ld_b_c() not implemented! {:#X}", opcode)),
+      0x42 => self.explode(format!("LD B,D : ld_b_d() not implemented! {:#X}", opcode)),
+      0x43 => self.explode(format!("LD B,E : ld_b_e() not implemented! {:#X}", opcode)),
+      0x44 => self.explode(format!("LD B,H : ld_b_h() not implemented! {:#X}", opcode)),
+      0x45 => self.explode(format!("LD B,L : ld_b_l() not implemented! {:#X}", opcode)),
       0x46 => {
         debug!("LD B,(HL)");
         self.ld_b_hl(mmu)
@@ -454,12 +459,12 @@ impl CPU {
         debug!("LD B,A");
         self.ld_b_a()
       }
-      0x48 => panic!("LD C,B : ld_c_b() not implemented! {:#X}", opcode),
-      0x49 => panic!("LD C,C : ld_c_c() not implemented! {:#X}", opcode),
-      0x4A => panic!("LD C,D : ld_c_d() not implemented! {:#X}", opcode),
-      0x4B => panic!("LD C,E : ld_c_e() not implemented! {:#X}", opcode),
-      0x4C => panic!("LD C,H : ld_c_h() not implemented! {:#X}", opcode),
-      0x4D => panic!("LD C,L : ld_c_l() not implemented! {:#X}", opcode),
+      0x48 => self.explode(format!("LD C,B : ld_c_b() not implemented! {:#X}", opcode)),
+      0x49 => self.explode(format!("LD C,C : ld_c_c() not implemented! {:#X}", opcode)),
+      0x4A => self.explode(format!("LD C,D : ld_c_d() not implemented! {:#X}", opcode)),
+      0x4B => self.explode(format!("LD C,E : ld_c_e() not implemented! {:#X}", opcode)),
+      0x4C => self.explode(format!("LD C,H : ld_c_h() not implemented! {:#X}", opcode)),
+      0x4D => self.explode(format!("LD C,L : ld_c_l() not implemented! {:#X}", opcode)),
       0x4E => {
         debug!("LD C,(HL)");
         self.ld_c_hl(mmu)
@@ -468,15 +473,15 @@ impl CPU {
         debug!("LD C,A");
         self.ld_c_a()
       }
-      0x50 => panic!("LD D,B : ld_d_b() not implemented! {:#X}", opcode),
-      0x51 => panic!("LD D,C : ld_d_c() not implemented! {:#X}", opcode),
-      0x52 => panic!("LD D,D : ld_d_d() not implemented! {:#X}", opcode),
-      0x53 => panic!("LD D,E : ld_d_e() not implemented! {:#X}", opcode),
+      0x50 => self.explode(format!("LD D,B : ld_d_b() not implemented! {:#X}", opcode)),
+      0x51 => self.explode(format!("LD D,C : ld_d_c() not implemented! {:#X}", opcode)),
+      0x52 => self.explode(format!("LD D,D : ld_d_d() not implemented! {:#X}", opcode)),
+      0x53 => self.explode(format!("LD D,E : ld_d_e() not implemented! {:#X}", opcode)),
       0x54 => {
         debug!("LD D,H");
         self.ld_d_h()
       }
-      0x55 => panic!("LD D,L : ld_d_l() not implemented! {:#X}", opcode),
+      0x55 => self.explode(format!("LD D,L : ld_d_l() not implemented! {:#X}", opcode)),
       0x56 => {
         debug!("LD D,(HL)");
         self.ld_d_hl(mmu)
@@ -485,11 +490,11 @@ impl CPU {
         debug!("LD D,A : ld_d_a()");
         self.ld_d_a()
       },
-      0x58 => panic!("LD E,B : ld_e_b() not implemented! {:#X}", opcode),
-      0x59 => panic!("LD E,C : ld_e_c() not implemented! {:#X}", opcode),
-      0x5A => panic!("LD E,D : ld_e_d() not implemented! {:#X}", opcode),
-      0x5B => panic!("LD E,E : ld_e_e() not implemented! {:#X}", opcode),
-      0x5C => panic!("LD E,H : ld_e_h() not implemented! {:#X}", opcode),
+      0x58 => self.explode(format!("LD E,B : ld_e_b() not implemented! {:#X}", opcode)),
+      0x59 => self.explode(format!("LD E,C : ld_e_c() not implemented! {:#X}", opcode)),
+      0x5A => self.explode(format!("LD E,D : ld_e_d() not implemented! {:#X}", opcode)),
+      0x5B => self.explode(format!("LD E,E : ld_e_e() not implemented! {:#X}", opcode)),
+      0x5C => self.explode(format!("LD E,H : ld_e_h() not implemented! {:#X}", opcode)),
       0x5D => {
         debug!("LD E,L");
         self.ld_e_l()
@@ -506,37 +511,37 @@ impl CPU {
         debug!("LD H,B");
         self.ld_h_b()
       }
-      0x61 => panic!("LD H,C : ld_h_c() not implemented! {:#X}", opcode),
+      0x61 => self.explode(format!("LD H,C : ld_h_c() not implemented! {:#X}", opcode)),
       0x62 => {
         debug!("LD H,D");
         self.ld_h_d()
       }
-      0x63 => panic!("LD H,E : ld_h_e() not implemented! {:#X}", opcode),
-      0x64 => panic!("LD H,H : ld_h_h() not implemented! {:#X}", opcode),
-      0x65 => panic!("LD H,L : ld_h_l() not implemented! {:#X}", opcode),
-      0x66 => panic!("LD H,(HL) : ld_h_hl() not implemented! {:#X}", opcode),
+      0x63 => self.explode(format!("LD H,E : ld_h_e() not implemented! {:#X}", opcode)),
+      0x64 => self.explode(format!("LD H,H : ld_h_h() not implemented! {:#X}", opcode)),
+      0x65 => self.explode(format!("LD H,L : ld_h_l() not implemented! {:#X}", opcode)),
+      0x66 => self.explode(format!("LD H,(HL) : ld_h_hl() not implemented! {:#X}", opcode)),
       0x67 => {
         debug!("LD H,A : ld_h_a()");
         self.ld_h_a()
       },
-      0x68 => panic!("LD L,B : ld_l_b() not implemented! {:#X}", opcode),
+      0x68 => self.explode(format!("LD L,B : ld_l_b() not implemented! {:#X}", opcode)),
       0x69 => {
         debug!("LD L,C");
         self.ld_l_c()
       }
-      0x6A => panic!("LD L,D : ld_l_d() not implemented! {:#X}", opcode),
+      0x6A => self.explode(format!("LD L,D : ld_l_d() not implemented! {:#X}", opcode)),
       0x6B => {
         debug!("LD L,E");
         self.ld_l_e()
       }
-      0x6C => panic!("LD L,H : ld_l_h() not implemented! {:#X}", opcode),
-      0x6D => panic!("LD L,L : ld_l_l() not implemented! {:#X}", opcode),
-      0x6E => panic!("LD L,(HL) : ld_l_hl() not implemented! {:#X}", opcode),
+      0x6C => self.explode(format!("LD L,H : ld_l_h() not implemented! {:#X}", opcode)),
+      0x6D => self.explode(format!("LD L,L : ld_l_l() not implemented! {:#X}", opcode)),
+      0x6E => self.explode(format!("LD L,(HL) : ld_l_hl() not implemented! {:#X}", opcode)),
       0x6F => {
         debug!("LD L,A");
         self.ld_l_a()
       }
-      0x70 => panic!("LD (HL),B : ld_hl_b() not implemented! {:#X}", opcode),
+      0x70 => self.explode(format!("LD (HL),B : ld_hl_b() not implemented! {:#X}", opcode)),
       0x71 => {
         debug!("LD (HL),C");
         self.ld_hl_c(mmu)
@@ -549,9 +554,9 @@ impl CPU {
         debug!("LD (HL),E");
         self.ld_hl_e(mmu)
       }
-      0x74 => panic!("LD (HL),H : ld_hl_h() not implemented! {:#X}", opcode),
-      0x75 => panic!("LD (HL),L : ld_hl_l() not implemented! {:#X}", opcode),
-      0x76 => panic!("HALT : halt() not implemented! {:#X}", opcode),
+      0x74 => self.explode(format!("LD (HL),H : ld_hl_h() not implemented! {:#X}", opcode)),
+      0x75 => self.explode(format!("LD (HL),L : ld_hl_l() not implemented! {:#X}", opcode)),
+      0x76 => self.explode(format!("HALT : halt() not implemented! {:#X}", opcode)),
       0x77 => {
         debug!("LD (HL),A");
         self.ld_hl_a(mmu)
@@ -584,15 +589,15 @@ impl CPU {
         debug!("LD A,(HL)");
         self.ld_a_hl(mmu)
       }
-      0x7F => panic!("LD A,A : ld_a_a() not implemented! {:#X}", opcode),
+      0x7F => self.explode(format!("LD A,A : ld_a_a() not implemented! {:#X}", opcode)),
       0x80 => {
         debug!("ADD A,B");
         self.add_a_b()
       }
-      0x81 => panic!("ADD A,C : add_a_c() not implemented! {:#X}", opcode),
-      0x82 => panic!("ADD A,D : add_a_d() not implemented! {:#X}", opcode),
-      0x83 => panic!("ADD A,E : add_a_e() not implemented! {:#X}", opcode),
-      0x84 => panic!("ADD A,H : add_a_h() not implemented! {:#X}", opcode),
+      0x81 => self.explode(format!("ADD A,C : add_a_c() not implemented! {:#X}", opcode)),
+      0x82 => self.explode(format!("ADD A,D : add_a_d() not implemented! {:#X}", opcode)),
+      0x83 => self.explode(format!("ADD A,E : add_a_e() not implemented! {:#X}", opcode)),
+      0x84 => self.explode(format!("ADD A,H : add_a_h() not implemented! {:#X}", opcode)),
       0x85 => {
         debug!("ADD A,L");
         self.add_a_l()
@@ -605,36 +610,36 @@ impl CPU {
         debug!("ADD A,A");
         self.add_a_a()
       }
-      0x88 => panic!("ADC A,B : adc_a_b() not implemented! {:#X}", opcode),
+      0x88 => self.explode(format!("ADC A,B : adc_a_b() not implemented! {:#X}", opcode)),
       0x89 => {
         debug!("ADC A,C");
         self.adc_a_c()
       }
-      0x8A => panic!("ADC A,D : adc_a_d() not implemented! {:#X}", opcode),
-      0x8B => panic!("ADC A,E : adc_a_e() not implemented! {:#X}", opcode),
-      0x8C => panic!("ADC A,H : adc_a_h() not implemented! {:#X}", opcode),
-      0x8D => panic!("ADC A,L : adc_a_l() not implemented! {:#X}", opcode),
-      0x8E => panic!("ADC A,(HL) : adc_a_hl() not implemented! {:#X}", opcode),
-      0x8F => panic!("ADC A,A : adc_a_a() not implemented! {:#X}", opcode),
+      0x8A => self.explode(format!("ADC A,D : adc_a_d() not implemented! {:#X}", opcode)),
+      0x8B => self.explode(format!("ADC A,E : adc_a_e() not implemented! {:#X}", opcode)),
+      0x8C => self.explode(format!("ADC A,H : adc_a_h() not implemented! {:#X}", opcode)),
+      0x8D => self.explode(format!("ADC A,L : adc_a_l() not implemented! {:#X}", opcode)),
+      0x8E => self.explode(format!("ADC A,(HL) : adc_a_hl() not implemented! {:#X}", opcode)),
+      0x8F => self.explode(format!("ADC A,A : adc_a_a() not implemented! {:#X}", opcode)),
       0x90 => {
         debug!("SUB B");
         self.sub_b()
       }
-      0x91 => panic!("SUB C : sub_c() not implemented! {:#X}", opcode),
-      0x92 => panic!("SUB D : sub_d() not implemented! {:#X}", opcode),
-      0x93 => panic!("SUB E : sub_e() not implemented! {:#X}", opcode),
-      0x94 => panic!("SUB H : sub_h() not implemented! {:#X}", opcode),
-      0x95 => panic!("SUB L : sub_l() not implemented! {:#X}", opcode),
-      0x96 => panic!("SUB (HL) : sub_hl() not implemented! {:#X}", opcode),
-      0x97 => panic!("SUB A : sub_a() not implemented! {:#X}", opcode),
-      0x98 => panic!("SBC B : sbc_b() not implemented! {:#X}", opcode),
-      0x99 => panic!("SBC C : sbc_c() not implemented! {:#X}", opcode),
-      0x9A => panic!("SBC D : sbc_d() not implemented! {:#X}", opcode),
-      0x9B => panic!("SBC E : sbc_e() not implemented! {:#X}", opcode),
-      0x9C => panic!("SBC H : sbc_h() not implemented! {:#X}", opcode),
-      0x9D => panic!("SBC L : sbc_l() not implemented! {:#X}", opcode),
-      0x9E => panic!("SBC (HL) : sbc_hl() not implemented! {:#X}", opcode),
-      0x9F => panic!("SBC A : sbc_a() not implemented! {:#X}", opcode),
+      0x91 => self.explode(format!("SUB C : sub_c() not implemented! {:#X}", opcode)),
+      0x92 => self.explode(format!("SUB D : sub_d() not implemented! {:#X}", opcode)),
+      0x93 => self.explode(format!("SUB E : sub_e() not implemented! {:#X}", opcode)),
+      0x94 => self.explode(format!("SUB H : sub_h() not implemented! {:#X}", opcode)),
+      0x95 => self.explode(format!("SUB L : sub_l() not implemented! {:#X}", opcode)),
+      0x96 => self.explode(format!("SUB (HL) : sub_hl() not implemented! {:#X}", opcode)),
+      0x97 => self.explode(format!("SUB A : sub_a() not implemented! {:#X}", opcode)),
+      0x98 => self.explode(format!("SBC B : sbc_b() not implemented! {:#X}", opcode)),
+      0x99 => self.explode(format!("SBC C : sbc_c() not implemented! {:#X}", opcode)),
+      0x9A => self.explode(format!("SBC D : sbc_d() not implemented! {:#X}", opcode)),
+      0x9B => self.explode(format!("SBC E : sbc_e() not implemented! {:#X}", opcode)),
+      0x9C => self.explode(format!("SBC H : sbc_h() not implemented! {:#X}", opcode)),
+      0x9D => self.explode(format!("SBC L : sbc_l() not implemented! {:#X}", opcode)),
+      0x9E => self.explode(format!("SBC (HL) : sbc_hl() not implemented! {:#X}", opcode)),
+      0x9F => self.explode(format!("SBC A : sbc_a() not implemented! {:#X}", opcode)),
       0xA0 => {
         debug!("AND B");
         self.and_b()
@@ -659,7 +664,7 @@ impl CPU {
         debug!("AND L");
         self.and_l()
       }
-      0xA6 => panic!("AND (HL) : and_hl() not implemented! {:#X}", opcode),
+      0xA6 => self.explode(format!("AND (HL) : and_hl() not implemented! {:#X}", opcode)),
       0xA7 => {
         debug!("AND A");
         self.and_a()
@@ -688,7 +693,7 @@ impl CPU {
         debug!("XOR L");
         self.xor_l()
       }
-      0xAE => panic!("XOR (HL) : xor_hl() not implemented! {:#X}", opcode),
+      0xAE => self.explode(format!("XOR (HL) : xor_hl() not implemented! {:#X}", opcode)),
       0xAF => {
         debug!("XOR A");
         self.xor_a()
@@ -701,23 +706,23 @@ impl CPU {
         debug!("OR C");
         self.or_c()
       }
-      0xB2 => panic!("OR D : or_d() not implemented! {:#X}", opcode),
-      0xB3 => panic!("OR E : or_e() not implemented! {:#X}", opcode),
-      0xB4 => panic!("OR H : or_h() not implemented! {:#X}", opcode),
-      0xB5 => panic!("OR L : or_l() not implemented! {:#X}", opcode),
-      0xB6 => panic!("OR (HL) : or_hl() not implemented! {:#X}", opcode),
-      0xB7 => panic!("OR A : or_a() not implemented! {:#X}", opcode),
-      0xB8 => panic!("CP B : cp_b() not implemented! {:#X}", opcode),
-      0xB9 => panic!("CP C : cp_c() not implemented! {:#X}", opcode),
-      0xBA => panic!("CP D : cp_d() not implemented! {:#X}", opcode),
-      0xBB => panic!("CP E : cp_e() not implemented! {:#X}", opcode),
-      0xBC => panic!("CP H : cp_h() not implemented! {:#X}", opcode),
-      0xBD => panic!("CP L : cp_l() not implemented! {:#X}", opcode),
+      0xB2 => self.explode(format!("OR D : or_d() not implemented! {:#X}", opcode)),
+      0xB3 => self.explode(format!("OR E : or_e() not implemented! {:#X}", opcode)),
+      0xB4 => self.explode(format!("OR H : or_h() not implemented! {:#X}", opcode)),
+      0xB5 => self.explode(format!("OR L : or_l() not implemented! {:#X}", opcode)),
+      0xB6 => self.explode(format!("OR (HL) : or_hl() not implemented! {:#X}", opcode)),
+      0xB7 => self.explode(format!("OR A : or_a() not implemented! {:#X}", opcode)),
+      0xB8 => self.explode(format!("CP B : cp_b() not implemented! {:#X}", opcode)),
+      0xB9 => self.explode(format!("CP C : cp_c() not implemented! {:#X}", opcode)),
+      0xBA => self.explode(format!("CP D : cp_d() not implemented! {:#X}", opcode)),
+      0xBB => self.explode(format!("CP E : cp_e() not implemented! {:#X}", opcode)),
+      0xBC => self.explode(format!("CP H : cp_h() not implemented! {:#X}", opcode)),
+      0xBD => self.explode(format!("CP L : cp_l() not implemented! {:#X}", opcode)),
       0xBE => {
         debug!("CP (HL)");
         self.cp_hl(mmu)
       }
-      0xBF => panic!("CP A : cp_a() not implemented! {:#X}", opcode),
+      0xBF => self.explode(format!("CP A : cp_a() not implemented! {:#X}", opcode)),
       0xC0 => {
         debug!("RET NZ");
         self.ret_nz(mmu)
@@ -746,7 +751,7 @@ impl CPU {
         debug!("ADD A,N");
         self.add_a_n(mmu)
       }
-      0xC7 => panic!("RST 00H : rst_00h() not implemented! {:#X}", opcode),
+      0xC7 => self.explode(format!("RST 00H : rst_00h() not implemented! {:#X}", opcode)),
       0xC8 => {
         debug!("RET Z");
         self.ret_z(mmu)
@@ -764,38 +769,38 @@ impl CPU {
         cb_opcode = Some(mmu.read(self.PC));
         self.cb_prefixed_instruction(cb_opcode.unwrap(), mmu)
       }
-      0xCC => panic!("CALL Z,nn : call_z_nn() not implemented! {:#X}", opcode),
+      0xCC => self.explode(format!("CALL Z,nn : call_z_nn() not implemented! {:#X}", opcode)),
       0xCD => {
         debug!("CALL nn");
         self.call_nn(mmu)
       }
-      0xCE => panic!("ADC A,n : adc_a_n() not implemented! {:#X}", opcode),
-      0xCF => panic!("RST 08H : rst_08h() not implemented! {:#X}", opcode),
-      0xD0 => panic!("RET NC : ret_nc() not implemented! {:#X}", opcode),
+      0xCE => self.explode(format!("ADC A,n : adc_a_n() not implemented! {:#X}", opcode)),
+      0xCF => self.explode(format!("RST 08H : rst_08h() not implemented! {:#X}", opcode)),
+      0xD0 => self.explode(format!("RET NC : ret_nc() not implemented! {:#X}", opcode)),
       0xD1 => {
         debug!("POP DE");
         self.pop_de(mmu)
       }
-      0xD2 => panic!("JP NC,nn : jp_nc_nn() not implemented! {:#X}", opcode),
+      0xD2 => self.explode(format!("JP NC,nn : jp_nc_nn() not implemented! {:#X}", opcode)),
       0xD3 => debug!("Unhandled opcode"),
-      0xD4 => panic!("CALL NC,nn : call_nc_nn() not implemented! {:#X}", opcode),
+      0xD4 => self.explode(format!("CALL NC,nn : call_nc_nn() not implemented! {:#X}", opcode)),
       0xD5 => {
         debug!("PUSH DE");
         self.push_de(mmu)
       }
-      0xD6 => panic!("SUB n : sub_n() not implemented! {:#X}", opcode),
-      0xD7 => panic!("RST 10H : rst_10h() not implemented! {:#X}", opcode),
-      0xD8 => panic!("RET C : ret_c() not implemented! {:#X}", opcode),
+      0xD6 => self.explode(format!("SUB n : sub_n() not implemented! {:#X}", opcode)),
+      0xD7 => self.explode(format!("RST 10H : rst_10h() not implemented! {:#X}", opcode)),
+      0xD8 => self.explode(format!("RET C : ret_c() not implemented! {:#X}", opcode)),
       0xD9 => {
         debug!("RETI");
         self.reti(mmu)
       }
-      0xDA => panic!("JP C,nn : jp_c_nn() not implemented! {:#X}", opcode),
+      0xDA => self.explode(format!("JP C,nn : jp_c_nn() not implemented! {:#X}", opcode)),
       0xDB => debug!("Unhandled opcode"),
-      0xDC => panic!("CALL C,nn : call_c_nn() not implemented! {:#X}", opcode),
+      0xDC => self.explode(format!("CALL C,nn : call_c_nn() not implemented! {:#X}", opcode)),
       0xDD => debug!("Unhandled opcode"),
-      0xDE => panic!("SBC n : sbc_n() not implemented! {:#X}", opcode),
-      0xDF => panic!("RST 18H : rst_18h() not implemented! {:#X}", opcode),
+      0xDE => self.explode(format!("SBC n : sbc_n() not implemented! {:#X}", opcode)),
+      0xDF => self.explode(format!("RST 18H : rst_18h() not implemented! {:#X}", opcode)),
       0xE0 => {
         debug!("LD (0xFF00+n),A");
         self.ld_0xff00_plus_n_a(mmu)
@@ -818,8 +823,8 @@ impl CPU {
         debug!("AND n");
         self.and_n(mmu)
       }
-      0xE7 => panic!("RST 20H : rst_20h() not implemented! {:#X}", opcode),
-      0xE8 => panic!("ADD SP,n : add_sp_n() not implemented! {:#X}", opcode),
+      0xE7 => self.explode(format!("RST 20H : rst_20h() not implemented! {:#X}", opcode)),
+      0xE8 => self.explode(format!("ADD SP,n : add_sp_n() not implemented! {:#X}", opcode)),
       0xE9 => {
         debug!("JP (HL)");
         self.jp_hl()
@@ -831,7 +836,7 @@ impl CPU {
       0xEB => debug!("Unhandled opcode"),
       0xEC => debug!("Unhandled opcode"),
       0xED => debug!("Unhandled opcode"),
-      0xEE => panic!("XOR n : xor_n() not implemented! {:#X}", opcode),
+      0xEE => self.explode(format!("XOR n : xor_n() not implemented! {:#X}", opcode)),
       0xEF => {
         debug!("RST 28H");
         self.rst_28h(mmu)
@@ -844,7 +849,7 @@ impl CPU {
         debug!("POP AF");
         self.pop_af(mmu)
       }
-      0xF2 => panic!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode),
+      0xF2 => self.explode(format!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode)),
       0xF3 => {
         debug!("DI");
         self.di(mmu)
@@ -858,9 +863,9 @@ impl CPU {
         debug!("OR N");
         self.or_n(mmu)
       }
-      0xF7 => panic!("RST 30H : rst_30h() not implemented! {:#X}", opcode),
-      0xF8 => panic!("LD HL,SP+n : ld_hl_sp_plus_n() not implemented! {:#X}", opcode),
-      0xF9 => panic!("LD SP,HL : ld_sp_hl() not implemented! {:#X}", opcode),
+      0xF7 => self.explode(format!("RST 30H : rst_30h() not implemented! {:#X}", opcode)),
+      0xF8 => self.explode(format!("LD HL,SP+n : ld_hl_sp_plus_n() not implemented! {:#X}", opcode)),
+      0xF9 => self.explode(format!("LD SP,HL : ld_sp_hl() not implemented! {:#X}", opcode)),
       0xFA => {
         debug!("LD A,(nn)");
         self.ld_a_nn(mmu)
@@ -875,8 +880,8 @@ impl CPU {
         debug!("CP");
         self.cp_n(mmu)
       }
-      0xFF => panic!("RST 38H : rst_38h() not implemented! {:#X}", opcode),
-      _ => panic!("Unexpected opcode: {:#X}", opcode),
+      0xFF => self.explode(format!("RST 38H : rst_38h() not implemented! {:#X}", opcode)),
+      _ => self.explode(format!("Unexpected opcode: {:#X}", opcode)),
     }
 
     let raw_cycles = if opcode == 0xCB {
@@ -1651,79 +1656,81 @@ impl CPU {
 
   fn execute_cb_opcode(&mut self, opcode: types::Byte, mmu: &mut mmu::MMU) {
     match opcode {
-      0x00 => panic!("CB: RLC B : rlc_b() not implemented! {:#X}", opcode),
-      0x01 => panic!("CB: RLC C : rlc_c() not implemented! {:#X}", opcode),
-      0x02 => panic!("CB: RLC D : rlc_d() not implemented! {:#X}", opcode),
-      0x03 => panic!("CB: RLC E : rlc_e() not implemented! {:#X}", opcode),
-      0x04 => panic!("CB: RLC H : rlc_h() not implemented! {:#X}", opcode),
-      0x05 => panic!("CB: RLC L : rlc_l() not implemented! {:#X}", opcode),
-      0x06 => panic!("CB: RLC (HL) : rlc_hl() not implemented! {:#X}", opcode),
-      0x07 => panic!("CB: RLC A : rlc_a() not implemented! {:#X}", opcode),
-      0x08 => panic!("CB: RRC B : rrc_b() not implemented! {:#X}", opcode),
-      0x09 => panic!("CB: RRC C : rrc_c() not implemented! {:#X}", opcode),
-      0x0A => panic!("CB: RRC D : rrc_d() not implemented! {:#X}", opcode),
-      0x0B => panic!("CB: RRC E : rrc_e() not implemented! {:#X}", opcode),
-      0x0C => panic!("CB: RRC H : rrc_h() not implemented! {:#X}", opcode),
-      0x0D => panic!("CB: RRC L : rrc_l() not implemented! {:#X}", opcode),
-      0x0E => panic!("CB: RRC (HL) : rrc_hl() not implemented! {:#X}", opcode),
-      0x0F => panic!("CB: RRC A : rrc_a() not implemented! {:#X}", opcode),
-      0x10 => panic!("CB: RL B : rl_b() not implemented! {:#X}", opcode),
+      0x00 => self.explode(format!("CB: RLC B : rlc_b() not implemented! {:#X}", opcode)),
+      0x01 => self.explode(format!("CB: RLC C : rlc_c() not implemented! {:#X}", opcode)),
+      0x02 => self.explode(format!("CB: RLC D : rlc_d() not implemented! {:#X}", opcode)),
+      0x03 => self.explode(format!("CB: RLC E : rlc_e() not implemented! {:#X}", opcode)),
+      0x04 => self.explode(format!("CB: RLC H : rlc_h() not implemented! {:#X}", opcode)),
+      0x05 => self.explode(format!("CB: RLC L : rlc_l() not implemented! {:#X}", opcode)),
+      0x06 => self.explode(format!("CB: RLC (HL) : rlc_hl() not implemented! {:#X}", opcode)),
+      0x07 => self.explode(format!("CB: RLC A : rlc_a() not implemented! {:#X}", opcode)),
+      0x08 => self.explode(format!("CB: RRC B : rrc_b() not implemented! {:#X}", opcode)),
+      0x09 => self.explode(format!("CB: RRC C : rrc_c() not implemented! {:#X}", opcode)),
+      0x0A => self.explode(format!("CB: RRC D : rrc_d() not implemented! {:#X}", opcode)),
+      0x0B => self.explode(format!("CB: RRC E : rrc_e() not implemented! {:#X}", opcode)),
+      0x0C => self.explode(format!("CB: RRC H : rrc_h() not implemented! {:#X}", opcode)),
+      0x0D => self.explode(format!("CB: RRC L : rrc_l() not implemented! {:#X}", opcode)),
+      0x0E => self.explode(format!("CB: RRC (HL) : rrc_hl() not implemented! {:#X}", opcode)),
+      0x0F => self.explode(format!("CB: RRC A : rrc_a() not implemented! {:#X}", opcode)),
+      0x10 => self.explode(format!("CB: RL B : rl_b() not implemented! {:#X}", opcode)),
       0x11 => {
         debug!("CB: RL C : rl_c()");
         self.rl_c()
       },
-      0x12 => panic!("CB: RL D : rl_d() not implemented! {:#X}", opcode),
-      0x13 => panic!("CB: RL E : rl_e() not implemented! {:#X}", opcode),
-      0x14 => panic!("CB: RL H : rl_h() not implemented! {:#X}", opcode),
-      0x15 => panic!("CB: RL L : rl_l() not implemented! {:#X}", opcode),
-      0x16 => panic!("CB: RL (HL) : rl_hl() not implemented! {:#X}", opcode),
-      0x17 => panic!("CB: RL A : rl_a() not implemented! {:#X}", opcode),
-      0x18 => panic!("CB: RR B : rr_b() not implemented! {:#X}", opcode),
-      0x19 => panic!("CB: RR C : rr_c() not implemented! {:#X}", opcode),
-      0x1A => panic!("CB: RR D : rr_d() not implemented! {:#X}", opcode),
-      0x1B => panic!("CB: RR E : rr_e() not implemented! {:#X}", opcode),
-      0x1C => panic!("CB: RR H : rr_h() not implemented! {:#X}", opcode),
-      0x1D => panic!("CB: RR L : rr_l() not implemented! {:#X}", opcode),
-      0x1E => panic!("CB: RR (HL) : rr_hl() not implemented! {:#X}", opcode),
-      0x1F => panic!("CB: RR A : rr_a() not implemented! {:#X}", opcode),
-      0x20 => panic!("CB: SLA B : sla_b() not implemented! {:#X}", opcode),
-      0x21 => panic!("CB: SLA C : sla_c() not implemented! {:#X}", opcode),
-      0x22 => panic!("CB: SLA D : sla_d() not implemented! {:#X}", opcode),
-      0x23 => panic!("CB: SLA E : sla_e() not implemented! {:#X}", opcode),
-      0x24 => panic!("CB: SLA H : sla_h() not implemented! {:#X}", opcode),
-      0x25 => panic!("CB: SLA L : sla_l() not implemented! {:#X}", opcode),
-      0x26 => panic!("CB: SLA (HL) : sla_hl() not implemented! {:#X}", opcode),
+      0x12 => self.explode(format!("CB: RL D : rl_d() not implemented! {:#X}", opcode)),
+      0x13 => self.explode(format!("CB: RL E : rl_e() not implemented! {:#X}", opcode)),
+      0x14 => self.explode(format!("CB: RL H : rl_h() not implemented! {:#X}", opcode)),
+      0x15 => self.explode(format!("CB: RL L : rl_l() not implemented! {:#X}", opcode)),
+      0x16 => self.explode(format!("CB: RL (HL) : rl_hl() not implemented! {:#X}", opcode)),
+      0x17 => self.explode(format!("CB: RL A : rl_a() not implemented! {:#X}", opcode)),
+      0x18 => self.explode(format!("CB: RR B : rr_b() not implemented! {:#X}", opcode)),
+      0x19 => self.explode(format!("CB: RR C : rr_c() not implemented! {:#X}", opcode)),
+      0x1A => self.explode(format!("CB: RR D : rr_d() not implemented! {:#X}", opcode)),
+      0x1B => self.explode(format!("CB: RR E : rr_e() not implemented! {:#X}", opcode)),
+      0x1C => self.explode(format!("CB: RR H : rr_h() not implemented! {:#X}", opcode)),
+      0x1D => self.explode(format!("CB: RR L : rr_l() not implemented! {:#X}", opcode)),
+      0x1E => self.explode(format!("CB: RR (HL) : rr_hl() not implemented! {:#X}", opcode)),
+      0x1F => self.explode(format!("CB: RR A : rr_a() not implemented! {:#X}", opcode)),
+      0x20 => self.explode(format!("CB: SLA B : sla_b() not implemented! {:#X}", opcode)),
+      0x21 => self.explode(format!("CB: SLA C : sla_c() not implemented! {:#X}", opcode)),
+      0x22 => self.explode(format!("CB: SLA D : sla_d() not implemented! {:#X}", opcode)),
+      0x23 => self.explode(format!("CB: SLA E : sla_e() not implemented! {:#X}", opcode)),
+      0x24 => self.explode(format!("CB: SLA H : sla_h() not implemented! {:#X}", opcode)),
+      0x25 => self.explode(format!("CB: SLA L : sla_l() not implemented! {:#X}", opcode)),
+      0x26 => self.explode(format!("CB: SLA (HL) : sla_hl() not implemented! {:#X}", opcode)),
       0x27 => {
         debug!("CB: SLA A");
         self.sla_a();
       }
-      0x28 => panic!("CB: SRA B : sra_b() not implemented! {:#X}", opcode),
-      0x29 => panic!("CB: SRA C : sra_c() not implemented! {:#X}", opcode),
-      0x2A => panic!("CB: SRA D : sra_d() not implemented! {:#X}", opcode),
-      0x2B => panic!("CB: SRA E : sra_e() not implemented! {:#X}", opcode),
-      0x2C => panic!("CB: SRA H : sra_h() not implemented! {:#X}", opcode),
-      0x2D => panic!("CB: SRA L : sra_l() not implemented! {:#X}", opcode),
-      0x2E => panic!("CB: SRA (HL) : sra_hl() not implemented! {:#X}", opcode),
-      0x2F => panic!("CB: SRA A : sra_a() not implemented! {:#X}", opcode),
-      0x30 => panic!("CB: SWAP B : swap_b() not implemented! {:#X}", opcode),
-      0x31 => panic!("CB: SWAP C : swap_c() not implemented! {:#X}", opcode),
-      0x32 => panic!("CB: SWAP D : swap_d() not implemented! {:#X}", opcode),
-      0x33 => panic!("CB: SWAP E : swap_e() not implemented! {:#X}", opcode),
-      0x34 => panic!("CB: SWAP H : swap_h() not implemented! {:#X}", opcode),
-      0x35 => panic!("CB: SWAP L : swap_l() not implemented! {:#X}", opcode),
-      0x36 => panic!("CB: SWAP (HL) : swap_hl() not implemented! {:#X}", opcode),
+      0x28 => self.explode(format!("CB: SRA B : sra_b() not implemented! {:#X}", opcode)),
+      0x29 => self.explode(format!("CB: SRA C : sra_c() not implemented! {:#X}", opcode)),
+      0x2A => self.explode(format!("CB: SRA D : sra_d() not implemented! {:#X}", opcode)),
+      0x2B => self.explode(format!("CB: SRA E : sra_e() not implemented! {:#X}", opcode)),
+      0x2C => self.explode(format!("CB: SRA H : sra_h() not implemented! {:#X}", opcode)),
+      0x2D => self.explode(format!("CB: SRA L : sra_l() not implemented! {:#X}", opcode)),
+      0x2E => self.explode(format!("CB: SRA (HL) : sra_hl() not implemented! {:#X}", opcode)),
+      0x2F => self.explode(format!("CB: SRA A : sra_a() not implemented! {:#X}", opcode)),
+      0x30 => self.explode(format!("CB: SWAP B : swap_b() not implemented! {:#X}", opcode)),
+      0x31 => self.explode(format!("CB: SWAP C : swap_c() not implemented! {:#X}", opcode)),
+      0x32 => self.explode(format!("CB: SWAP D : swap_d() not implemented! {:#X}", opcode)),
+      0x33 => self.explode(format!("CB: SWAP E : swap_e() not implemented! {:#X}", opcode)),
+      0x34 => self.explode(format!("CB: SWAP H : swap_h() not implemented! {:#X}", opcode)),
+      0x35 => self.explode(format!("CB: SWAP L : swap_l() not implemented! {:#X}", opcode)),
+      0x36 => self.explode(format!("CB: SWAP (HL) : swap_hl() not implemented! {:#X}", opcode)),
       0x37 => {
         debug!("CB: SWAP A");
         self.swap_a()
       }
-      0x38 => panic!("CB: SRL B : srl_b() not implemented! {:#X}", opcode),
-      0x39 => panic!("CB: SRL C : srl_c() not implemented! {:#X}", opcode),
-      0x3A => panic!("CB: SRL D : srl_d() not implemented! {:#X}", opcode),
-      0x3B => panic!("CB: SRL E : srl_e() not implemented! {:#X}", opcode),
-      0x3C => panic!("CB: SRL H : srl_h() not implemented! {:#X}", opcode),
-      0x3D => panic!("CB: SRL L : srl_l() not implemented! {:#X}", opcode),
-      0x3E => panic!("CB: SRL (HL) : srl_hl() not implemented! {:#X}", opcode),
-      0x3F => panic!("CB: SRL A : srl_a() not implemented! {:#X}", opcode),
+      0x38 => self.explode(format!("CB: SRL B : srl_b() not implemented! {:#X}", opcode)),
+      0x39 => self.explode(format!("CB: SRL C : srl_c() not implemented! {:#X}", opcode)),
+      0x3A => self.explode(format!("CB: SRL D : srl_d() not implemented! {:#X}", opcode)),
+      0x3B => self.explode(format!("CB: SRL E : srl_e() not implemented! {:#X}", opcode)),
+      0x3C => self.explode(format!("CB: SRL H : srl_h() not implemented! {:#X}", opcode)),
+      0x3D => self.explode(format!("CB: SRL L : srl_l() not implemented! {:#X}", opcode)),
+      0x3E => self.explode(format!("CB: SRL (HL) : srl_hl() not implemented! {:#X}", opcode)),
+      0x3F => {
+        self.explode(format!("CB: SRL A : srl_a() not implemented! {:#X}", opcode))
+      },
       0x40 => { debug!("CB: BIT 0 B"); shared_bit_n_reg(self, 0, RegEnum::B) }
       0x41 => { debug!("CB: BIT 0 C"); shared_bit_n_reg(self, 0, RegEnum::C) }
       0x42 => { debug!("CB: BIT 0 D"); shared_bit_n_reg(self, 0, RegEnum::D) }
@@ -1791,135 +1798,135 @@ impl CPU {
         shared_bit_n_hl(self, 7, mmu)
       }
       0x7F => { debug!("CB: BIT 7 A"); shared_bit_n_reg(self, 7, RegEnum::A) }
-      0x80 => panic!("CB: RES 0 B : res_0_b() not implemented! {:#X}", opcode),
-      0x81 => panic!("CB: RES 0 C : res_0_c() not implemented! {:#X}", opcode),
-      0x82 => panic!("CB: RES 0 D : res_0_d() not implemented! {:#X}", opcode),
-      0x83 => panic!("CB: RES 0 E : res_0_e() not implemented! {:#X}", opcode),
-      0x84 => panic!("CB: RES 0 H : res_0_h() not implemented! {:#X}", opcode),
-      0x85 => panic!("CB: RES 0 L : res_0_l() not implemented! {:#X}", opcode),
+      0x80 => self.explode(format!("CB: RES 0 B : res_0_b() not implemented! {:#X}", opcode)),
+      0x81 => self.explode(format!("CB: RES 0 C : res_0_c() not implemented! {:#X}", opcode)),
+      0x82 => self.explode(format!("CB: RES 0 D : res_0_d() not implemented! {:#X}", opcode)),
+      0x83 => self.explode(format!("CB: RES 0 E : res_0_e() not implemented! {:#X}", opcode)),
+      0x84 => self.explode(format!("CB: RES 0 H : res_0_h() not implemented! {:#X}", opcode)),
+      0x85 => self.explode(format!("CB: RES 0 L : res_0_l() not implemented! {:#X}", opcode)),
       0x86 => { debug!("CB: RES 0 (HL)"); self.res_bit_hl(0, mmu) }
       0x87 => { debug!("CB: RES 0 A"); self.res_bit_a(0) }
-      0x88 => panic!("CB: RES 1 B : res_1_b() not implemented! {:#X}", opcode),
-      0x89 => panic!("CB: RES 1 C : res_1_c() not implemented! {:#X}", opcode),
-      0x8A => panic!("CB: RES 1 D : res_1_d() not implemented! {:#X}", opcode),
-      0x8B => panic!("CB: RES 1 E : res_1_e() not implemented! {:#X}", opcode),
-      0x8C => panic!("CB: RES 1 H : res_1_h() not implemented! {:#X}", opcode),
-      0x8D => panic!("CB: RES 1 L : res_1_l() not implemented! {:#X}", opcode),
-      0x8E => panic!("CB: RES 1 (HL) : res_1_hl() not implemented! {:#X}", opcode),
-      0x8F => panic!("CB: RES 1 A : res_1_a() not implemented! {:#X}", opcode),
-      0x90 => panic!("CB: RES 2 B : res_2_b() not implemented! {:#X}", opcode),
-      0x91 => panic!("CB: RES 2 C : res_2_c() not implemented! {:#X}", opcode),
-      0x92 => panic!("CB: RES 2 D : res_2_d() not implemented! {:#X}", opcode),
-      0x93 => panic!("CB: RES 2 E : res_2_e() not implemented! {:#X}", opcode),
-      0x94 => panic!("CB: RES 2 H : res_2_h() not implemented! {:#X}", opcode),
-      0x95 => panic!("CB: RES 2 L : res_2_l() not implemented! {:#X}", opcode),
-      0x96 => panic!("CB: RES 2 (HL) : res_2_hl() not implemented! {:#X}", opcode),
-      0x97 => panic!("CB: RES 2 A : res_2_a() not implemented! {:#X}", opcode),
-      0x98 => panic!("CB: RES 3 B : res_3_b() not implemented! {:#X}", opcode),
-      0x99 => panic!("CB: RES 3 C : res_3_c() not implemented! {:#X}", opcode),
-      0x9A => panic!("CB: RES 3 D : res_3_d() not implemented! {:#X}", opcode),
-      0x9B => panic!("CB: RES 3 E : res_3_e() not implemented! {:#X}", opcode),
-      0x9C => panic!("CB: RES 3 H : res_3_h() not implemented! {:#X}", opcode),
-      0x9D => panic!("CB: RES 3 L : res_3_l() not implemented! {:#X}", opcode),
-      0x9E => panic!("CB: RES 3 (HL) : res_3_hl() not implemented! {:#X}", opcode),
-      0x9F => panic!("CB: RES 3 A : res_3_a() not implemented! {:#X}", opcode),
-      0xA0 => panic!("CB: RES 4 B : res_4_b() not implemented! {:#X}", opcode),
-      0xA1 => panic!("CB: RES 4 C : res_4_c() not implemented! {:#X}", opcode),
-      0xA2 => panic!("CB: RES 4 D : res_4_d() not implemented! {:#X}", opcode),
-      0xA3 => panic!("CB: RES 4 E : res_4_e() not implemented! {:#X}", opcode),
-      0xA4 => panic!("CB: RES 4 H : res_4_h() not implemented! {:#X}", opcode),
-      0xA5 => panic!("CB: RES 4 L : res_4_l() not implemented! {:#X}", opcode),
-      0xA6 => panic!("CB: RES 4 (HL) : res_4_hl() not implemented! {:#X}", opcode),
-      0xA7 => panic!("CB: RES 4 A : res_4_a() not implemented! {:#X}", opcode),
-      0xA8 => panic!("CB: RES 5 B : res_5_b() not implemented! {:#X}", opcode),
-      0xA9 => panic!("CB: RES 5 C : res_5_c() not implemented! {:#X}", opcode),
-      0xAA => panic!("CB: RES 5 D : res_5_d() not implemented! {:#X}", opcode),
-      0xAB => panic!("CB: RES 5 E : res_5_e() not implemented! {:#X}", opcode),
-      0xAC => panic!("CB: RES 5 H : res_5_h() not implemented! {:#X}", opcode),
-      0xAD => panic!("CB: RES 5 L : res_5_l() not implemented! {:#X}", opcode),
-      0xAE => panic!("CB: RES 5 (HL) : res_5_hl() not implemented! {:#X}", opcode),
-      0xAF => panic!("CB: RES 5 A : res_5_a() not implemented! {:#X}", opcode),
-      0xB0 => panic!("CB: RES 6 B : res_6_b() not implemented! {:#X}", opcode),
-      0xB1 => panic!("CB: RES 6 C : res_6_c() not implemented! {:#X}", opcode),
-      0xB2 => panic!("CB: RES 6 D : res_6_d() not implemented! {:#X}", opcode),
-      0xB3 => panic!("CB: RES 6 E : res_6_e() not implemented! {:#X}", opcode),
-      0xB4 => panic!("CB: RES 6 H : res_6_h() not implemented! {:#X}", opcode),
-      0xB5 => panic!("CB: RES 6 L : res_6_l() not implemented! {:#X}", opcode),
-      0xB6 => panic!("CB: RES 6 (HL) : res_6_hl() not implemented! {:#X}", opcode),
-      0xB7 => panic!("CB: RES 6 A : res_6_a() not implemented! {:#X}", opcode),
-      0xB8 => panic!("CB: RES 7 B : res_7_b() not implemented! {:#X}", opcode),
-      0xB9 => panic!("CB: RES 7 C : res_7_c() not implemented! {:#X}", opcode),
-      0xBA => panic!("CB: RES 7 D : res_7_d() not implemented! {:#X}", opcode),
-      0xBB => panic!("CB: RES 7 E : res_7_e() not implemented! {:#X}", opcode),
-      0xBC => panic!("CB: RES 7 H : res_7_h() not implemented! {:#X}", opcode),
-      0xBD => panic!("CB: RES 7 L : res_7_l() not implemented! {:#X}", opcode),
-      0xBE => panic!("CB: RES 7 (HL) : res_7_hl() not implemented! {:#X}", opcode),
-      0xBF => panic!("CB: RES 7 A : res_7_a() not implemented! {:#X}", opcode),
-      0xC0 => panic!("CB: SET 0 B : set_0_b() not implemented! {:#X}", opcode),
-      0xC1 => panic!("CB: SET 0 C : set_0_c() not implemented! {:#X}", opcode),
-      0xC2 => panic!("CB: SET 0 D : set_0_d() not implemented! {:#X}", opcode),
-      0xC3 => panic!("CB: SET 0 E : set_0_e() not implemented! {:#X}", opcode),
-      0xC4 => panic!("CB: SET 0 H : set_0_h() not implemented! {:#X}", opcode),
-      0xC5 => panic!("CB: SET 0 L : set_0_l() not implemented! {:#X}", opcode),
-      0xC6 => panic!("CB: SET 0 (HL) : set_0_hl() not implemented! {:#X}", opcode),
-      0xC7 => panic!("CB: SET 0 A : set_0_a() not implemented! {:#X}", opcode),
-      0xC8 => panic!("CB: SET 1 B : set_1_b() not implemented! {:#X}", opcode),
-      0xC9 => panic!("CB: SET 1 C : set_1_c() not implemented! {:#X}", opcode),
-      0xCA => panic!("CB: SET 1 D : set_1_d() not implemented! {:#X}", opcode),
-      0xCB => panic!("CB: SET 1 E : set_1_e() not implemented! {:#X}", opcode),
-      0xCC => panic!("CB: SET 1 H : set_1_h() not implemented! {:#X}", opcode),
-      0xCD => panic!("CB: SET 1 L : set_1_l() not implemented! {:#X}", opcode),
-      0xCE => panic!("CB: SET 1 (HL) : set_1_hl() not implemented! {:#X}", opcode),
-      0xCF => panic!("CB: SET 1 A : set_1_a() not implemented! {:#X}", opcode),
-      0xD0 => panic!("CB: SET 2 B : set_2_b() not implemented! {:#X}", opcode),
-      0xD1 => panic!("CB: SET 2 C : set_2_c() not implemented! {:#X}", opcode),
-      0xD2 => panic!("CB: SET 2 D : set_2_d() not implemented! {:#X}", opcode),
-      0xD3 => panic!("CB: SET 2 E : set_2_e() not implemented! {:#X}", opcode),
-      0xD4 => panic!("CB: SET 2 H : set_2_h() not implemented! {:#X}", opcode),
-      0xD5 => panic!("CB: SET 2 L : set_2_l() not implemented! {:#X}", opcode),
-      0xD6 => panic!("CB: SET 2 (HL) : set_2_hl() not implemented! {:#X}", opcode),
-      0xD7 => panic!("CB: SET 2 A : set_2_a() not implemented! {:#X}", opcode),
-      0xD8 => panic!("CB: SET 3 B : set_3_b() not implemented! {:#X}", opcode),
-      0xD9 => panic!("CB: SET 3 C : set_3_c() not implemented! {:#X}", opcode),
-      0xDA => panic!("CB: SET 3 D : set_3_d() not implemented! {:#X}", opcode),
-      0xDB => panic!("CB: SET 3 E : set_3_e() not implemented! {:#X}", opcode),
-      0xDC => panic!("CB: SET 3 H : set_3_h() not implemented! {:#X}", opcode),
-      0xDD => panic!("CB: SET 3 L : set_3_l() not implemented! {:#X}", opcode),
-      0xDE => panic!("CB: SET 3 (HL) : set_3_hl() not implemented! {:#X}", opcode),
-      0xDF => panic!("CB: SET 3 A : set_3_a() not implemented! {:#X}", opcode),
-      0xE0 => panic!("CB: SET 4 B : set_4_b() not implemented! {:#X}", opcode),
-      0xE1 => panic!("CB: SET 4 C : set_4_c() not implemented! {:#X}", opcode),
-      0xE2 => panic!("CB: SET 4 D : set_4_d() not implemented! {:#X}", opcode),
-      0xE3 => panic!("CB: SET 4 E : set_4_e() not implemented! {:#X}", opcode),
-      0xE4 => panic!("CB: SET 4 H : set_4_h() not implemented! {:#X}", opcode),
-      0xE5 => panic!("CB: SET 4 L : set_4_l() not implemented! {:#X}", opcode),
-      0xE6 => panic!("CB: SET 4 (HL) : set_4_hl() not implemented! {:#X}", opcode),
-      0xE7 => panic!("CB: SET 4 A : set_4_a() not implemented! {:#X}", opcode),
-      0xE8 => panic!("CB: SET 5 B : set_5_b() not implemented! {:#X}", opcode),
-      0xE9 => panic!("CB: SET 5 C : set_5_c() not implemented! {:#X}", opcode),
-      0xEA => panic!("CB: SET 5 D : set_5_d() not implemented! {:#X}", opcode),
-      0xEB => panic!("CB: SET 5 E : set_5_e() not implemented! {:#X}", opcode),
-      0xEC => panic!("CB: SET 5 H : set_5_h() not implemented! {:#X}", opcode),
-      0xED => panic!("CB: SET 5 L : set_5_l() not implemented! {:#X}", opcode),
-      0xEE => panic!("CB: SET 5 (HL) : set_5_hl() not implemented! {:#X}", opcode),
-      0xEF => panic!("CB: SET 5 A : set_5_a() not implemented! {:#X}", opcode),
-      0xF0 => panic!("CB: SET 6 B : set_6_b() not implemented! {:#X}", opcode),
-      0xF1 => panic!("CB: SET 6 C : set_6_c() not implemented! {:#X}", opcode),
-      0xF2 => panic!("CB: SET 6 D : set_6_d() not implemented! {:#X}", opcode),
-      0xF3 => panic!("CB: SET 6 E : set_6_e() not implemented! {:#X}", opcode),
-      0xF4 => panic!("CB: SET 6 H : set_6_h() not implemented! {:#X}", opcode),
-      0xF5 => panic!("CB: SET 6 L : set_6_l() not implemented! {:#X}", opcode),
-      0xF6 => panic!("CB: SET 6 (HL) : set_6_hl() not implemented! {:#X}", opcode),
-      0xF7 => panic!("CB: SET 6 A : set_6_a() not implemented! {:#X}", opcode),
-      0xF8 => panic!("CB: SET 7 B : set_7_b() not implemented! {:#X}", opcode),
-      0xF9 => panic!("CB: SET 7 C : set_7_c() not implemented! {:#X}", opcode),
-      0xFA => panic!("CB: SET 7 D : set_7_d() not implemented! {:#X}", opcode),
-      0xFB => panic!("CB: SET 7 E : set_7_e() not implemented! {:#X}", opcode),
-      0xFC => panic!("CB: SET 7 H : set_7_h() not implemented! {:#X}", opcode),
-      0xFD => panic!("CB: SET 7 L : set_7_l() not implemented! {:#X}", opcode),
-      0xFE => panic!("CB: SET 7 (HL) : set_7_hl() not implemented! {:#X}", opcode),
-      0xFF => panic!("CB: SET 7 A : set_7_a() not implemented! {:#X}", opcode),
-      _ => panic!("Unexpected CB opcode: {:#X}", opcode),
+      0x88 => self.explode(format!("CB: RES 1 B : res_1_b() not implemented! {:#X}", opcode)),
+      0x89 => self.explode(format!("CB: RES 1 C : res_1_c() not implemented! {:#X}", opcode)),
+      0x8A => self.explode(format!("CB: RES 1 D : res_1_d() not implemented! {:#X}", opcode)),
+      0x8B => self.explode(format!("CB: RES 1 E : res_1_e() not implemented! {:#X}", opcode)),
+      0x8C => self.explode(format!("CB: RES 1 H : res_1_h() not implemented! {:#X}", opcode)),
+      0x8D => self.explode(format!("CB: RES 1 L : res_1_l() not implemented! {:#X}", opcode)),
+      0x8E => self.explode(format!("CB: RES 1 (HL) : res_1_hl() not implemented! {:#X}", opcode)),
+      0x8F => self.explode(format!("CB: RES 1 A : res_1_a() not implemented! {:#X}", opcode)),
+      0x90 => self.explode(format!("CB: RES 2 B : res_2_b() not implemented! {:#X}", opcode)),
+      0x91 => self.explode(format!("CB: RES 2 C : res_2_c() not implemented! {:#X}", opcode)),
+      0x92 => self.explode(format!("CB: RES 2 D : res_2_d() not implemented! {:#X}", opcode)),
+      0x93 => self.explode(format!("CB: RES 2 E : res_2_e() not implemented! {:#X}", opcode)),
+      0x94 => self.explode(format!("CB: RES 2 H : res_2_h() not implemented! {:#X}", opcode)),
+      0x95 => self.explode(format!("CB: RES 2 L : res_2_l() not implemented! {:#X}", opcode)),
+      0x96 => self.explode(format!("CB: RES 2 (HL) : res_2_hl() not implemented! {:#X}", opcode)),
+      0x97 => self.explode(format!("CB: RES 2 A : res_2_a() not implemented! {:#X}", opcode)),
+      0x98 => self.explode(format!("CB: RES 3 B : res_3_b() not implemented! {:#X}", opcode)),
+      0x99 => self.explode(format!("CB: RES 3 C : res_3_c() not implemented! {:#X}", opcode)),
+      0x9A => self.explode(format!("CB: RES 3 D : res_3_d() not implemented! {:#X}", opcode)),
+      0x9B => self.explode(format!("CB: RES 3 E : res_3_e() not implemented! {:#X}", opcode)),
+      0x9C => self.explode(format!("CB: RES 3 H : res_3_h() not implemented! {:#X}", opcode)),
+      0x9D => self.explode(format!("CB: RES 3 L : res_3_l() not implemented! {:#X}", opcode)),
+      0x9E => self.explode(format!("CB: RES 3 (HL) : res_3_hl() not implemented! {:#X}", opcode)),
+      0x9F => self.explode(format!("CB: RES 3 A : res_3_a() not implemented! {:#X}", opcode)),
+      0xA0 => self.explode(format!("CB: RES 4 B : res_4_b() not implemented! {:#X}", opcode)),
+      0xA1 => self.explode(format!("CB: RES 4 C : res_4_c() not implemented! {:#X}", opcode)),
+      0xA2 => self.explode(format!("CB: RES 4 D : res_4_d() not implemented! {:#X}", opcode)),
+      0xA3 => self.explode(format!("CB: RES 4 E : res_4_e() not implemented! {:#X}", opcode)),
+      0xA4 => self.explode(format!("CB: RES 4 H : res_4_h() not implemented! {:#X}", opcode)),
+      0xA5 => self.explode(format!("CB: RES 4 L : res_4_l() not implemented! {:#X}", opcode)),
+      0xA6 => self.explode(format!("CB: RES 4 (HL) : res_4_hl() not implemented! {:#X}", opcode)),
+      0xA7 => self.explode(format!("CB: RES 4 A : res_4_a() not implemented! {:#X}", opcode)),
+      0xA8 => self.explode(format!("CB: RES 5 B : res_5_b() not implemented! {:#X}", opcode)),
+      0xA9 => self.explode(format!("CB: RES 5 C : res_5_c() not implemented! {:#X}", opcode)),
+      0xAA => self.explode(format!("CB: RES 5 D : res_5_d() not implemented! {:#X}", opcode)),
+      0xAB => self.explode(format!("CB: RES 5 E : res_5_e() not implemented! {:#X}", opcode)),
+      0xAC => self.explode(format!("CB: RES 5 H : res_5_h() not implemented! {:#X}", opcode)),
+      0xAD => self.explode(format!("CB: RES 5 L : res_5_l() not implemented! {:#X}", opcode)),
+      0xAE => self.explode(format!("CB: RES 5 (HL) : res_5_hl() not implemented! {:#X}", opcode)),
+      0xAF => self.explode(format!("CB: RES 5 A : res_5_a() not implemented! {:#X}", opcode)),
+      0xB0 => self.explode(format!("CB: RES 6 B : res_6_b() not implemented! {:#X}", opcode)),
+      0xB1 => self.explode(format!("CB: RES 6 C : res_6_c() not implemented! {:#X}", opcode)),
+      0xB2 => self.explode(format!("CB: RES 6 D : res_6_d() not implemented! {:#X}", opcode)),
+      0xB3 => self.explode(format!("CB: RES 6 E : res_6_e() not implemented! {:#X}", opcode)),
+      0xB4 => self.explode(format!("CB: RES 6 H : res_6_h() not implemented! {:#X}", opcode)),
+      0xB5 => self.explode(format!("CB: RES 6 L : res_6_l() not implemented! {:#X}", opcode)),
+      0xB6 => self.explode(format!("CB: RES 6 (HL) : res_6_hl() not implemented! {:#X}", opcode)),
+      0xB7 => self.explode(format!("CB: RES 6 A : res_6_a() not implemented! {:#X}", opcode)),
+      0xB8 => self.explode(format!("CB: RES 7 B : res_7_b() not implemented! {:#X}", opcode)),
+      0xB9 => self.explode(format!("CB: RES 7 C : res_7_c() not implemented! {:#X}", opcode)),
+      0xBA => self.explode(format!("CB: RES 7 D : res_7_d() not implemented! {:#X}", opcode)),
+      0xBB => self.explode(format!("CB: RES 7 E : res_7_e() not implemented! {:#X}", opcode)),
+      0xBC => self.explode(format!("CB: RES 7 H : res_7_h() not implemented! {:#X}", opcode)),
+      0xBD => self.explode(format!("CB: RES 7 L : res_7_l() not implemented! {:#X}", opcode)),
+      0xBE => self.explode(format!("CB: RES 7 (HL) : res_7_hl() not implemented! {:#X}", opcode)),
+      0xBF => self.explode(format!("CB: RES 7 A : res_7_a() not implemented! {:#X}", opcode)),
+      0xC0 => self.explode(format!("CB: SET 0 B : set_0_b() not implemented! {:#X}", opcode)),
+      0xC1 => self.explode(format!("CB: SET 0 C : set_0_c() not implemented! {:#X}", opcode)),
+      0xC2 => self.explode(format!("CB: SET 0 D : set_0_d() not implemented! {:#X}", opcode)),
+      0xC3 => self.explode(format!("CB: SET 0 E : set_0_e() not implemented! {:#X}", opcode)),
+      0xC4 => self.explode(format!("CB: SET 0 H : set_0_h() not implemented! {:#X}", opcode)),
+      0xC5 => self.explode(format!("CB: SET 0 L : set_0_l() not implemented! {:#X}", opcode)),
+      0xC6 => self.explode(format!("CB: SET 0 (HL) : set_0_hl() not implemented! {:#X}", opcode)),
+      0xC7 => self.explode(format!("CB: SET 0 A : set_0_a() not implemented! {:#X}", opcode)),
+      0xC8 => self.explode(format!("CB: SET 1 B : set_1_b() not implemented! {:#X}", opcode)),
+      0xC9 => self.explode(format!("CB: SET 1 C : set_1_c() not implemented! {:#X}", opcode)),
+      0xCA => self.explode(format!("CB: SET 1 D : set_1_d() not implemented! {:#X}", opcode)),
+      0xCB => self.explode(format!("CB: SET 1 E : set_1_e() not implemented! {:#X}", opcode)),
+      0xCC => self.explode(format!("CB: SET 1 H : set_1_h() not implemented! {:#X}", opcode)),
+      0xCD => self.explode(format!("CB: SET 1 L : set_1_l() not implemented! {:#X}", opcode)),
+      0xCE => self.explode(format!("CB: SET 1 (HL) : set_1_hl() not implemented! {:#X}", opcode)),
+      0xCF => self.explode(format!("CB: SET 1 A : set_1_a() not implemented! {:#X}", opcode)),
+      0xD0 => self.explode(format!("CB: SET 2 B : set_2_b() not implemented! {:#X}", opcode)),
+      0xD1 => self.explode(format!("CB: SET 2 C : set_2_c() not implemented! {:#X}", opcode)),
+      0xD2 => self.explode(format!("CB: SET 2 D : set_2_d() not implemented! {:#X}", opcode)),
+      0xD3 => self.explode(format!("CB: SET 2 E : set_2_e() not implemented! {:#X}", opcode)),
+      0xD4 => self.explode(format!("CB: SET 2 H : set_2_h() not implemented! {:#X}", opcode)),
+      0xD5 => self.explode(format!("CB: SET 2 L : set_2_l() not implemented! {:#X}", opcode)),
+      0xD6 => self.explode(format!("CB: SET 2 (HL) : set_2_hl() not implemented! {:#X}", opcode)),
+      0xD7 => self.explode(format!("CB: SET 2 A : set_2_a() not implemented! {:#X}", opcode)),
+      0xD8 => self.explode(format!("CB: SET 3 B : set_3_b() not implemented! {:#X}", opcode)),
+      0xD9 => self.explode(format!("CB: SET 3 C : set_3_c() not implemented! {:#X}", opcode)),
+      0xDA => self.explode(format!("CB: SET 3 D : set_3_d() not implemented! {:#X}", opcode)),
+      0xDB => self.explode(format!("CB: SET 3 E : set_3_e() not implemented! {:#X}", opcode)),
+      0xDC => self.explode(format!("CB: SET 3 H : set_3_h() not implemented! {:#X}", opcode)),
+      0xDD => self.explode(format!("CB: SET 3 L : set_3_l() not implemented! {:#X}", opcode)),
+      0xDE => self.explode(format!("CB: SET 3 (HL) : set_3_hl() not implemented! {:#X}", opcode)),
+      0xDF => self.explode(format!("CB: SET 3 A : set_3_a() not implemented! {:#X}", opcode)),
+      0xE0 => self.explode(format!("CB: SET 4 B : set_4_b() not implemented! {:#X}", opcode)),
+      0xE1 => self.explode(format!("CB: SET 4 C : set_4_c() not implemented! {:#X}", opcode)),
+      0xE2 => self.explode(format!("CB: SET 4 D : set_4_d() not implemented! {:#X}", opcode)),
+      0xE3 => self.explode(format!("CB: SET 4 E : set_4_e() not implemented! {:#X}", opcode)),
+      0xE4 => self.explode(format!("CB: SET 4 H : set_4_h() not implemented! {:#X}", opcode)),
+      0xE5 => self.explode(format!("CB: SET 4 L : set_4_l() not implemented! {:#X}", opcode)),
+      0xE6 => self.explode(format!("CB: SET 4 (HL) : set_4_hl() not implemented! {:#X}", opcode)),
+      0xE7 => self.explode(format!("CB: SET 4 A : set_4_a() not implemented! {:#X}", opcode)),
+      0xE8 => self.explode(format!("CB: SET 5 B : set_5_b() not implemented! {:#X}", opcode)),
+      0xE9 => self.explode(format!("CB: SET 5 C : set_5_c() not implemented! {:#X}", opcode)),
+      0xEA => self.explode(format!("CB: SET 5 D : set_5_d() not implemented! {:#X}", opcode)),
+      0xEB => self.explode(format!("CB: SET 5 E : set_5_e() not implemented! {:#X}", opcode)),
+      0xEC => self.explode(format!("CB: SET 5 H : set_5_h() not implemented! {:#X}", opcode)),
+      0xED => self.explode(format!("CB: SET 5 L : set_5_l() not implemented! {:#X}", opcode)),
+      0xEE => self.explode(format!("CB: SET 5 (HL) : set_5_hl() not implemented! {:#X}", opcode)),
+      0xEF => self.explode(format!("CB: SET 5 A : set_5_a() not implemented! {:#X}", opcode)),
+      0xF0 => self.explode(format!("CB: SET 6 B : set_6_b() not implemented! {:#X}", opcode)),
+      0xF1 => self.explode(format!("CB: SET 6 C : set_6_c() not implemented! {:#X}", opcode)),
+      0xF2 => self.explode(format!("CB: SET 6 D : set_6_d() not implemented! {:#X}", opcode)),
+      0xF3 => self.explode(format!("CB: SET 6 E : set_6_e() not implemented! {:#X}", opcode)),
+      0xF4 => self.explode(format!("CB: SET 6 H : set_6_h() not implemented! {:#X}", opcode)),
+      0xF5 => self.explode(format!("CB: SET 6 L : set_6_l() not implemented! {:#X}", opcode)),
+      0xF6 => self.explode(format!("CB: SET 6 (HL) : set_6_hl() not implemented! {:#X}", opcode)),
+      0xF7 => self.explode(format!("CB: SET 6 A : set_6_a() not implemented! {:#X}", opcode)),
+      0xF8 => self.explode(format!("CB: SET 7 B : set_7_b() not implemented! {:#X}", opcode)),
+      0xF9 => self.explode(format!("CB: SET 7 C : set_7_c() not implemented! {:#X}", opcode)),
+      0xFA => self.explode(format!("CB: SET 7 D : set_7_d() not implemented! {:#X}", opcode)),
+      0xFB => self.explode(format!("CB: SET 7 E : set_7_e() not implemented! {:#X}", opcode)),
+      0xFC => self.explode(format!("CB: SET 7 H : set_7_h() not implemented! {:#X}", opcode)),
+      0xFD => self.explode(format!("CB: SET 7 L : set_7_l() not implemented! {:#X}", opcode)),
+      0xFE => self.explode(format!("CB: SET 7 (HL) : set_7_hl() not implemented! {:#X}", opcode)),
+      0xFF => self.explode(format!("CB: SET 7 A : set_7_a() not implemented! {:#X}", opcode)),
+      _ => self.explode(format!("Unexpected CB opcode: {:#X}", opcode)),
     }
   }
 
@@ -2266,26 +2273,26 @@ impl CPU {
   }
 }
 
-#[test]
-fn register_setting() {
-  let mut register = Register::new();
-  register.write(0xAABB);
-  assert_eq!(0xAA, register.read_hi());
-  assert_eq!(0xBB, register.read_lo());
-  assert_eq!(0xAABB, register.read());
+// #[test]
+// fn register_setting() {
+//   let mut register = Register::new();
+//   register.write(0xAABB);
+//   assert_eq!(0xAA, register.read_hi());
+//   assert_eq!(0xBB, register.read_lo());
+//   assert_eq!(0xAABB, register.read());
 
-  register.write_lo(0x00);
-  register.write_lo(0xFF);
-  register.write_lo(0xCC);
-  assert_eq!(0xAA, register.read_hi());
-  assert_eq!(0xCC, register.read_lo());
-  assert_eq!(0xAACC, register.read());
+//   register.write_lo(0x00);
+//   register.write_lo(0xFF);
+//   register.write_lo(0xCC);
+//   assert_eq!(0xAA, register.read_hi());
+//   assert_eq!(0xCC, register.read_lo());
+//   assert_eq!(0xAACC, register.read());
 
-  register.write_hi(0xDD);
-  assert_eq!(0xDD, register.read_hi());
-  assert_eq!(0xCC, register.read_lo());
-  assert_eq!(0xDDCC, register.read());
-}
+//   register.write_hi(0xDD);
+//   assert_eq!(0xDD, register.read_hi());
+//   assert_eq!(0xCC, register.read_lo());
+//   assert_eq!(0xDDCC, register.read());
+// }
 // #[test]
 // fn opcode_nop() {
 //   let mut cpu = CPU::new();
@@ -2308,45 +2315,45 @@ fn register_setting() {
 //   assert_eq!(0x0150, cpu.PC);
 // }
 
-#[test]
-fn opcode_xor_a() {
-  let mut cpu = CPU::new();
-  let mut mmu = mmu::MMU::new();
-  mmu.cartridge = cartridge::Cartridge { buffer: vec![ opcodes::XOR_A ] };
+// #[test]
+// fn opcode_xor_a() {
+//   let mut cpu = CPU::new();
+//   let mut mmu = mmu::MMU::new();
+//   mmu.cartridge = cartridge::Cartridge { buffer: vec![ opcodes::XOR_A ] };
 
-  cpu.AF.write_hi(0xFF);
+//   cpu.AF.write_hi(0xFF);
 
-  let cycles = cpu.execute_next_opcode(&mut mmu);
-  assert_eq!(0x00, cpu.AF.read_hi());
-  assert_eq!(4, cycles);
-  assert_eq!(0x0001, cpu.PC);
-  assert!(cpu.util_is_flag_set(FLAG_ZERO));
-  assert!(!cpu.util_is_flag_set(FLAG_SUB));
-  assert!(!cpu.util_is_flag_set(FLAG_HALF_CARRY));
-  assert!(!cpu.util_is_flag_set(FLAG_CARRY));
-}
+//   let cycles = cpu.execute_next_opcode(&mut mmu);
+//   assert_eq!(0x00, cpu.AF.read_hi());
+//   assert_eq!(4, cycles);
+//   assert_eq!(0x0001, cpu.PC);
+//   assert!(cpu.util_is_flag_set(FLAG_ZERO));
+//   assert!(!cpu.util_is_flag_set(FLAG_SUB));
+//   assert!(!cpu.util_is_flag_set(FLAG_HALF_CARRY));
+//   assert!(!cpu.util_is_flag_set(FLAG_CARRY));
+// }
 
-#[test]
-fn opcode_xor_b() {
-  let mut cpu = CPU::new();
-  let mut mmu = mmu::MMU::new();
-  mmu.cartridge = cartridge::Cartridge { buffer: vec![ opcodes::XOR_B ] };
+// #[test]
+// fn opcode_xor_b() {
+//   let mut cpu = CPU::new();
+//   let mut mmu = mmu::MMU::new();
+//   mmu.cartridge = cartridge::Cartridge { buffer: vec![ opcodes::XOR_B ] };
 
-  //     11100101 = E5
-  // XOR 11010100 = D4
-  //     00110001 = 31
-  cpu.BC.write_hi(0xE5);
-  cpu.AF.write_hi(0xD4);
+//   //     11100101 = E5
+//   // XOR 11010100 = D4
+//   //     00110001 = 31
+//   cpu.BC.write_hi(0xE5);
+//   cpu.AF.write_hi(0xD4);
 
-  let cycles = cpu.execute_next_opcode(&mut mmu);
-  assert_eq!(0x31, cpu.AF.read_hi());
-  assert_eq!(4, cycles);
-  assert_eq!(0x0001, cpu.PC);
-  assert!(!cpu.util_is_flag_set(FLAG_ZERO));
-  assert!(!cpu.util_is_flag_set(FLAG_SUB));
-  assert!(!cpu.util_is_flag_set(FLAG_HALF_CARRY));
-  assert!(!cpu.util_is_flag_set(FLAG_CARRY));
-}
+//   let cycles = cpu.execute_next_opcode(&mut mmu);
+//   assert_eq!(0x31, cpu.AF.read_hi());
+//   assert_eq!(4, cycles);
+//   assert_eq!(0x0001, cpu.PC);
+//   assert!(!cpu.util_is_flag_set(FLAG_ZERO));
+//   assert!(!cpu.util_is_flag_set(FLAG_SUB));
+//   assert!(!cpu.util_is_flag_set(FLAG_HALF_CARRY));
+//   assert!(!cpu.util_is_flag_set(FLAG_CARRY));
+// }
 
 // #[test]
 // fn opcode_dec_b() {
