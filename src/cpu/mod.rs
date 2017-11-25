@@ -73,8 +73,7 @@ pub struct CPU {
   pub PC: types::Word,
 
   pub BranchTaken: bool,
-  pub IME: bool, // Master interrupt toggle
-  // pub IMECycles: i32, // Master interrupt toggle
+  pub IME: bool, // Master interrupt
   pub ei_cycles: u8,
   pub di_cycles: u8,
 
@@ -200,11 +199,7 @@ impl CPU {
     let opcode: types::Byte = mmu.read(self.PC);
     // println!("pc: {:4x}, opcode: {:2x}", self.PC, opcode);
 
-    // LATEST:
-    // Reading from FF40 (LCD control)
-    // Gets wrong answer, need PPU read at FF40 to be same!
-
-    if SYNC_STATE && self.tick_counter >= 6946903 {
+    if SYNC_STATE && self.tick_counter >= 19_286_329 {
       let registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
         self.PC, self.SP.value,
@@ -371,7 +366,10 @@ impl CPU {
         self.inc_h();
       }
       0x25 => self.explode(format!("DEC H : dec_h() not implemented! {:#X}", opcode)),
-      0x26 => self.explode(format!("LD H,n : ld_h_n() not implemented! {:#X}", opcode)),
+      0x26 => {
+        debug!("LD H,n : ld_h_n()");
+        shared_ld_reg_n(self, RegEnum::H, mmu)
+      }
       0x27 => self.explode(format!("DAA : daa() not implemented! {:#X}", opcode)),
       0x28 => {
         debug!("JR Z,n");
@@ -941,7 +939,6 @@ impl CPU {
   }
 
   fn ld_hl_nn(&mut self, mmu: &mut mmu::MMU) {
-    // 0x36 not 0x21
     let value = mmu.read_word(self.PC);
     self.write_word_reg(RegEnum::HL, value);
     self.PC += 2;
@@ -1021,8 +1018,6 @@ impl CPU {
     let addr = self.PC;
     let offset = mmu.read(self.PC) as i8;
     self.PC = self.PC.wrapping_add(1);
-
-    // println!("{}", offset);
 
     if !self.util_is_flag_set(FLAG_ZERO) {
       self.PC = self.PC.wrapping_add(offset as types::Word);
@@ -1462,8 +1457,7 @@ impl CPU {
   }
 
   fn pop_bc(&mut self, mmu: &mut mmu::MMU) {
-    // let current_SP = self.read_word_reg(RegEnum::SP);
-    let value = self.stack_pop(mmu);//mmu.read_word(current_SP);
+    let value = self.stack_pop(mmu);
     self.write_word_reg(RegEnum::BC, value); // TODO do the same change to the other pop_ operations?
   }
 
@@ -1618,9 +1612,19 @@ impl CPU {
     popped_value
   }
 
+  fn util_set_flag_by_boolean(&mut self, flag: u8, b: bool) {
+    if b {
+      self.util_toggle_flag(flag);
+    } else {
+      self.util_untoggle_flag(flag);
+    }
+  }
+
   fn util_toggle_zero_flag_from_result(&mut self, result: types::Byte) {
     if result == 0 {
       self.util_toggle_flag(FLAG_ZERO);
+    } else {
+      self.util_untoggle_flag(FLAG_ZERO);
     }
   }
 
@@ -1713,13 +1717,16 @@ impl CPU {
       0x30 => self.explode(format!("CB: SWAP B : swap_b() not implemented! {:#X}", opcode)),
       0x31 => self.explode(format!("CB: SWAP C : swap_c() not implemented! {:#X}", opcode)),
       0x32 => self.explode(format!("CB: SWAP D : swap_d() not implemented! {:#X}", opcode)),
-      0x33 => self.explode(format!("CB: SWAP E : swap_e() not implemented! {:#X}", opcode)),
+      0x33 => {
+        debug!("CB: SWAP E : swap_e()");
+        shared_swap_register(self, RegEnum::E);
+      }
       0x34 => self.explode(format!("CB: SWAP H : swap_h() not implemented! {:#X}", opcode)),
       0x35 => self.explode(format!("CB: SWAP L : swap_l() not implemented! {:#X}", opcode)),
       0x36 => self.explode(format!("CB: SWAP (HL) : swap_hl() not implemented! {:#X}", opcode)),
       0x37 => {
         debug!("CB: SWAP A");
-        self.swap_a()
+        shared_swap_register(self, RegEnum::A);
       }
       0x38 => self.explode(format!("CB: SRL B : srl_b() not implemented! {:#X}", opcode)),
       0x39 => self.explode(format!("CB: SRL C : srl_c() not implemented! {:#X}", opcode)),
@@ -1729,7 +1736,8 @@ impl CPU {
       0x3D => self.explode(format!("CB: SRL L : srl_l() not implemented! {:#X}", opcode)),
       0x3E => self.explode(format!("CB: SRL (HL) : srl_hl() not implemented! {:#X}", opcode)),
       0x3F => {
-        self.explode(format!("CB: SRL A : srl_a() not implemented! {:#X}", opcode))
+        debug!("CB: SRL A : srl_a()");
+        shared_srl_n(self, RegEnum::A)
       },
       0x40 => { debug!("CB: BIT 0 B"); shared_bit_n_reg(self, 0, RegEnum::B) }
       0x41 => { debug!("CB: BIT 0 C"); shared_bit_n_reg(self, 0, RegEnum::C) }
@@ -1932,10 +1940,6 @@ impl CPU {
 
   // CB opcodes
 
-  fn swap_a(&mut self) {
-    shared_swap_register(self, RegEnum::A);
-  }
-
   fn res_bit_a(&mut self, bit: types::Byte) {
     shared_reset_bit_reg(self, bit, RegEnum::A);
   }
@@ -2027,17 +2031,38 @@ fn shared_sla_n(cpu: &mut CPU, regEnum: RegEnum) {
   } else {
     cpu.util_clear_all_flags();
   }
-  // (reg->GetValue() & 0x80) != 0 ? SetFlag(FLAG_CARRY) : ClearAllFlags();
 
   let result = value << 1;
-  // u8 result = reg->GetValue() << 1;
 
   cpu.write_byte_reg(regEnum, result);
-  // reg->SetValue(result);
-
   cpu.util_toggle_zero_flag_from_result(result);
-  // ToggleZeroFlagFromResult(result);
 }
+
+fn shared_srl_n(cpu: &mut CPU, regEnum: RegEnum) {
+  let value = cpu.read_byte_reg(regEnum);
+  let carry = value & 0x01 == 0x01;
+  let result = value >> 1;
+
+  shared_update_srl_flags(cpu, result, carry);
+  cpu.write_byte_reg(regEnum, result);
+}
+
+fn shared_update_srl_flags(cpu: &mut CPU, result: u8, carry: bool) {
+  cpu.util_untoggle_flag(FLAG_HALF_CARRY);
+  cpu.util_untoggle_flag(FLAG_SUB);
+  cpu.util_toggle_zero_flag_from_result(result);
+  if carry {
+    cpu.util_toggle_flag(FLAG_CARRY);
+  } else {
+    cpu.util_untoggle_flag(FLAG_CARRY);
+  }
+}
+
+fn shared_ld_reg_n(cpu: &mut CPU, regEnum: RegEnum, mmu: &mmu::MMU) {
+    let operand = mmu.read(cpu.PC);
+    cpu.write_byte_reg(regEnum, operand);
+    cpu.PC += 1;
+  }
 
 fn shared_swap_register(cpu: &mut CPU, regEnum: RegEnum) {
   let value = cpu.read_byte_reg(regEnum);
@@ -2081,15 +2106,14 @@ fn shared_inc_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
 
 fn shared_add_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   let A = cpu.read_byte_reg(RegEnum::A);
-  let result = cpu.read_byte_reg(regEnum).wrapping_add(A);
+  let value = cpu.read_byte_reg(regEnum);
+  let result = value.wrapping_add(A);
   cpu.write_byte_reg(RegEnum::A, result);
 
   if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
   cpu.util_toggle_zero_flag_from_result(result);
 
-  if (result & 0x0F) == 0x00 {
-    cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  }
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0xF) + (value & 0xF) > 0xF);
 }
 
 fn shared_add_n(cpu: &mut CPU, byte: types::Byte, carry_preserve: bool) {
@@ -2115,19 +2139,9 @@ fn shared_add_word_and_word_regs(cpu: &mut CPU, regEnum1: RegEnum, regEnum2: Reg
 
   let result = value_1.wrapping_add(value_2);
 
-  if cpu.util_is_flag_set(FLAG_ZERO) {
-    cpu.util_set_flag(FLAG_ZERO)
-  } else {
-    cpu.util_clear_all_flags()
-  };
-
-  if result as i32 & 0x10000 != 0x00 {
-    cpu.util_toggle_flag(FLAG_CARRY);
-  }
-  if ((value_1 ^ value_2 ^ (result & 0xFFFF)) & 0x1000) != 0 {
-    cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  }
-
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (value_1 & 0x07FF) + (value_2 & 0x07FF) > 0x07FF);
+  cpu.util_set_flag_by_boolean(FLAG_SUB, false);
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, value_1 > 0xFFFF - value_2);
   cpu.write_word_reg(regEnum1, result);
 }
 
@@ -2197,7 +2211,6 @@ fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
   let a = cpu.read_byte_reg(RegEnum::A);
   let result = a.wrapping_sub(byte);
 
-  // let A_value = cpu.read_byte_reg(RegEnum::A);
   cpu.util_set_flag(FLAG_SUB);
 
   if a < byte {
