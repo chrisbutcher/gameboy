@@ -1,9 +1,3 @@
-// #![allow(dead_code)]
-// #![allow(unused_variables)]
-// #![allow(unused_mut)]
-// #![allow(unused_must_use)]
-// #![allow(non_snake_case)] // TODO remove these
-
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
@@ -126,7 +120,6 @@ impl GameBoy {
 
     cycles_this_frame.wrapping_sub(cycles_per_frame);
 
-    // TODO Perf testing & flame graph via: http://carol-nichols.com/2017/04/20/rust-profiling-with-dtrace-on-osx/ <<<<<<
     self.render_screen();
   }
 
@@ -154,7 +147,9 @@ impl GameBoy {
       title.push(ch)
     }
 
-    debug!("Loading ROM: {:?}", title.trim())
+    println!("Loading ROM: {:?}", title.trim());
+    println!("The game uses {:?} ROM banks", self.mmu.num_rom_banks());
+    println!("The game uses {:?} RAM banks", self.mmu.num_ram_banks());
   }
 }
 
@@ -167,7 +162,6 @@ fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
     .get_matches()
 }
 
-// RUST_LOG=debug cargo run
 fn main() {
   let args = handle_cli_args();
   let rom_filename = args.value_of("rom").unwrap_or("tetris.gb");
@@ -177,11 +171,8 @@ fn main() {
   let mut game_boy = GameBoy::new();
   game_boy.initialize();
   game_boy.mmu.load_game(rom_filename);
-  // TODO get these test roms to try out http://slack.net/~ant/old/gb-tests/
 
   game_boy.print_game_title();
-  debug!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
-  debug!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
   let events;
   let mut fps_counter = fps::Counter::new();

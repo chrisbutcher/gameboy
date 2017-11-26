@@ -62,38 +62,30 @@ impl MMU {
         // }
       },
       0x8000...0x9FFF => {
-        debug!("MMU#read from PPU.video_ram");
         self.ppu.borrow_mut().video_ram[ address as usize - 0x8000 ]
       }
       0xA000...0xBFFF => {
-        debug!("MMU#read from external_ram");
         self.external_ram[ address as usize - 0xA000 ]
       }
       0xC000...0xDFFF => {
-        debug!("MMU#read from work_ram");
         self.work_ram[ address as usize - 0xC000 ]
       }
       0xE000...0xFDFF => {
-        debug!("MMU#read from work_ram");
         self.work_ram[ address as usize - 0xC000 - 0x2000 ]
       } // ECHO work ram
       0xFE00...0xFE9F => {
-        debug!("MMU#read from sprite_info");
         self.sprite_info[ address as usize - 0xFE00 ]
       }
       0xFF00 => {
-        debug!("MMU#read from input");
         self.input.read(address)
       }
       0xFF01...0xFF0E => {
-        debug!("MMU#read from io");
         self.io[ address as usize - 0xFF00 ]
       }
       0xFF0F => {
         self.interrupt_flags
       }
       0xFF10...0xFF3F => {
-        debug!("MMU#read from io");
         self.io[ address as usize - 0xFF00 ]
       }
       addr @ 0xFF40...0xFF7F => {
@@ -106,13 +98,11 @@ impl MMU {
         }
       }
       0xFF80...0xFFFE => {
-        debug!("MMU#read from zram");
         self.zram[ address as usize - 0xFF80 ]
       }
       0xFFFF => {
-        debug!("Read from interrupt_enabled");
         self.interrupt_enabled
-      } // TODO Should return self.interrupt_enabled
+      }
       _ => {
         panic!("Memory access is out of bounds: {:#X}", address);
       }
@@ -137,10 +127,8 @@ impl MMU {
   pub fn write(&mut self, address: u16, data: u8) {
     match address {
       0x0000...0x7FFF => {
-        debug!("Writing to disallowed memory region: {:#X}", address);
       } // no-op
       0x8000...0x9FFF => {
-        debug!("MMU#write to PPU.video_ram");
         let mut borrowed_ppu = self.ppu.borrow_mut();
         borrowed_ppu.video_ram[ address as usize - 0x8000 ] = data;
 
@@ -149,51 +137,37 @@ impl MMU {
         }
       }
       0xA000...0xBFFF => {
-        debug!("MMU#write to external_ram");
         self.external_ram[ address as usize - 0xA000 ] = data
       }
       0xC000...0xDFFF => {
-        debug!("MMU#write to work_ram");
         self.work_ram[ address as usize - 0xC000 ] = data
       }
       0xE000...0xFDFF => self.write(address - 0xC000 - 0x2000, data), // ECHO work ram
       0xFE00...0xFE9F => {
-        debug!("MMU#write to sprite_info");
         self.sprite_info[ address as usize - 0xFE00 ] = data
       }
       0xFEA0...0xFEFF => {
-        debug!("Writing to disallowed memory region: {:#X}", address);
       } // no-op
       0xFF00 => {
         self.input.write(address, data)
       }
       0xFF01...0xFF0E => {
-        debug!("MMU#write to io");
         self.io[ address as usize - 0xFF00 ] = data
       }
       0xFF0F => {
         self.interrupt_flags = data;
       }
       0xFF10...0xFF3F => {
-        debug!("MMU#write to io");
         self.io[ address as usize - 0xFF00 ] = data
       }
       0xFF40...0xFF7F => {
-        if address == 0xFF40 {
-          // NOTE LCD powering on
-          // panic!("hi");
-        }
-
         if address == 0xFF50 {
           self.bootroom_active = false;
         }
 
-        debug!("MMU#write to ppu");
         self.ppu.borrow_mut().write(address, data)
-        // self.io[address as usize - 0xFF00] = data
       }
       0xFF80...0xFFFE => {
-        debug!("MMU#write to zram");
         self.zram[ address as usize - 0xFF80 ] = data
       }
       0xFFFF => {

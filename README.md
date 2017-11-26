@@ -5,6 +5,8 @@ cmp cpu_dump ~/research/Cinoop/cpu_dump
 count lines of code
 find . -name '*.rs' | xargs wc -l
 
+// TODO get these test roms to try out http://slack.net/~ant/old/gb-tests/
+
 // Specs:
 // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 // http://web.textfiles.com/games/gbspec.txt

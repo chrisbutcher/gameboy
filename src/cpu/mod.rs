@@ -184,6 +184,7 @@ impl CPU {
 
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
     self.update_ime();
+
     match self.handle_interrupts(mmu) {
         0 => {},
         interrupt_cycles => return interrupt_cycles,
@@ -216,7 +217,6 @@ impl CPU {
     self.tick_counter += 1;
 
     self.pc += 1;
-
     self.execute_opcode(opcode, mmu)
   }
 
@@ -270,400 +270,151 @@ impl CPU {
     let mut cb_opcode: Option<u8> = None;
 
     match opcode {
-      0x00 => {
-        debug!("NOP");
-        self.nop()
-      }
-      0x01 => {
-        debug!("LD BC,nn");
-        self.ld_bc_nn(mmu)
-      }
+      0x00 => { debug!("NOP"); self.nop() }
+      0x01 => { debug!("LD BC,nn"); self.ld_bc_nn(mmu) }
       0x02 => self.explode(format!("LD (BC),A : ld_bc_a() not implemented! {:#X}", opcode)),
-      0x03 => {
-        debug!("INC BC");
-        self.inc_bc();
-      }
-      0x04 => {
-        debug!("INC B : inc_b()");
-        self.inc_b()
-      }
-      0x05 => {
-        debug!("DEC B");
-        self.dec_b()
-      }
-      0x06 => {
-        debug!("LD B,n");
-        self.ld_b_n(mmu)
-      }
-      0x07 => {
-        debug!("RLCA : rlca()");
-        shared_rlc_n(self, RegEnum::A);
-        self.util_set_flag_by_boolean(FLAG_ZERO, false);
-      }
+      0x03 => { debug!("INC BC"); self.inc_bc() }
+      0x04 => { debug!("INC B : inc_b()"); self.inc_b() }
+      0x05 => { debug!("DEC B"); self.dec_b() }
+      0x06 => { debug!("LD B,n"); self.ld_b_n(mmu) }
+      0x07 => { debug!("RLCA : rlca()"); shared_rlc_n(self, RegEnum::A); self.util_set_flag_by_boolean(FLAG_ZERO, false) }
       0x08 => self.explode(format!("LD (nn),SP : ld_nn_sp() not implemented! {:#X}", opcode)),
-      0x09 => {
-        debug!("ADD HL,BC");
-        self.add_hl_bc()
-      }
-      0x0A => {
-        debug!("LD A,(BC)");
-        self.ld_a_bc(mmu)
-      }
-      0x0B => {
-        debug!("DEC BC");
-        self.dec_bc()
-      }
-      0x0C => {
-        debug!("INC C");
-        self.inc_c()
-      }
-      0x0D => {
-        debug!("DEC C");
-        self.dec_c()
-      }
-      0x0E => {
-        debug!("LD C,n");
-        self.ld_c_n(mmu)
-      }
+      0x09 => { debug!("ADD HL,BC"); self.add_hl_bc() }
+      0x0A => { debug!("LD A,(BC)"); self.ld_a_bc(mmu) }
+      0x0B => { debug!("DEC BC"); self.dec_bc() }
+      0x0C => { debug!("INC C"); self.inc_c() }
+      0x0D => { debug!("DEC C"); self.dec_c() }
+      0x0E => { debug!("LD C,n"); self.ld_c_n(mmu) }
       0x0F => self.explode(format!("RRCA : rrca() not implemented! {:#X}", opcode)),
       0x10 => self.explode(format!("STOP : stop() not implemented! {:#X}", opcode)),
-      0x11 => {
-        debug!("LD DE,nn");
-        self.ld_de_nn(mmu)
-      }
-      0x12 => {
-        debug!("LD (DE),A");
-        self.ld_de_a(mmu)
-      }
-      0x13 => {
-        debug!("INC DE");
-        self.inc_de()
-      }
+      0x11 => { debug!("LD DE,nn"); self.ld_de_nn(mmu) }
+      0x12 => { debug!("LD (DE),A"); self.ld_de_a(mmu) }
+      0x13 => { debug!("INC DE"); self.inc_de() }
       0x14 => self.explode(format!("INC D : inc_d() not implemented! {:#X}", opcode)),
-      0x15 => {
-        debug!("DEC D");
-        self.dec_d()
-      }
-      0x16 => {
-        debug!("LD D,n");
-        self.ld_d_n(mmu)
-      }
-      0x17 => {
-        debug!("RLA : rla()");
-        self.rla();
-      },
-      0x18 => {
-        debug!("JR n");
-        self.jr_n(mmu)
-      }
-      0x19 => {
-        debug!("ADD HL,DE");
-        self.add_hl_de()
-      }
-      0x1A => {
-        debug!("LD A,(DE)");
-        self.ld_a_de(mmu)
-      }
+      0x15 => { debug!("DEC D"); self.dec_d() }
+      0x16 => { debug!("LD D,n"); self.ld_d_n(mmu) }
+      0x17 => { debug!("RLA : rla()"); self.rla() },
+      0x18 => { debug!("JR n"); self.jr_n(mmu) }
+      0x19 => { debug!("ADD HL,DE"); self.add_hl_de() }
+      0x1A => { debug!("LD A,(DE)"); self.ld_a_de(mmu) }
       0x1B => self.explode(format!("DEC DE : dec_de() not implemented! {:#X}", opcode)),
-      0x1C => {
-        debug!("INC E");
-        self.inc_e()
-      }
-      0x1D => {
-        debug!("DEC E");
-        self.dec_e();
-      }
-      0x1E => {
-        debug!("LD E,n");
-        self.ld_e_n(mmu)
-      }
-      0x1F => {
-        debug!("RRA");
-        self.rra()
-      }
-      0x20 => {
-        debug!("JR NZ,n");
-        self.jr_nz_n(mmu)
-      }
-      0x21 => {
-        debug!("LD HL,nn");
-        self.ld_hl_nn(mmu)
-      }
-      0x22 => {
-        debug!("LD (HLI),A");
-        self.ld_hli_a(mmu)
-      }
-      0x23 => {
-        debug!("INC HL");
-        self.inc_hl()
-      }
-      0x24 => {
-        debug!("INC H");
-        self.inc_h();
-      }
+      0x1C => { debug!("INC E"); self.inc_e() }
+      0x1D => { debug!("DEC E"); self.dec_e() }
+      0x1E => { debug!("LD E,n"); self.ld_e_n(mmu) }
+      0x1F => { debug!("RRA"); self.rra() }
+      0x20 => { debug!("JR NZ,n"); self.jr_nz_n(mmu) }
+      0x21 => { debug!("LD HL,nn"); self.ld_hl_nn(mmu) }
+      0x22 => { debug!("LD (HLI),A"); self.ld_hli_a(mmu) }
+      0x23 => { debug!("INC HL"); self.inc_hl() }
+      0x24 => { debug!("INC H"); self.inc_h() }
       0x25 => self.explode(format!("DEC H : dec_h() not implemented! {:#X}", opcode)),
-      0x26 => {
-        debug!("LD H,n : ld_h_n()");
-        shared_ld_reg_n(self, RegEnum::H, mmu)
-      }
+      0x26 => { debug!("LD H,n : ld_h_n()"); shared_ld_reg_n(self, RegEnum::H, mmu) }
       0x27 => self.explode(format!("DAA : daa() not implemented! {:#X}", opcode)),
-      0x28 => {
-        debug!("JR Z,n");
-        self.jr_z_n(mmu)
-      }
+      0x28 => { debug!("JR Z,n"); self.jr_z_n(mmu) }
       0x29 => self.explode(format!("ADD HL,HL : add_hl_hl() not implemented! {:#X}", opcode)),
-      0x2A => {
-        debug!("LD A,(HLI)");
-        self.ld_a_hli(mmu)
-      }
+      0x2A => { debug!("LD A,(HLI)"); self.ld_a_hli(mmu) }
       0x2B => self.explode(format!("DEC HL : dec_hl() not implemented! {:#X}", opcode)),
-      0x2C => {
-        debug!("INC L");
-        self.inc_l()
-      }
-      0x2D => {
-        debug!("DEC L");
-        self.dec_l();
-      }
-      0x2E => {
-        debug!("LD L,n : ld_l_n()");
-        self.ld_l_n(mmu)
-      },
-      0x2F => {
-        debug!("CPL");
-        self.cpl()
-      }
+      0x2C => { debug!("INC L"); self.inc_l() }
+      0x2D => { debug!("DEC L"); self.dec_l(); }
+      0x2E => { debug!("LD L,n : ld_l_n()"); self.ld_l_n(mmu) },
+      0x2F => { debug!("CPL"); self.cpl() }
       0x30 => self.explode(format!("JR NC,n : jr_nc_n() not implemented! {:#X}", opcode)),
-      0x31 => {
-        debug!("LD SP,nn");
-        self.ld_sp_nn(mmu)
-      }
-      0x32 => {
-        debug!("LD (HLD), A");
-        self.ld_hld_a(mmu)
-      }
+      0x31 => { debug!("LD SP,nn"); self.ld_sp_nn(mmu) }
+      0x32 => { debug!("LD (HLD), A"); self.ld_hld_a(mmu) }
       0x33 => self.explode(format!("INC SP : inc_sp() not implemented! {:#X}", opcode)),
-      0x34 => {
-        debug!("INC (HL)");
-        self.inc_hl_indirect(mmu)
-      }
-      0x35 => {
-        debug!("DEC (HL)");
-        self.dec_hl_indirect(mmu)
-      }
-      0x36 => {
-        debug!("LD (HL),n");
-        self.ld_hl_n(mmu)
-      }
+      0x34 => { debug!("INC (HL)"); self.inc_hl_indirect(mmu) }
+      0x35 => { debug!("DEC (HL)"); self.dec_hl_indirect(mmu) }
+      0x36 => { debug!("LD (HL),n"); self.ld_hl_n(mmu) }
       0x37 => self.explode(format!("SCF : scf() not implemented! {:#X}", opcode)),
       0x38 => self.explode(format!("JR C,n : jr_c_n() not implemented! {:#X}", opcode)),
       0x39 => self.explode(format!("ADD HL,SP : add_hl_sp() not implemented! {:#X}", opcode)),
-      0x3A => {
-        debug!("LD A,(HLD)");
-        self.ld_a_hld(mmu)
-      }
+      0x3A => { debug!("LD A,(HLD)"); self.ld_a_hld(mmu) }
       0x3B => self.explode(format!("DEC SP : dec_sp() not implemented! {:#X}", opcode)),
-      0x3C => {
-        debug!("INC A");
-        self.inc_a()
-      }
-      0x3D => {
-        debug!("DEC A");
-        self.dec_a()
-      }
-      0x3E => {
-        debug!("LD A,n");
-        self.ld_a_n(mmu)
-      }
+      0x3C => { debug!("INC A"); self.inc_a() }
+      0x3D => { debug!("DEC A"); self.dec_a() }
+      0x3E => { debug!("LD A,n"); self.ld_a_n(mmu) }
       0x3F => self.explode(format!("CCF : ccf() not implemented! {:#X}", opcode)),
-      0x40 => {
-        debug!("LD B,B");
-        self.ld_b_b()
-      }
+      0x40 => { debug!("LD B,B"); self.ld_b_b() }
       0x41 => self.explode(format!("LD B,C : ld_b_c() not implemented! {:#X}", opcode)),
       0x42 => self.explode(format!("LD B,D : ld_b_d() not implemented! {:#X}", opcode)),
       0x43 => self.explode(format!("LD B,E : ld_b_e() not implemented! {:#X}", opcode)),
       0x44 => self.explode(format!("LD B,H : ld_b_h() not implemented! {:#X}", opcode)),
       0x45 => self.explode(format!("LD B,L : ld_b_l() not implemented! {:#X}", opcode)),
-      0x46 => {
-        debug!("LD B,(HL)");
-        self.ld_b_hl(mmu)
-      }
-      0x47 => {
-        debug!("LD B,A");
-        self.ld_b_a()
-      }
+      0x46 => { debug!("LD B,(HL)"); self.ld_b_hl(mmu) }
+      0x47 => { debug!("LD B,A"); self.ld_b_a() }
       0x48 => self.explode(format!("LD C,B : ld_c_b() not implemented! {:#X}", opcode)),
       0x49 => self.explode(format!("LD C,C : ld_c_c() not implemented! {:#X}", opcode)),
       0x4A => self.explode(format!("LD C,D : ld_c_d() not implemented! {:#X}", opcode)),
       0x4B => self.explode(format!("LD C,E : ld_c_e() not implemented! {:#X}", opcode)),
       0x4C => self.explode(format!("LD C,H : ld_c_h() not implemented! {:#X}", opcode)),
       0x4D => self.explode(format!("LD C,L : ld_c_l() not implemented! {:#X}", opcode)),
-      0x4E => {
-        debug!("LD C,(HL)");
-        self.ld_c_hl(mmu)
-      }
-      0x4F => {
-        debug!("LD C,A");
-        self.ld_c_a()
-      }
+      0x4E => { debug!("LD C,(HL)"); self.ld_c_hl(mmu) }
+      0x4F => { debug!("LD C,A"); self.ld_c_a() }
       0x50 => self.explode(format!("LD D,B : ld_d_b() not implemented! {:#X}", opcode)),
       0x51 => self.explode(format!("LD D,C : ld_d_c() not implemented! {:#X}", opcode)),
       0x52 => self.explode(format!("LD D,D : ld_d_d() not implemented! {:#X}", opcode)),
       0x53 => self.explode(format!("LD D,E : ld_d_e() not implemented! {:#X}", opcode)),
-      0x54 => {
-        debug!("LD D,H");
-        self.ld_d_h()
-      }
+      0x54 => { debug!("LD D,H"); self.ld_d_h() }
       0x55 => self.explode(format!("LD D,L : ld_d_l() not implemented! {:#X}", opcode)),
-      0x56 => {
-        debug!("LD D,(HL)");
-        self.ld_d_hl(mmu)
-      }
-      0x57 => {
-        debug!("LD D,A : ld_d_a()");
-        self.ld_d_a()
-      },
+      0x56 => { debug!("LD D,(HL)"); self.ld_d_hl(mmu) }
+      0x57 => { debug!("LD D,A : ld_d_a()"); self.ld_d_a() },
       0x58 => self.explode(format!("LD E,B : ld_e_b() not implemented! {:#X}", opcode)),
       0x59 => self.explode(format!("LD E,C : ld_e_c() not implemented! {:#X}", opcode)),
       0x5A => self.explode(format!("LD E,D : ld_e_d() not implemented! {:#X}", opcode)),
       0x5B => self.explode(format!("LD E,E : ld_e_e() not implemented! {:#X}", opcode)),
       0x5C => self.explode(format!("LD E,H : ld_e_h() not implemented! {:#X}", opcode)),
-      0x5D => {
-        debug!("LD E,L");
-        self.ld_e_l()
-      }
-      0x5E => {
-        debug!("LD E,(HL)");
-        self.ld_e_hl(mmu)
-      }
-      0x5F => {
-        debug!("LD E,A");
-        self.ld_e_a()
-      }
-      0x60 => {
-        debug!("LD H,B");
-        self.ld_h_b()
-      }
+      0x5D => { debug!("LD E,L"); self.ld_e_l() }
+      0x5E => { debug!("LD E,(HL)"); self.ld_e_hl(mmu) }
+      0x5F => { debug!("LD E,A"); self.ld_e_a() }
+      0x60 => { debug!("LD H,B"); self.ld_h_b() }
       0x61 => self.explode(format!("LD H,C : ld_h_c() not implemented! {:#X}", opcode)),
-      0x62 => {
-        debug!("LD H,D");
-        self.ld_h_d()
-      }
+      0x62 => { debug!("LD H,D"); self.ld_h_d() }
       0x63 => self.explode(format!("LD H,E : ld_h_e() not implemented! {:#X}", opcode)),
       0x64 => self.explode(format!("LD H,H : ld_h_h() not implemented! {:#X}", opcode)),
       0x65 => self.explode(format!("LD H,L : ld_h_l() not implemented! {:#X}", opcode)),
       0x66 => self.explode(format!("LD H,(HL) : ld_h_hl() not implemented! {:#X}", opcode)),
-      0x67 => {
-        debug!("LD H,A : ld_h_a()");
-        self.ld_h_a()
-      },
+      0x67 => { debug!("LD H,A : ld_h_a()"); self.ld_h_a() },
       0x68 => self.explode(format!("LD L,B : ld_l_b() not implemented! {:#X}", opcode)),
-      0x69 => {
-        debug!("LD L,C");
-        self.ld_l_c()
-      }
+      0x69 => { debug!("LD L,C"); self.ld_l_c() }
       0x6A => self.explode(format!("LD L,D : ld_l_d() not implemented! {:#X}", opcode)),
-      0x6B => {
-        debug!("LD L,E");
-        self.ld_l_e()
-      }
+      0x6B => { debug!("LD L,E"); self.ld_l_e() }
       0x6C => self.explode(format!("LD L,H : ld_l_h() not implemented! {:#X}", opcode)),
       0x6D => self.explode(format!("LD L,L : ld_l_l() not implemented! {:#X}", opcode)),
       0x6E => self.explode(format!("LD L,(HL) : ld_l_hl() not implemented! {:#X}", opcode)),
-      0x6F => {
-        debug!("LD L,A");
-        self.ld_l_a()
-      }
+      0x6F => { debug!("LD L,A"); self.ld_l_a() }
       0x70 => self.explode(format!("LD (HL),B : ld_hl_b() not implemented! {:#X}", opcode)),
-      0x71 => {
-        debug!("LD (HL),C");
-        self.ld_hl_c(mmu)
-      }
-      0x72 => {
-        debug!("LD (HL),D");
-        self.ld_hl_d(mmu)
-      }
-      0x73 =>  {
-        debug!("LD (HL),E");
-        self.ld_hl_e(mmu)
-      }
+      0x71 => { debug!("LD (HL),C"); self.ld_hl_c(mmu) }
+      0x72 => { debug!("LD (HL),D"); self.ld_hl_d(mmu) }
+      0x73 => { debug!("LD (HL),E"); self.ld_hl_e(mmu) }
       0x74 => self.explode(format!("LD (HL),H : ld_hl_h() not implemented! {:#X}", opcode)),
       0x75 => self.explode(format!("LD (HL),L : ld_hl_l() not implemented! {:#X}", opcode)),
       0x76 => self.explode(format!("HALT : halt() not implemented! {:#X}", opcode)),
-      0x77 => {
-        debug!("LD (HL),A");
-        self.ld_hl_a(mmu)
-      }
-      0x78 => {
-        debug!("LD A,B");
-        self.ld_a_b()
-      }
-      0x79 => {
-        debug!("LD A,C");
-        self.ld_a_c()
-      }
-      0x7A => {
-        debug!("LD A,D");
-        self.ld_a_d()
-      }
-      0x7B => {
-        debug!("LD A,E : ld_a_e()");
-        self.ld_a_e()
-      },
-      0x7C => {
-        debug!("LD A,H");
-        self.ld_a_h()
-      }
-      0x7D => {
-        debug!("LD A,L");
-        self.ld_a_l()
-      }
-      0x7E => {
-        debug!("LD A,(HL)");
-        self.ld_a_hl(mmu)
-      }
+      0x77 => { debug!("LD (HL),A"); self.ld_hl_a(mmu) }
+      0x78 => { debug!("LD A,B"); self.ld_a_b() }
+      0x79 => { debug!("LD A,C"); self.ld_a_c() }
+      0x7A => { debug!("LD A,D"); self.ld_a_d() }
+      0x7B => { debug!("LD A,E : ld_a_e()"); self.ld_a_e() },
+      0x7C => { debug!("LD A,H"); self.ld_a_h() }
+      0x7D => { debug!("LD A,L"); self.ld_a_l() }
+      0x7E => { debug!("LD A,(HL)"); self.ld_a_hl(mmu) }
       0x7F => self.explode(format!("LD A,A : ld_a_a() not implemented! {:#X}", opcode)),
-      0x80 => {
-        debug!("ADD A,B");
-        let value = self.read_byte_reg(RegEnum::B);
-        shared_add_n(self, value, false);
-      }
+      0x80 => { debug!("ADD A,B"); let value = self.read_byte_reg(RegEnum::B); shared_add_n(self, value, false) }
       0x81 => self.explode(format!("ADD A,C : add_a_c() not implemented! {:#X}", opcode)),
       0x82 => self.explode(format!("ADD A,D : add_a_d() not implemented! {:#X}", opcode)),
       0x83 => self.explode(format!("ADD A,E : add_a_e() not implemented! {:#X}", opcode)),
       0x84 => self.explode(format!("ADD A,H : add_a_h() not implemented! {:#X}", opcode)),
-      0x85 => {
-        debug!("ADD A,L");
-        let value = self.read_byte_reg(RegEnum::L);
-        shared_add_n(self, value, false);
-      }
-      0x86 => {
-        debug!("ADD A,(HL)");
-        self.add_a_hl(mmu)
-      }
-      0x87 => {
-        debug!("ADD A,A");
-        let value = self.read_byte_reg(RegEnum::A);
-        shared_add_n(self, value, false);
-      }
+      0x85 => { debug!("ADD A,L"); let value = self.read_byte_reg(RegEnum::L); shared_add_n(self, value, false) }
+      0x86 => { debug!("ADD A,(HL)"); self.add_a_hl(mmu) }
+      0x87 => { debug!("ADD A,A"); let value = self.read_byte_reg(RegEnum::A); shared_add_n(self, value, false) }
       0x88 => self.explode(format!("ADC A,B : adc_a_b() not implemented! {:#X}", opcode)),
-      0x89 => {
-        debug!("ADC A,C");
-        let value = self.read_byte_reg(RegEnum::C);
-        shared_add_n(self, value, true);
-      }
+      0x89 => { debug!("ADC A,C"); let value = self.read_byte_reg(RegEnum::C); shared_add_n(self, value, true) }
       0x8A => self.explode(format!("ADC A,D : adc_a_d() not implemented! {:#X}", opcode)),
       0x8B => self.explode(format!("ADC A,E : adc_a_e() not implemented! {:#X}", opcode)),
       0x8C => self.explode(format!("ADC A,H : adc_a_h() not implemented! {:#X}", opcode)),
       0x8D => self.explode(format!("ADC A,L : adc_a_l() not implemented! {:#X}", opcode)),
       0x8E => self.explode(format!("ADC A,(HL) : adc_a_hl() not implemented! {:#X}", opcode)),
       0x8F => self.explode(format!("ADC A,A : adc_a_a() not implemented! {:#X}", opcode)),
-      0x90 => {
-        debug!("SUB B");
-        let b = self.read_byte_reg(RegEnum::B);
-        shared_sub_n(self, b, false)
-      }
+      0x90 => { debug!("SUB B"); let b = self.read_byte_reg(RegEnum::B); shared_sub_n(self, b, false) }
       0x91 => self.explode(format!("SUB C : sub_c() not implemented! {:#X}", opcode)),
       0x92 => self.explode(format!("SUB D : sub_d() not implemented! {:#X}", opcode)),
       0x93 => self.explode(format!("SUB E : sub_e() not implemented! {:#X}", opcode)),
@@ -679,72 +430,24 @@ impl CPU {
       0x9D => self.explode(format!("SBC L : sbc_l() not implemented! {:#X}", opcode)),
       0x9E => self.explode(format!("SBC (HL) : sbc_hl() not implemented! {:#X}", opcode)),
       0x9F => self.explode(format!("SBC A : sbc_a() not implemented! {:#X}", opcode)),
-      0xA0 => {
-        debug!("AND B");
-        self.and_b()
-      }
-      0xA1 => {
-        debug!("AND C");
-        self.and_c()
-      }
-      0xA2 => {
-        debug!("AND D");
-        self.and_d()
-      }
-      0xA3 => {
-        debug!("AND E");
-        self.and_e()
-      }
-      0xA4 => {
-        debug!("AND H");
-        self.and_h()
-      }
-      0xA5 => {
-        debug!("AND L");
-        self.and_l()
-      }
+      0xA0 => { debug!("AND B"); self.and_b() }
+      0xA1 => { debug!("AND C"); self.and_c() }
+      0xA2 => { debug!("AND D"); self.and_d() }
+      0xA3 => { debug!("AND E"); self.and_e() }
+      0xA4 => { debug!("AND H"); self.and_h() }
+      0xA5 => { debug!("AND L"); self.and_l() }
       0xA6 => self.explode(format!("AND (HL) : and_hl() not implemented! {:#X}", opcode)),
-      0xA7 => {
-        debug!("AND A");
-        self.and_a()
-      }
-      0xA8 => {
-        debug!("XOR B");
-        self.xor_b()
-      }
-      0xA9 => {
-        debug!("XOR C");
-        self.xor_c()
-      }
-      0xAA => {
-        debug!("XOR D");
-        self.xor_d()
-      }
-      0xAB => {
-        debug!("XOR E");
-        self.xor_e()
-      }
-      0xAC => {
-        debug!("XOR H");
-        self.xor_h()
-      }
-      0xAD => {
-        debug!("XOR L");
-        self.xor_l()
-      }
+      0xA7 => { debug!("AND A"); self.and_a() }
+      0xA8 => { debug!("XOR B"); self.xor_b() }
+      0xA9 => { debug!("XOR C"); self.xor_c() }
+      0xAA => { debug!("XOR D"); self.xor_d() }
+      0xAB => { debug!("XOR E"); self.xor_e() }
+      0xAC => { debug!("XOR H"); self.xor_h() }
+      0xAD => { debug!("XOR L"); self.xor_l() }
       0xAE => self.explode(format!("XOR (HL) : xor_hl() not implemented! {:#X}", opcode)),
-      0xAF => {
-        debug!("XOR A");
-        self.xor_a()
-      }
-      0xB0 => {
-        debug!("OR B");
-        self.or_b()
-      }
-      0xB1 => {
-        debug!("OR C");
-        self.or_c()
-      }
+      0xAF => { debug!("XOR A"); self.xor_a() }
+      0xB0 => { debug!("OR B"); self.or_b() }
+      0xB1 => { debug!("OR C"); self.or_c() }
       0xB2 => self.explode(format!("OR D : or_d() not implemented! {:#X}", opcode)),
       0xB3 => self.explode(format!("OR E : or_e() not implemented! {:#X}", opcode)),
       0xB4 => self.explode(format!("OR H : or_h() not implemented! {:#X}", opcode)),
@@ -763,76 +466,34 @@ impl CPU {
       0xBB => self.explode(format!("CP E : cp_e() not implemented! {:#X}", opcode)),
       0xBC => self.explode(format!("CP H : cp_h() not implemented! {:#X}", opcode)),
       0xBD => self.explode(format!("CP L : cp_l() not implemented! {:#X}", opcode)),
-      0xBE => {
-        debug!("CP (HL)");
-        self.cp_hl(mmu)
-      }
+      0xBE => { debug!("CP (HL)"); self.cp_hl(mmu) }
       0xBF => self.explode(format!("CP A : cp_a() not implemented! {:#X}", opcode)),
-      0xC0 => {
-        debug!("RET NZ");
-        self.ret_nz(mmu)
-      }
-      0xC1 => {
-        debug!("POP BC");
-        self.pop_bc(mmu)
-      }
-      0xC2 => {
-        debug!("JP NZ,nn");
-        self.jp_nz_nn(mmu)
-      }
-      0xC3 => {
-        debug!("JP nn");
-        self.jp_nn(mmu)
-      }
-      0xC4 => {
-        debug!("CALL NZ,nn");
-        self.call_nz_nn(mmu)
-      }
-      0xC5 => {
-        debug!("PUSH BC");
-        self.push_bc(mmu)
-      }
-      0xC6 => {
-        debug!("ADD A,N");
-        self.add_a_n(mmu)
-      }
+      0xC0 => { debug!("RET NZ"); self.ret_nz(mmu) }
+      0xC1 => { debug!("POP BC"); self.pop_bc(mmu) }
+      0xC2 => { debug!("JP NZ,nn"); self.jp_nz_nn(mmu) }
+      0xC3 => { debug!("JP nn"); self.jp_nn(mmu) }
+      0xC4 => { debug!("CALL NZ,nn"); self.call_nz_nn(mmu) }
+      0xC5 => { debug!("PUSH BC"); self.push_bc(mmu) }
+      0xC6 => { debug!("ADD A,N"); self.add_a_n(mmu) }
       0xC7 => self.explode(format!("RST 00H : rst_00h() not implemented! {:#X}", opcode)),
-      0xC8 => {
-        debug!("RET Z");
-        self.ret_z(mmu)
-      }
-      0xC9 => {
-        debug!("RET");
-        self.ret(mmu)
-      }
-      0xCA => {
-        debug!("JP Z,nn");
-        self.jp_z_nn(mmu)
-      }
+      0xC8 => { debug!("RET Z"); self.ret_z(mmu) }
+      0xC9 => { debug!("RET"); self.ret(mmu) }
+      0xCA => { debug!("JP Z,nn"); self.jp_z_nn(mmu) }
       0xCB => {
         debug!("CB prefixed instruction");
         cb_opcode = Some(mmu.read(self.pc));
         self.cb_prefixed_instruction(cb_opcode.unwrap(), mmu)
       }
       0xCC => self.explode(format!("CALL Z,nn : call_z_nn() not implemented! {:#X}", opcode)),
-      0xCD => {
-        debug!("CALL nn");
-        self.call_nn(mmu)
-      }
+      0xCD => { debug!("CALL nn"); self.call_nn(mmu) }
       0xCE => self.explode(format!("ADC A,n : adc_a_n() not implemented! {:#X}", opcode)),
       0xCF => self.explode(format!("RST 08H : rst_08h() not implemented! {:#X}", opcode)),
       0xD0 => self.explode(format!("RET NC : ret_nc() not implemented! {:#X}", opcode)),
-      0xD1 => {
-        debug!("POP DE");
-        self.pop_de(mmu)
-      }
+      0xD1 => { debug!("POP DE"); self.pop_de(mmu) }
       0xD2 => self.explode(format!("JP NC,nn : jp_nc_nn() not implemented! {:#X}", opcode)),
       0xD3 => debug!("Unhandled opcode"),
       0xD4 => self.explode(format!("CALL NC,nn : call_nc_nn() not implemented! {:#X}", opcode)),
-      0xD5 => {
-        debug!("PUSH DE");
-        self.push_de(mmu)
-      }
+      0xD5 => { debug!("PUSH DE"); self.push_de(mmu) }
       0xD6 => {
         debug!("SUB n : sub_n()");
         let value = mmu.read(self.pc);
@@ -840,89 +501,44 @@ impl CPU {
       }
       0xD7 => self.explode(format!("RST 10H : rst_10h() not implemented! {:#X}", opcode)),
       0xD8 => self.explode(format!("RET C : ret_c() not implemented! {:#X}", opcode)),
-      0xD9 => {
-        debug!("RETI");
-        self.reti(mmu)
-      }
+      0xD9 => { debug!("RETI"); self.reti(mmu) }
       0xDA => self.explode(format!("JP C,nn : jp_c_nn() not implemented! {:#X}", opcode)),
       0xDB => debug!("Unhandled opcode"),
       0xDC => self.explode(format!("CALL C,nn : call_c_nn() not implemented! {:#X}", opcode)),
       0xDD => debug!("Unhandled opcode"),
       0xDE => self.explode(format!("SBC n : sbc_n() not implemented! {:#X}", opcode)),
       0xDF => self.explode(format!("RST 18H : rst_18h() not implemented! {:#X}", opcode)),
-      0xE0 => {
-        debug!("LD (0xFF00+n),A");
-        self.ld_0xff00_plus_n_a(mmu)
-      }
-      0xE1 => {
-        debug!("POP HL");
-        self.pop_hl(mmu)
-      }
-      0xE2 => {
-        debug!("LD (0xFF00+C),A");
-        self.ld_0xff00_plus_c_a(mmu)
-      }
+      0xE0 => { debug!("LD (0xFF00+n),A"); self.ld_0xff00_plus_n_a(mmu) }
+      0xE1 => { debug!("POP HL"); self.pop_hl(mmu) }
+      0xE2 => { debug!("LD (0xFF00+C),A"); self.ld_0xff00_plus_c_a(mmu) }
       0xE3 => debug!("Unhandled opcode"),
       0xE4 => debug!("Unhandled opcode"),
-      0xE5 => {
-        debug!("PUSH HL");
-        self.push_hl(mmu)
-      }
-      0xE6 => {
-        debug!("AND n");
-        self.and_n(mmu)
-      }
+      0xE5 => { debug!("PUSH HL"); self.push_hl(mmu) }
+      0xE6 => { debug!("AND n"); self.and_n(mmu) }
       0xE7 => self.explode(format!("RST 20H : rst_20h() not implemented! {:#X}", opcode)),
       0xE8 => self.explode(format!("ADD SP,n : add_sp_n() not implemented! {:#X}", opcode)),
-      0xE9 => {
-        debug!("JP (HL)");
-        self.jp_hl()
-      }
-      0xEA => {
-        debug!("LD (nn),A");
-        self.ld_nn_a(mmu)
-      }
+      0xE9 => { debug!("JP (HL)"); self.jp_hl() }
+      0xEA => { debug!("LD (nn),A"); self.ld_nn_a(mmu) }
       0xEB => debug!("Unhandled opcode"),
       0xEC => debug!("Unhandled opcode"),
       0xED => debug!("Unhandled opcode"),
       0xEE => self.explode(format!("XOR n : xor_n() not implemented! {:#X}", opcode)),
-      0xEF => {
-        debug!("RST 28H");
-        self.rst_28h(mmu)
-      }
-      0xF0 => {
-        debug!("LD A,(0xFF00+n)");
-        self.ld_a_0xff00_plus_n(mmu)
-      }
-      0xF1 => {
-        debug!("POP AF");
-        self.pop_af(mmu)
-      }
+      0xEF => { debug!("RST 28H"); self.rst_28h(mmu) }
+      0xF0 => { debug!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu) }
+      0xF1 => { debug!("POP AF"); self.pop_af(mmu) }
       0xF2 => self.explode(format!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode)),
       0xF3 => { debug!("DI"); self.di() }
       0xF4 => debug!("Unhandled opcode"),
-      0xF5 => {
-        debug!("PUSH AF");
-        self.push_af(mmu)
-      }
-      0xF6 => {
-        debug!("OR N");
-        self.or_n(mmu)
-      }
+      0xF5 => { debug!("PUSH AF"); self.push_af(mmu) }
+      0xF6 => { debug!("OR N"); self.or_n(mmu) }
       0xF7 => self.explode(format!("RST 30H : rst_30h() not implemented! {:#X}", opcode)),
       0xF8 => self.explode(format!("LD HL,SP+n : ld_hl_sp_plus_n() not implemented! {:#X}", opcode)),
       0xF9 => self.explode(format!("LD SP,HL : ld_sp_hl() not implemented! {:#X}", opcode)),
-      0xFA => {
-        debug!("LD A,(nn)");
-        self.ld_a_nn(mmu)
-      }
+      0xFA => { debug!("LD A,(nn)"); self.ld_a_nn(mmu) }
       0xFB => { debug!("EI"); self.ei() }
       0xFC => debug!("Unhandled opcode"),
       0xFD => debug!("Unhandled opcode"),
-      0xFE => {
-        debug!("CP");
-        self.cp_n(mmu)
-      }
+      0xFE => { debug!("CP"); self.cp_n(mmu) }
       0xFF => self.explode(format!("RST 38H : rst_38h() not implemented! {:#X}", opcode)),
       _ => self.explode(format!("Unexpected opcode: {:#X}", opcode)),
     }
@@ -1692,10 +1308,7 @@ impl CPU {
       0x0E => self.explode(format!("CB: RRC (HL) : rrc_hl() not implemented! {:#X}", opcode)),
       0x0F => self.explode(format!("CB: RRC A : rrc_a() not implemented! {:#X}", opcode)),
       0x10 => self.explode(format!("CB: RL B : rl_b() not implemented! {:#X}", opcode)),
-      0x11 => {
-        debug!("CB: RL C : rl_c()");
-        self.rl_c()
-      },
+      0x11 => { debug!("CB: RL C : rl_c()"); self.rl_c() },
       0x12 => self.explode(format!("CB: RL D : rl_d() not implemented! {:#X}", opcode)),
       0x13 => self.explode(format!("CB: RL E : rl_e() not implemented! {:#X}", opcode)),
       0x14 => self.explode(format!("CB: RL H : rl_h() not implemented! {:#X}", opcode)),
@@ -1717,10 +1330,7 @@ impl CPU {
       0x24 => self.explode(format!("CB: SLA H : sla_h() not implemented! {:#X}", opcode)),
       0x25 => self.explode(format!("CB: SLA L : sla_l() not implemented! {:#X}", opcode)),
       0x26 => self.explode(format!("CB: SLA (HL) : sla_hl() not implemented! {:#X}", opcode)),
-      0x27 => {
-        debug!("CB: SLA A");
-        self.sla_a();
-      }
+      0x27 => { debug!("CB: SLA A"); self.sla_a() }
       0x28 => self.explode(format!("CB: SRA B : sra_b() not implemented! {:#X}", opcode)),
       0x29 => self.explode(format!("CB: SRA C : sra_c() not implemented! {:#X}", opcode)),
       0x2A => self.explode(format!("CB: SRA D : sra_d() not implemented! {:#X}", opcode)),
@@ -1732,17 +1342,11 @@ impl CPU {
       0x30 => self.explode(format!("CB: SWAP B : swap_b() not implemented! {:#X}", opcode)),
       0x31 => self.explode(format!("CB: SWAP C : swap_c() not implemented! {:#X}", opcode)),
       0x32 => self.explode(format!("CB: SWAP D : swap_d() not implemented! {:#X}", opcode)),
-      0x33 => {
-        debug!("CB: SWAP E : swap_e()");
-        shared_swap_register(self, RegEnum::E);
-      }
+      0x33 => { debug!("CB: SWAP E : swap_e()"); shared_swap_register(self, RegEnum::E); }
       0x34 => self.explode(format!("CB: SWAP H : swap_h() not implemented! {:#X}", opcode)),
       0x35 => self.explode(format!("CB: SWAP L : swap_l() not implemented! {:#X}", opcode)),
       0x36 => self.explode(format!("CB: SWAP (HL) : swap_hl() not implemented! {:#X}", opcode)),
-      0x37 => {
-        debug!("CB: SWAP A");
-        shared_swap_register(self, RegEnum::A);
-      }
+      0x37 => { debug!("CB: SWAP A"); shared_swap_register(self, RegEnum::A); }
       0x38 => self.explode(format!("CB: SRL B : srl_b() not implemented! {:#X}", opcode)),
       0x39 => self.explode(format!("CB: SRL C : srl_c() not implemented! {:#X}", opcode)),
       0x3A => self.explode(format!("CB: SRL D : srl_d() not implemented! {:#X}", opcode)),
@@ -1750,10 +1354,7 @@ impl CPU {
       0x3C => self.explode(format!("CB: SRL H : srl_h() not implemented! {:#X}", opcode)),
       0x3D => self.explode(format!("CB: SRL L : srl_l() not implemented! {:#X}", opcode)),
       0x3E => self.explode(format!("CB: SRL (HL) : srl_hl() not implemented! {:#X}", opcode)),
-      0x3F => {
-        debug!("CB: SRL A : srl_a()");
-        shared_srl_n(self, RegEnum::A)
-      },
+      0x3F => { debug!("CB: SRL A : srl_a()"); shared_srl_n(self, RegEnum::A) },
       0x40 => { debug!("CB: BIT 0 B"); shared_bit_n_reg(self, 0, RegEnum::B) }
       0x41 => { debug!("CB: BIT 0 C"); shared_bit_n_reg(self, 0, RegEnum::C) }
       0x42 => { debug!("CB: BIT 0 D"); shared_bit_n_reg(self, 0, RegEnum::D) }
@@ -1816,10 +1417,7 @@ impl CPU {
       0x7B => { debug!("CB: BIT 7 E"); shared_bit_n_reg(self, 7, RegEnum::E) }
       0x7C => { debug!("CB: BIT 7 H"); shared_bit_n_reg(self, 7, RegEnum::H) }
       0x7D => { debug!("CB: BIT 7 L"); shared_bit_n_reg(self, 7, RegEnum::L) }
-      0x7E => {
-        debug!("CB: BIT 7 (HL)");
-        shared_bit_n_hl(self, 7, mmu)
-      }
+      0x7E => { debug!("CB: BIT 7 (HL)"); shared_bit_n_hl(self, 7, mmu) }
       0x7F => { debug!("CB: BIT 7 A"); shared_bit_n_reg(self, 7, RegEnum::A) }
       0x80 => self.explode(format!("CB: RES 0 B : res_0_b() not implemented! {:#X}", opcode)),
       0x81 => self.explode(format!("CB: RES 0 C : res_0_c() not implemented! {:#X}", opcode)),

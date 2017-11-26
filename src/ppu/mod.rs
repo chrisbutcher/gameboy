@@ -9,9 +9,6 @@ use self::socket_state_reporter::StateReporter;
 const SYNC_STATE: bool = false;
 const SKIP_RENDERING: bool = true;
 
-// PPU supports tiles: 8x8 pixel groups
-// Modes: Sprite Read, Video Read, Horizontal Blank, Vertical Blank
-// Starts in vertical blank
 pub struct PPU {
   pub framebuffer: [ u8; 160 * 144 * 4 ],
   pub video_ram: Vec<u8>,
@@ -65,7 +62,7 @@ impl PPU {
                  [ 0, 0, 0, 255 ] ],
 
       mode: 0,
-      mode_clock: 0, // NOTE 4
+      mode_clock: 0,
       line: 0,
       scroll_x: 0,
       scroll_y: 0,
@@ -105,19 +102,17 @@ impl PPU {
   pub fn read(&mut self, address: u16) -> u8 {
     match address {
       0xFF40 => {
-        // Us 0b1000_0000 instead of 0x80
         (if self.lcdc_display_enabled { 0b1000_0000 } else { 0 }) |
-          (if self.lcdc_window_tilemap { 0x40 } else { 0 }) |
-          (if self.lcdc_window_enabled { 0x20 } else { 0 }) |
-          (if self.lcdc_bg_and_windown_tile_base { 0x10 } else { 0 }) |
-          (if self.lcdc_bg_tilemap_base { 0x08 } else { 0 }) |
-          (if self.lcdc_obj_sprite_size { 0x04 } else { 0 }) |
-          (if self.lcdc_obj_sprite_display_enabled { 0x02 } else { 0 }) |
-          (if self.lcdc_bg_enabled { 0x01 } else { 0 })
+          (if self.lcdc_window_tilemap { 0b0100_0000 } else { 0 }) |
+          (if self.lcdc_window_enabled { 0b0010_0000 } else { 0 }) |
+          (if self.lcdc_bg_and_windown_tile_base { 0b0001_0000 } else { 0 }) |
+          (if self.lcdc_bg_tilemap_base { 0b0000_1000 } else { 0 }) |
+          (if self.lcdc_obj_sprite_size { 0b0000_0100 } else { 0 }) |
+          (if self.lcdc_obj_sprite_display_enabled { 0b0000_0010 } else { 0 }) |
+          (if self.lcdc_bg_enabled { 0b0000_0001 } else { 0 })
       }
       0xFF42 => self.scroll_y as u8,
       0xFF43 => {
-        println!("Getting scroll_x, it's {:x}", self.scroll_x);
         self.scroll_x as u8
       },
       0xFF44 => {
@@ -134,20 +129,19 @@ impl PPU {
       0xFF40 => {
         let previous_lcdc_display_enabled = self.lcdc_display_enabled;
 
-        self.lcdc_display_enabled = if value & 0x80 != 0 { true } else { false };
-        self.lcdc_window_tilemap = if value & 0x40 != 0 { true } else { false };
-        self.lcdc_window_enabled = if value & 0x20 != 0 { true } else { false };
-        self.lcdc_bg_and_windown_tile_base = if value & 0x10 != 0 { true } else { false };
-        self.lcdc_bg_tilemap_base = if value & 0x08 != 0 { true } else { false };
-        self.lcdc_obj_sprite_size = if value & 0x04 != 0 { true } else { false };
-        self.lcdc_obj_sprite_display_enabled = if value & 0x02 != 0 { true } else { false };
-        self.lcdc_bg_enabled = if value & 0x01 != 0 { true } else { false };
+        self.lcdc_display_enabled = if value & 0b1000_0000 != 0 { true } else { false };
+        self.lcdc_window_tilemap = if value & 0b0100_0000 != 0 { true } else { false };
+        self.lcdc_window_enabled = if value & 0b0010_0000 != 0 { true } else { false };
+        self.lcdc_bg_and_windown_tile_base = if value & 0b0001_0000 != 0 { true } else { false };
+        self.lcdc_bg_tilemap_base = if value & 0b0000_1000 != 0 { true } else { false };
+        self.lcdc_obj_sprite_size = if value & 0b0000_0100 != 0 { true } else { false };
+        self.lcdc_obj_sprite_display_enabled = if value & 0b0000_0010 != 0 { true } else { false };
+        self.lcdc_bg_enabled = if value & 0b0000_0001 != 0 { true } else { false };
 
         if previous_lcdc_display_enabled && !self.lcdc_display_enabled {
           self.mode_clock = 0;
           self.line = 0;
           self.mode = 0;
-          // self.clear_screen();
         }
       }
       0xFF42 => self.scroll_y = value,
@@ -166,15 +160,13 @@ impl PPU {
         }
       }
       0xFF44 => {
-        debug!("Writing to LY in PPU#write: {:#X}", address);
+        panic!("Writing to LY in PPU#write: {:#X}", address);
       }
       _ => {
-        // panic!("Unexpected address in PPU#write: {:#X}", address);
       }
     }
   }
 
-  // TODO reword all comments
   pub fn update_tile(&mut self, address: u16, value: u8) {
     if SKIP_RENDERING { return }
 
@@ -202,7 +194,6 @@ impl PPU {
     }
   }
 
-  // TODO update all comments
   // NOTE borrowed from github.com/alexcrichton/jba
   pub fn render_scanline(&mut self) {
     if SKIP_RENDERING { return }
@@ -258,7 +249,6 @@ impl PPU {
 
     for y in 0..144 {
       for x in 0..160 {
-        // NOTE confirmed this is correct in Google Sheets doc
         let framebuffer_index = (y * 4) * 160 + (x * 4);
 
         let pixel_r = self.framebuffer[ framebuffer_index as usize ];
@@ -267,7 +257,7 @@ impl PPU {
         let pixel_a = self.framebuffer[ framebuffer_index as usize + 3 ];
 
         self.game_renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-        self.game_renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap(); // TODO benchmark draw_points
+        self.game_renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap();
       }
     }
 
@@ -300,7 +290,10 @@ impl PPU {
     self.tick_counter += 1;
 
     if SYNC_STATE {
-      self.state_reporter.send_message(format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}", self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.lcdc_display_enabled).as_bytes());
+      self.state_reporter.send_message(
+        format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}",
+          self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.lcdc_display_enabled).as_bytes()
+        );
       let received = self.state_reporter.receive_message();
       if received == "kill" {
         panic!("Server stopped.");
@@ -317,7 +310,6 @@ impl PPU {
       self.mode_clock += current_ticks;
       ticks_remaining -= current_ticks;
 
-      // Full line takes 114 ticks
       if self.mode_clock >= 456 {
         self.mode_clock -= 456;
         self.line = (self.line + 1) % 154;
@@ -346,16 +338,13 @@ impl PPU {
       0 => {
         self.render_scanline();
         self.horiz_blanking = true;
-        // self.m0_inte
         false
       },
       1 => {
         self.interrupt_flags |= 0x01;
-        // self.updated = true;
-        // self.m1_inte
         false
       },
-      2 => false, //self.m2_inte,
+      2 => false,
       _ => false,
     } {
       self.interrupt_flags |= 0x02;
