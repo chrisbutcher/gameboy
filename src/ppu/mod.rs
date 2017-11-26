@@ -1,11 +1,7 @@
-pub use super::types;
-
 pub use super::sdl2;
 pub use super::sdl2::pixels;
 pub use super::sdl2::render::Renderer;
 pub use super::sdl2::video::WindowPos;
-
-use super::Interrupts;
 
 static mut COUNTER: i32 = 5;
 
@@ -13,7 +9,7 @@ extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const SKIP_RENDERING: bool = false;
+const SKIP_RENDERING: bool = true;
 
 fn print_call_count() {
   unsafe {
@@ -26,10 +22,10 @@ fn print_call_count() {
 // Modes: Sprite Read, Video Read, Horizontal Blank, Vertical Blank
 // Starts in vertical blank
 pub struct PPU {
-  pub framebuffer: [ types::Byte; 160 * 144 * 4 ],
-  pub video_ram: Vec<types::Byte>,
-  pub tileset: [ [ [ types::Byte; 8 ]; 8 ]; 384 ],
-  pub palette: [ [ types::Byte; 4 ]; 4 ],
+  pub framebuffer: [ u8; 160 * 144 * 4 ],
+  pub video_ram: Vec<u8>,
+  pub tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
+  pub palette: [ [ u8; 4 ]; 4 ],
 
   pub mode: u8,
   pub mode_clock: i32,
@@ -48,7 +44,7 @@ pub struct PPU {
 
   pub horiz_blanking: bool,
 
-  pub InterruptFlags: types::Byte,
+  pub InterruptFlags: u8,
 
   pub sdl_context: sdl2::Sdl,
   pub game_renderer: Renderer<'static>,
@@ -115,7 +111,7 @@ impl PPU {
     (window, sdl_context)
   }
 
-  pub fn read(&mut self, address: types::Word) -> types::Byte {
+  pub fn read(&mut self, address: u16) -> u8 {
     match address {
       0xFF40 => {
         // Us 0b1000_0000 instead of 0x80
@@ -128,13 +124,13 @@ impl PPU {
           (if self.lcdc_obj_sprite_display_enabled { 0x02 } else { 0 }) |
           (if self.lcdc_bg_enabled { 0x01 } else { 0 })
       }
-      0xFF42 => self.scroll_y as types::Byte,
+      0xFF42 => self.scroll_y as u8,
       0xFF43 => {
         println!("Getting scroll_x, it's {:x}", self.scroll_x);
-        self.scroll_x as types::Byte
+        self.scroll_x as u8
       },
       0xFF44 => {
-        self.line as types::Byte
+        self.line as u8
       }
       _ => {
         panic!("Unexpected address in PPU#read: {:#X}", address);
@@ -142,7 +138,7 @@ impl PPU {
     }
   }
 
-  pub fn write(&mut self, address: types::Word, value: types::Byte) {
+  pub fn write(&mut self, address: u16, value: u8) {
     match address {
       0xFF40 => {
         let previous_lcdc_display_enabled = self.lcdc_display_enabled;
@@ -188,7 +184,7 @@ impl PPU {
   }
 
   // TODO reword all comments
-  pub fn update_tile(&mut self, address: types::Word, value: types::Byte) {
+  pub fn update_tile(&mut self, address: u16, value: u8) {
     if SKIP_RENDERING { return }
 
     // Get the "base address" for this tile row

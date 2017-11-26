@@ -1,9 +1,7 @@
-pub use super::types;
-
 const MAX_CARTRIDGE_SIZE: usize = 0x200000;
 
 pub struct Cartridge {
-  pub buffer: Vec<types::Byte>
+  pub buffer: Vec<u8>
 }
 
 impl Cartridge {

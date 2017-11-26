@@ -1,8 +1,6 @@
-pub use super::types;
-
 pub struct Input {
-  rows: [types::Byte; 2],
-  column: types::Byte,
+  rows: [u8; 2],
+  column: u8,
 }
 
 impl Input {
@@ -15,11 +13,11 @@ impl Input {
     input
   }
 
-  pub fn read(&self, address: types::Word) -> types::Byte {
+  pub fn read(&self, address: u16) -> u8 {
     self.column
   }
 
-  pub fn write(&mut self, address: types::Word, data: types::Byte) {
+  pub fn write(&mut self, address: u16, data: u8) {
     self.column = data;
     self.update();
   }

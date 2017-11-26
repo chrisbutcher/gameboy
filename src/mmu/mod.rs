@@ -4,7 +4,6 @@ use std::io::BufWriter;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub use super::types;
 pub use super::bootrom;
 pub use super::cartridge;
 pub use super::ppu;
@@ -16,18 +15,18 @@ pub struct MMU {
 
   pub cartridge: cartridge::Cartridge, // 0000-7fff
   // GPU's video ram                      8000-9FFF
-  pub external_ram: Vec<types::Byte>, // A000-BFFF
-  pub work_ram: Vec<types::Byte>, // C000-DFFF, with E000-FDFF shadow
-  pub sprite_info: Vec<types::Byte>, // FE00-FE9F
-  pub io: Vec<types::Byte>, // FF00-FF7F
-  pub zram: Vec<types::Byte>, // FF80-FFFF (zero page ram)
+  pub external_ram: Vec<u8>, // A000-BFFF
+  pub work_ram: Vec<u8>, // C000-DFFF, with E000-FDFF shadow
+  pub sprite_info: Vec<u8>, // FE00-FE9F
+  pub io: Vec<u8>, // FF00-FF7F
+  pub zram: Vec<u8>, // FF80-FFFF (zero page ram)
 
   pub ppu: RefCell<ppu::PPU>,
   pub input: input::Input,
 
   // Switches banks via the MBC (memory bank controller)
-  pub InterruptEnabled: types::Byte,
-  pub InterruptFlags: types::Byte,
+  pub InterruptEnabled: u8,
+  pub InterruptFlags: u8,
 }
 
 impl MMU {
@@ -55,7 +54,7 @@ impl MMU {
     f.read(&mut self.cartridge.buffer);
   }
 
-  pub fn read(&self, address: types::Word) -> types::Byte {
+  pub fn read(&self, address: u16) -> u8 {
     let result = match address {
       0x0000...0x7FFF => {
         // if address <= 0x0100 && self.bootroom_active {
@@ -124,20 +123,20 @@ impl MMU {
     result
   }
 
-  pub fn read_word(&self, address: types::Word) -> types::Word {
+  pub fn read_word(&self, address: u16) -> u16 {
     let lo_byte = self.read(address);
     let hi_byte = self.read(address + 1);
-    ((hi_byte as types::Word) << 8) | lo_byte as types::Word
+    ((hi_byte as u16) << 8) | lo_byte as u16
   }
 
-  pub fn write_word(&mut self, address: types::Word, data: types::Word) {
-    let lo_data = (0x00FF & data) as types::Byte;
-    let hi_data = ((0xFF00 & data) >> 8) as types::Byte;
+  pub fn write_word(&mut self, address: u16, data: u16) {
+    let lo_data = (0x00FF & data) as u8;
+    let hi_data = ((0xFF00 & data) >> 8) as u8;
     self.write(address + 1, hi_data);
     self.write(address, lo_data);
   }
 
-  pub fn write(&mut self, address: types::Word, data: types::Byte) {
+  pub fn write(&mut self, address: u16, data: u8) {
     match address {
       0x0000...0x7FFF => {
         debug!("Writing to disallowed memory region: {:#X}", address);
@@ -208,11 +207,11 @@ impl MMU {
     }
   }
 
-  pub fn num_rom_banks(&self) -> types::Byte {
+  pub fn num_rom_banks(&self) -> u8 {
     self.read(0x147)
   }
 
-  pub fn num_ram_banks(&self) -> types::Byte {
+  pub fn num_ram_banks(&self) -> u8 {
     self.read(0x148)
   }
 }

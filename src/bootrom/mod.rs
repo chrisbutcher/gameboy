@@ -1,8 +1,6 @@
 use std::fs::File;
 use std::io::{Read};
 
-pub use super::types;
-
 const MAX_BOOTROM_SIZE: usize = 0x100;
 
 pub struct Bootrom {

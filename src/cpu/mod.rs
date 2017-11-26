@@ -1,23 +1,21 @@
-use std::env;
 use std::fmt;
-use std::io;
 
 use std::io::prelude::*;
 pub use super::cartridge;
 pub use super::mmu;
-pub use super::types;
 pub mod opcode_cycles;
 
-const FLAG_ZERO: types::Byte = 0x80; // Zero
-const FLAG_SUB: types::Byte = 0x40; // Negative,
-const FLAG_HALF_CARRY: types::Byte = 0x20; // Half-carry
-const FLAG_CARRY: types::Byte = 0x10; // Carry
-const FLAG_NONE: types::Byte = 0x00; // None
+const FLAG_ZERO: u8 = 0x80; // Zero
+const FLAG_SUB: u8 = 0x40; // Negative,
+const FLAG_HALF_CARRY: u8 = 0x20; // Half-carry
+const FLAG_CARRY: u8 = 0x10; // Carry
+const FLAG_NONE: u8 = 0x00; // None
 
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
+const AFTER_TICK_COUNT: u64 = 20_574_537;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RegEnum {
@@ -25,7 +23,7 @@ pub enum RegEnum {
 }
 
 pub struct Register {
-  value: types::Word,
+  value: u16,
 }
 
 impl Register {
@@ -33,28 +31,28 @@ impl Register {
     Register { value: 0x0 }
   }
 
-  pub fn read(&self) -> types::Word {
+  pub fn read(&self) -> u16 {
     self.value
   }
 
-  pub fn read_hi(&self) -> types::Byte {
-    ((self.value >> 8) & 0xFF) as types::Byte
+  pub fn read_hi(&self) -> u8 {
+    ((self.value >> 8) & 0xFF) as u8
   }
 
-  pub fn read_lo(&self) -> types::Byte {
-    (self.value & 0xFF) as types::Byte
+  pub fn read_lo(&self) -> u8 {
+    (self.value & 0xFF) as u8
   }
 
-  pub fn write(&mut self, v: types::Word) {
+  pub fn write(&mut self, v: u16) {
     self.value = v
   }
 
-  pub fn write_hi(&mut self, v: types::Byte) {
-    self.value = self.value & 0x00FF | (v as types::Word) << 8
+  pub fn write_hi(&mut self, v: u8) {
+    self.value = self.value & 0x00FF | (v as u16) << 8
   }
 
-  pub fn write_lo(&mut self, v: types::Byte) {
-    self.value = self.value & 0xFF00 | v as types::Word
+  pub fn write_lo(&mut self, v: u8) {
+    self.value = self.value & 0xFF00 | v as u16
   }
 }
 
@@ -70,7 +68,7 @@ pub struct CPU {
   pub DE: Register,
   pub HL: Register,
   pub SP: Register,
-  pub PC: types::Word,
+  pub PC: u16,
 
   pub BranchTaken: bool,
   pub IME: bool, // Master interrupt
@@ -126,7 +124,7 @@ impl CPU {
     }
   }
 
-  pub fn write_byte_reg(&mut self, regEnum: RegEnum, byte: types::Byte) {
+  pub fn write_byte_reg(&mut self, regEnum: RegEnum, byte: u8) {
     match regEnum {
       RegEnum::A => self.AF.write_hi(byte),
       RegEnum::F => self.AF.write_lo(byte),
@@ -142,7 +140,7 @@ impl CPU {
     }
   }
 
-  pub fn write_word_reg(&mut self, regEnum: RegEnum, word: types::Word) {
+  pub fn write_word_reg(&mut self, regEnum: RegEnum, word: u16) {
     match regEnum {
       RegEnum::AF => self.AF.write(word),
       RegEnum::BC => self.BC.write(word),
@@ -153,7 +151,7 @@ impl CPU {
     }
   }
 
-  pub fn read_byte_reg(&mut self, regEnum: RegEnum) -> types::Byte {
+  pub fn read_byte_reg(&mut self, regEnum: RegEnum) -> u8 {
     match regEnum {
       RegEnum::A => self.AF.read_hi(),
       RegEnum::F => self.AF.read_lo(),
@@ -169,7 +167,7 @@ impl CPU {
     }
   }
 
-  pub fn read_word_reg(&mut self, regEnum: RegEnum) -> types::Word {
+  pub fn read_word_reg(&mut self, regEnum: RegEnum) -> u16 {
     match regEnum {
       RegEnum::AF => self.AF.read(),
       RegEnum::BC => self.BC.read(),
@@ -196,10 +194,11 @@ impl CPU {
       return 1
     }
 
-    let opcode: types::Byte = mmu.read(self.PC);
-    // println!("pc: {:4x}, opcode: {:2x}", self.PC, opcode);
+    let opcode: u8 = mmu.read(self.PC);
 
-    if SYNC_STATE && self.tick_counter >= 19_286_329 {
+    if SYNC_STATE && self.tick_counter >= AFTER_TICK_COUNT {
+      // println!("pc: {:4x}, opcode: {:2x}, tick_counter: {}", self.PC, opcode, self.tick_counter);
+
       let registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
         self.PC, self.SP.value,
@@ -219,13 +218,47 @@ impl CPU {
 
     self.PC += 1;
 
-    let cycles = self.execute_opcode(opcode, mmu);
+    self.execute_opcode(opcode, mmu)
+  }
 
-    if cycles == 42 {
-      panic!("Unexpected opcode: {:#X}", opcode);
+  pub fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
+    if self.IME == false && self.halted == false { return 0 }
+
+    let interrupt_to_handle = mmu.InterruptEnabled & mmu.InterruptFlags;
+    if interrupt_to_handle == 0 { return 0 }
+
+    self.halted = false;
+    if self.IME == false { return 0 }
+    self.IME = false;
+
+    let interrupt_offset = interrupt_to_handle.trailing_zeros() as u16;
+    if interrupt_offset >= 5 { panic!("Invalid interrupt"); }
+
+    mmu.InterruptFlags &= !(1 << interrupt_offset);
+
+    let current_PC = self.PC;
+    self.stack_push(current_PC, mmu);
+
+    if interrupt_offset != 0 {
+      panic!("Doing interrupt other than vblank, {}", interrupt_offset);
     }
 
-    cycles
+    self.PC = 0x0040 | ((interrupt_offset) << 3);
+
+    16
+  }
+
+  fn update_ime(&mut self) {
+    self.di_cycles = match self.di_cycles {
+        2 => 1,
+        1 => { self.IME = false; 0 },
+        _ => 0,
+    };
+    self.ei_cycles = match self.ei_cycles {
+        2 => 1,
+        1 => { self.IME = true; 0 },
+        _ => 0,
+    };
   }
 
   // https://github.com/CTurt/Cinoop/blob/master/source/cpu.c
@@ -234,8 +267,8 @@ impl CPU {
 
   // ALSO SEE https://github.com/mvdnes/rboy/blob/master/src/cpu.rs (Note that cycles in this code are divided by 4)
   // http://gameboy.mongenel.com/dmg/lesson1.html
-  fn execute_opcode(&mut self, opcode: types::Byte, mmu: &mut mmu::MMU) -> i32 {
-    let mut cb_opcode: Option<types::Byte> = None;
+  fn execute_opcode(&mut self, opcode: u8, mmu: &mut mmu::MMU) -> i32 {
+    let mut cb_opcode: Option<u8> = None;
 
     match opcode {
       0x00 => {
@@ -263,7 +296,11 @@ impl CPU {
         debug!("LD B,n");
         self.ld_b_n(mmu)
       }
-      0x07 => self.explode(format!("RLCA : rlca() not implemented! {:#X}", opcode)),
+      0x07 => {
+        debug!("RLCA : rlca()");
+        shared_rlc_n(self, RegEnum::A);
+        self.util_set_flag_by_boolean(FLAG_ZERO, false);
+      }
       0x08 => self.explode(format!("LD (nn),SP : ld_nn_sp() not implemented! {:#X}", opcode)),
       0x09 => {
         debug!("ADD HL,BC");
@@ -590,7 +627,8 @@ impl CPU {
       0x7F => self.explode(format!("LD A,A : ld_a_a() not implemented! {:#X}", opcode)),
       0x80 => {
         debug!("ADD A,B");
-        self.add_a_b()
+        let value = self.read_byte_reg(RegEnum::B);
+        shared_add_n(self, value, false);
       }
       0x81 => self.explode(format!("ADD A,C : add_a_c() not implemented! {:#X}", opcode)),
       0x82 => self.explode(format!("ADD A,D : add_a_d() not implemented! {:#X}", opcode)),
@@ -598,7 +636,8 @@ impl CPU {
       0x84 => self.explode(format!("ADD A,H : add_a_h() not implemented! {:#X}", opcode)),
       0x85 => {
         debug!("ADD A,L");
-        self.add_a_l()
+        let value = self.read_byte_reg(RegEnum::L);
+        shared_add_n(self, value, false);
       }
       0x86 => {
         debug!("ADD A,(HL)");
@@ -606,12 +645,14 @@ impl CPU {
       }
       0x87 => {
         debug!("ADD A,A");
-        self.add_a_a()
+        let value = self.read_byte_reg(RegEnum::A);
+        shared_add_n(self, value, false);
       }
       0x88 => self.explode(format!("ADC A,B : adc_a_b() not implemented! {:#X}", opcode)),
       0x89 => {
         debug!("ADC A,C");
-        self.adc_a_c()
+        let value = self.read_byte_reg(RegEnum::C);
+        shared_add_n(self, value, true);
       }
       0x8A => self.explode(format!("ADC A,D : adc_a_d() not implemented! {:#X}", opcode)),
       0x8B => self.explode(format!("ADC A,E : adc_a_e() not implemented! {:#X}", opcode)),
@@ -710,7 +751,13 @@ impl CPU {
       0xB5 => self.explode(format!("OR L : or_l() not implemented! {:#X}", opcode)),
       0xB6 => self.explode(format!("OR (HL) : or_hl() not implemented! {:#X}", opcode)),
       0xB7 => self.explode(format!("OR A : or_a() not implemented! {:#X}", opcode)),
-      0xB8 => self.explode(format!("CP B : cp_b() not implemented! {:#X}", opcode)),
+      0xB8 => {
+        debug!("CP B : cp_b()");
+        let A = self.read_byte_reg(RegEnum::A);
+        let value = self.read_byte_reg(RegEnum::B);
+        shared_cp(self, value);
+        self.write_byte_reg(RegEnum::A, A);
+      }
       0xB9 => self.explode(format!("CP C : cp_c() not implemented! {:#X}", opcode)),
       0xBA => self.explode(format!("CP D : cp_d() not implemented! {:#X}", opcode)),
       0xBB => self.explode(format!("CP E : cp_e() not implemented! {:#X}", opcode)),
@@ -786,7 +833,11 @@ impl CPU {
         debug!("PUSH DE");
         self.push_de(mmu)
       }
-      0xD6 => self.explode(format!("SUB n : sub_n() not implemented! {:#X}", opcode)),
+      0xD6 => {
+        debug!("SUB n : sub_n()");
+        let value = mmu.read(self.PC);
+        shared_sub_n(self, value, false);
+      }
       0xD7 => self.explode(format!("RST 10H : rst_10h() not implemented! {:#X}", opcode)),
       0xD8 => self.explode(format!("RET C : ret_c() not implemented! {:#X}", opcode)),
       0xD9 => {
@@ -1020,7 +1071,7 @@ impl CPU {
     self.PC = self.PC.wrapping_add(1);
 
     if !self.util_is_flag_set(FLAG_ZERO) {
-      self.PC = self.PC.wrapping_add(offset as types::Word);
+      self.PC = self.PC.wrapping_add(offset as u16);
       self.BranchTaken = true;
     }
   }
@@ -1127,8 +1178,6 @@ impl CPU {
   fn adc_a_c(&mut self) {
     let operand = self.read_byte_reg(RegEnum::C);
     shared_adc(self, operand);
-
-    panic!("Not implemented!")
   }
 
   fn ld_a_n(&mut self, mmu: &mmu::MMU) {
@@ -1145,7 +1194,7 @@ impl CPU {
 
   fn ld_0xff00_plus_n_a(&mut self, mmu: &mut mmu::MMU) {
     let value = self.read_byte_reg(RegEnum::A);
-    let operand = mmu.read(self.PC) as types::Word;
+    let operand = mmu.read(self.PC) as u16;
 
     mmu.write(0xFF00 + operand, value);
 
@@ -1153,7 +1202,7 @@ impl CPU {
   }
 
   fn ld_a_0xff00_plus_n(&mut self, mmu: &mut mmu::MMU) {
-    let operand = mmu.read(self.PC) as types::Word;
+    let operand = mmu.read(self.PC) as u16;
     let value = mmu.read(0xFF00 + operand);
 
     self.write_byte_reg(RegEnum::A, value);
@@ -1202,7 +1251,7 @@ impl CPU {
     let value = self.read_byte_reg(RegEnum::A);
     let operand = self.read_byte_reg(RegEnum::C);
 
-    mmu.write(0xFF00 + operand as types::Word, value);
+    mmu.write(0xFF00 + operand as u16, value);
   }
 
   fn inc_a(&mut self) {
@@ -1306,8 +1355,8 @@ impl CPU {
 
   fn jr_z_n(&mut self, mmu: &mmu::MMU) {
     if self.util_is_flag_set(FLAG_ZERO) {
-      let operand_dest = mmu.read(self.PC) as types::SignedByte;
-      self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
+      let operand_dest = mmu.read(self.PC) as i8;
+      self.PC = self.PC.wrapping_add((1 + operand_dest) as u16);
 
       self.BranchTaken = true;
     } else {
@@ -1486,18 +1535,6 @@ impl CPU {
     self.PC = 0x28;
   }
 
-  fn add_a_a(&mut self) {
-    shared_add_byte_reg(self, RegEnum::A);
-  }
-
-  fn add_a_b(&mut self) {
-    shared_add_byte_reg(self, RegEnum::B);
-  }
-
-  fn add_a_l(&mut self) {
-    shared_add_byte_reg(self, RegEnum::L);
-  }
-
   fn add_a_n(&mut self, mmu: &mut mmu::MMU) {
     let value = mmu.read(self.PC);
     shared_add_n(self, value, false);
@@ -1587,24 +1624,24 @@ impl CPU {
   }
 
   fn jr_n(&mut self, mmu: &mut mmu::MMU) {
-    let operand_dest = mmu.read(self.PC) as types::SignedByte;
-    self.PC = self.PC.wrapping_add((1 + operand_dest) as types::Word);
+    let operand_dest = mmu.read(self.PC) as i8;
+    self.PC = self.PC.wrapping_add((1 + operand_dest) as u16);
   }
 
   // Helpers
 
-  fn cb_prefixed_instruction(&mut self, cb_opcode: types::Byte, mmu: &mut mmu::MMU) {
+  fn cb_prefixed_instruction(&mut self, cb_opcode: u8, mmu: &mut mmu::MMU) {
     self.execute_cb_opcode(cb_opcode, mmu);
     self.PC += 1;
   }
 
-  fn stack_push(&mut self, word: types::Word, mmu: &mut mmu::MMU) {
+  fn stack_push(&mut self, word: u16, mmu: &mut mmu::MMU) {
     let current_SP = self.read_word_reg(RegEnum::SP); // TODO just manipulate .value directly
     self.write_word_reg(RegEnum::SP, current_SP - 2);
     mmu.write_word(self.read_word_reg(RegEnum::SP), word);
   }
 
-  fn stack_pop(&mut self, mmu: &mmu::MMU) -> types::Word {
+  fn stack_pop(&mut self, mmu: &mmu::MMU) -> u16 {
     let current_SP = self.read_word_reg(RegEnum::SP);
     let popped_value = mmu.read_word(current_SP);
     self.SP.write(current_SP + 2);
@@ -1620,7 +1657,7 @@ impl CPU {
     }
   }
 
-  fn util_toggle_zero_flag_from_result(&mut self, result: types::Byte) {
+  fn util_toggle_zero_flag_from_result(&mut self, result: u8) {
     if result == 0 {
       self.util_toggle_flag(FLAG_ZERO);
     } else {
@@ -1628,7 +1665,7 @@ impl CPU {
     }
   }
 
-  fn util_toggle_zero_flag_from_word_result(&mut self, result: types::Word) {
+  fn util_toggle_zero_flag_from_word_result(&mut self, result: u16) {
     if result == 0 {
       self.util_toggle_flag(FLAG_ZERO);
     }
@@ -1638,27 +1675,27 @@ impl CPU {
     self.util_set_flag(FLAG_NONE);
   }
 
-  fn util_set_flag(&mut self, byte: types::Byte) {
+  fn util_set_flag(&mut self, byte: u8) {
     self.AF.write_lo(byte);
   }
 
-  fn util_is_flag_set(&self, byte: types::Byte) -> bool {
+  fn util_is_flag_set(&self, byte: u8) -> bool {
     (self.AF.read_lo() & byte) != 0
   }
 
-  fn util_toggle_flag(&mut self, byte: types::Byte) {
+  fn util_toggle_flag(&mut self, byte: u8) {
     let previous_flags = self.AF.read_lo();
     self.AF.write_lo(previous_flags | byte);
   }
 
-  fn util_untoggle_flag(&mut self, byte: types::Byte) {
+  fn util_untoggle_flag(&mut self, byte: u8) {
     let previous_flags = self.AF.read_lo();
     self.AF.write_lo(previous_flags & (!byte));
   }
 
   // CB opcode handling
 
-  fn execute_cb_opcode(&mut self, opcode: types::Byte, mmu: &mut mmu::MMU) {
+  fn execute_cb_opcode(&mut self, opcode: u8, mmu: &mut mmu::MMU) {
     match opcode {
       0x00 => self.explode(format!("CB: RLC B : rlc_b() not implemented! {:#X}", opcode)),
       0x01 => self.explode(format!("CB: RLC C : rlc_c() not implemented! {:#X}", opcode)),
@@ -1940,11 +1977,11 @@ impl CPU {
 
   // CB opcodes
 
-  fn res_bit_a(&mut self, bit: types::Byte) {
+  fn res_bit_a(&mut self, bit: u8) {
     shared_reset_bit_reg(self, bit, RegEnum::A);
   }
 
-  fn res_bit_hl(&mut self, bit: types::Byte, mmu: &mut mmu::MMU) {
+  fn res_bit_hl(&mut self, bit: u8, mmu: &mut mmu::MMU) {
     let address = self.read_word_reg(RegEnum::HL);
     let value = mmu.read(address);
     let result = value & (!(0x1 << bit));
@@ -1972,25 +2009,23 @@ impl CPU {
   }
 }
 
-fn shared_reset_bit_reg(cpu: &mut CPU, bit: types::Byte, regEnum: RegEnum) {
+fn shared_reset_bit_reg(cpu: &mut CPU, bit: u8, regEnum: RegEnum) {
   let value = cpu.read_byte_reg(regEnum);
   let result = value & (!(0x1 << bit));
   cpu.write_byte_reg(regEnum, result);
 }
 
-fn shared_bit_n_reg(cpu: &mut CPU, bit: types::Byte, regEnum: RegEnum) {
-  if (cpu.read_byte_reg(regEnum) & (1 << bit)) == 0 {
-    cpu.util_set_flag(FLAG_ZERO);
-  } else {
-    cpu.util_untoggle_flag(FLAG_ZERO);
-  }
+fn shared_bit_n_reg(cpu: &mut CPU, bit: u8, regEnum: RegEnum) {
+  let reg_value = cpu.read_byte_reg(regEnum);
+  let result = reg_value & (1 << (bit as u32)) == 0;
 
-  cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  cpu.util_untoggle_flag(FLAG_SUB);
+  cpu.util_set_flag_by_boolean(FLAG_SUB, false);
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, true);
+  cpu.util_set_flag_by_boolean(FLAG_ZERO, result);
 }
 
 // TODO reduce duplication between this and shared_bit_n_reg
-fn shared_bit_n_hl(cpu: &mut CPU, bit: types::Byte, mmu: &mmu::MMU) {
+fn shared_bit_n_hl(cpu: &mut CPU, bit: u8, mmu: &mmu::MMU) {
   let address = cpu.read_word_reg(RegEnum::HL);
   let value = mmu.read(address);
 
@@ -2015,7 +2050,7 @@ fn shared_rl_n(cpu: &mut CPU, regEnum: RegEnum) {
   }
 
   result <<= 1;
-  result |= carry as types::Byte;
+  result |= carry as u8;
 
   cpu.write_byte_reg(regEnum, result);
 
@@ -2051,11 +2086,7 @@ fn shared_update_srl_flags(cpu: &mut CPU, result: u8, carry: bool) {
   cpu.util_untoggle_flag(FLAG_HALF_CARRY);
   cpu.util_untoggle_flag(FLAG_SUB);
   cpu.util_toggle_zero_flag_from_result(result);
-  if carry {
-    cpu.util_toggle_flag(FLAG_CARRY);
-  } else {
-    cpu.util_untoggle_flag(FLAG_CARRY);
-  }
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, carry);
 }
 
 fn shared_ld_reg_n(cpu: &mut CPU, regEnum: RegEnum, mmu: &mmu::MMU) {
@@ -2080,14 +2111,14 @@ fn shared_inc_word_reg(cpu: &mut CPU, regEnum: RegEnum) {
   cpu.write_word_reg(regEnum, result);
 }
 
-fn shared_xor_n(cpu: &mut CPU, byte: types::Byte) {
+fn shared_xor_n(cpu: &mut CPU, byte: u8) {
   let result = cpu.AF.read_hi() ^ byte;
   cpu.write_byte_reg(RegEnum::A, result);
   cpu.util_clear_all_flags();
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
-fn shared_ld_n_n(cpu: &mut CPU, regEnum: RegEnum, byte: types::Byte) {
+fn shared_ld_n_n(cpu: &mut CPU, regEnum: RegEnum, byte: u8) {
   cpu.write_byte_reg(regEnum, byte);
   cpu.PC += 1;
 }
@@ -2104,32 +2135,16 @@ fn shared_inc_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   }
 }
 
-fn shared_add_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
+fn shared_add_n(cpu: &mut CPU, byte: u8, carry_preserve: bool) {
+  let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
   let A = cpu.read_byte_reg(RegEnum::A);
-  let value = cpu.read_byte_reg(regEnum);
-  let result = value.wrapping_add(A);
-  cpu.write_byte_reg(RegEnum::A, result);
+  let result = A.wrapping_add(byte).wrapping_add(carry);
 
-  if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
-  cpu.util_toggle_zero_flag_from_result(result);
+  cpu.util_set_flag_by_boolean(FLAG_ZERO, result == 0);
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0xF) + (byte & 0xF) + carry > 0xF);
+  cpu.util_set_flag_by_boolean(FLAG_SUB, false);
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, (A as u16) + (byte as u16) + (carry as u16) > 0xFF);
 
-  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0xF) + (value & 0xF) > 0xF);
-}
-
-fn shared_add_n(cpu: &mut CPU, byte: types::Byte, carry_preserve: bool) {
-  let c = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
-  let A = cpu.read_byte_reg(RegEnum::A);
-  let result = A.wrapping_add(byte).wrapping_add(c);
-
-  cpu.util_toggle_zero_flag_from_result(result);
-
-  if (A & 0xF) + (byte & 0xF) + c > 0xF {
-    cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  }
-
-  cpu.util_untoggle_flag(FLAG_SUB);
-
-  if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
   cpu.write_byte_reg(RegEnum::A, result);
 }
 
@@ -2170,9 +2185,9 @@ fn shared_sub_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   let result = A - number;
   let carry_bits = A ^ number ^ result;
 
-  cpu.write_byte_reg(RegEnum::A, carry_bits as types::Byte);
+  cpu.write_byte_reg(RegEnum::A, carry_bits as u8);
   cpu.util_set_flag(FLAG_SUB);
-  cpu.util_toggle_zero_flag_from_result(result as types::Byte);
+  cpu.util_toggle_zero_flag_from_result(result as u8);
 
   if carry_bits & 0x100 != 0 {
     cpu.util_toggle_flag(FLAG_CARRY);
@@ -2203,87 +2218,55 @@ fn shared_rotate_rr(cpu: &mut CPU, regEnum: RegEnum) {
   }
 }
 
-fn shared_adc(cpu: &mut CPU, byte: types::Byte) {
-  panic!("not implemented!")
+fn shared_adc(cpu: &mut CPU, byte: u8) {
 }
 
-fn shared_cp(cpu: &mut CPU, byte: types::Byte) {
-  let a = cpu.read_byte_reg(RegEnum::A);
-  let result = a.wrapping_sub(byte);
+fn shared_cp(cpu: &mut CPU, byte: u8) {
+  let A = cpu.read_byte_reg(RegEnum::A);
+  let result = A.wrapping_sub(byte);
 
-  cpu.util_set_flag(FLAG_SUB);
-
-  if a < byte {
-    cpu.util_toggle_flag(FLAG_CARRY);
-  }
-
-  if result == 0x00 {
-    cpu.util_toggle_flag(FLAG_ZERO);
-  }
-
-  if (result & 0xF) > (a & 0xF) {
-    cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  }
+  cpu.util_set_flag_by_boolean(FLAG_ZERO, result == 0);
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0x0F) < (byte & 0x0F));
+  cpu.util_set_flag_by_boolean(FLAG_SUB, true);
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, (A as u16) < (byte as u16));
 
   cpu.write_byte_reg(RegEnum::A, result);
 }
 
-fn shared_or_n(cpu: &mut CPU, byte: types::Byte) {
+fn shared_or_n(cpu: &mut CPU, byte: u8) {
   let result = cpu.read_byte_reg(RegEnum::A) | byte;
   cpu.write_byte_reg(RegEnum::A, result);
   cpu.util_clear_all_flags();
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
-fn shared_and_n(cpu: &mut CPU, byte: types::Byte) {
+fn shared_and_n(cpu: &mut CPU, byte: u8) {
   let result = cpu.read_byte_reg(RegEnum::A) & byte;
   cpu.write_byte_reg(RegEnum::A, result);
   cpu.util_set_flag(FLAG_HALF_CARRY);
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
-impl CPU {
-  // Interrupt handling
+fn shared_rlc_n(cpu: &mut CPU, regEnum: RegEnum) {
+  let value = cpu.read_byte_reg(regEnum);
+  let carry = value & 0x80 == 0x80;
+  let result = (value << 1) | (if carry { 1 } else { 0 });
+  shared_update_srl_flags(cpu, result, carry);
+  cpu.write_byte_reg(regEnum, result);
+}
 
-  pub fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
-    if self.IME == false && self.halted == false { return 0 }
+fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
+  let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
+  let A = cpu.read_byte_reg(RegEnum::A);
+  let result = A.wrapping_sub(value).wrapping_sub(carry);
 
-    let interrupt_to_handle = mmu.InterruptEnabled & mmu.InterruptFlags;
-    if interrupt_to_handle == 0 { return 0 }
+  cpu.util_set_flag_by_boolean(FLAG_ZERO, result == 0);
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0x0F) < (value & 0x0F) + carry);
+  cpu.util_set_flag_by_boolean(FLAG_SUB, true);
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, (A as u16) < (value as u16) + (carry as u16));
+  cpu.write_byte_reg(RegEnum::A, result);
 
-    self.halted = false;
-    if self.IME == false { return 0 }
-    self.IME = false;
-
-    let interrupt_offset = interrupt_to_handle.trailing_zeros() as types::Word;
-    if interrupt_offset >= 5 { panic!("Invalid interrupt"); }
-
-    mmu.InterruptFlags &= !(1 << interrupt_offset);
-
-    let current_PC = self.PC;
-    self.stack_push(current_PC, mmu);
-
-    if interrupt_offset != 0 {
-      panic!("Doing interrupt other than vblank, {}", interrupt_offset);
-    }
-
-    self.PC = 0x0040 | ((interrupt_offset) << 3);
-
-    16
-  }
-
-  fn update_ime(&mut self) {
-    self.di_cycles = match self.di_cycles {
-        2 => 1,
-        1 => { self.IME = false; 0 },
-        _ => 0,
-    };
-    self.ei_cycles = match self.ei_cycles {
-        2 => 1,
-        1 => { self.IME = true; 0 },
-        _ => 0,
-    };
-  }
+  cpu.PC += 1;
 }
 
 // #[test]

@@ -1,7 +1,5 @@
-pub use super::types;
-
 // opcode cycles
-pub fn regular(opcode: types::Byte) -> i32 {
+pub fn regular(opcode: u8) -> i32 {
   match opcode {
     0x00 => 1,
     0x01 => 3,
@@ -263,7 +261,7 @@ pub fn regular(opcode: types::Byte) -> i32 {
   }
 }
 
-pub fn branch(opcode: types::Byte) -> i32 {
+pub fn branch(opcode: u8) -> i32 {
   match opcode {
     0x00 => 1,
     0x01 => 3,
@@ -526,7 +524,7 @@ pub fn branch(opcode: types::Byte) -> i32 {
 }
 
 // CB opcode cycles
-pub fn cb(opcode: types::Byte) -> i32 {
+pub fn cb(opcode: u8) -> i32 {
   match opcode {
     0x00 => 2,
     0x01 => 2,

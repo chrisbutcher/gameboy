@@ -21,7 +21,6 @@ extern crate env_logger;
 pub extern crate sdl2;
 use sdl2::event::Event;
 
-pub mod types;
 pub mod cpu;
 pub mod bootrom;
 pub mod cartridge;
@@ -36,14 +35,6 @@ struct GameBoy {
   cycles: u32,
 
   state_reporter: StateReporter,
-}
-
-pub enum Interrupts {
-  Vblank = 0x01,
-  LCDStat = 0x02,
-  Timer = 0x04,
-  Serial = 0x08,
-  Joypad = 0x10,
 }
 
 const CYCLES_PER_FRAME: u32 = 70224;
@@ -115,10 +106,6 @@ impl GameBoy {
   // Avoid large array allocations [0; SIZE], use vec![] instead or box [] to put data on heap, not stack
 
   fn render_frame(&mut self) {
-
-    // self.cycles = self.cycles.wrapping_add(cycles_per_frame);
-    // self.cycles = 0;
-
     let cycles_per_frame = (4194304f64 / 1000.0 * 16.0).round() as u32;
     let mut cycles_this_frame = 0;
 
@@ -137,9 +124,6 @@ impl GameBoy {
           panic!("Server stopped.");
         }
       }
-
-      // let interrupt_cycles = self.do_interrupts();
-      // cycles_this_frame = cycles_this_frame.wrapping_add(interrupt_cycles as u32);
     }
 
     cycles_this_frame.wrapping_sub(cycles_per_frame);
@@ -163,8 +147,6 @@ impl GameBoy {
   }
 
   pub fn print_game_title(&self) {
-    return; // TODO turn this back on later
-
     let mut title = String::with_capacity(14);
 
     for i in 0x134..0x142 {
@@ -231,52 +213,16 @@ fn main() {
 #[test]
 fn can_run_tetris() {
   let mut game_boy = GameBoy::new();
-  // game_boy.initialize();
-  // game_boy.mmu.load_game("tetris.gb");
-}
-
-#[test]
-fn initialization_works() {
-  let mut game_boy = GameBoy::new();
   game_boy.initialize();
+  game_boy.mmu.load_game("tetris.gb");
 
-  assert_eq!(game_boy.cpu.PC, 0x100);
+  loop {
+    // if game_boy.cpu.tick_counter >= 1_000_000 {
+    if game_boy.cpu.tick_counter >= 20_574_537 {
+      break;
+    }
+    game_boy.render_frame();
+  }
 
-  assert_eq!(game_boy.cpu.AF.read(), 0x01B0);
-  assert_eq!(game_boy.cpu.BC.read(), 0x0013);
-  assert_eq!(game_boy.cpu.DE.read(), 0x00D8);
-  assert_eq!(game_boy.cpu.HL.read(), 0x014D);
-  assert_eq!(game_boy.cpu.SP.read(), 0xFFFE);
-
-  assert_eq!(game_boy.mmu.read(0xFF05), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFF06), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFF07), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFF10), 0x80);
-  assert_eq!(game_boy.mmu.read(0xFF11), 0xBF);
-  assert_eq!(game_boy.mmu.read(0xFF12), 0xF3);
-  assert_eq!(game_boy.mmu.read(0xFF14), 0xBF);
-  assert_eq!(game_boy.mmu.read(0xFF16), 0x3F);
-  assert_eq!(game_boy.mmu.read(0xFF17), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFF19), 0xBF);
-  assert_eq!(game_boy.mmu.read(0xFF1A), 0x7F);
-  assert_eq!(game_boy.mmu.read(0xFF1B), 0xFF);
-  assert_eq!(game_boy.mmu.read(0xFF1C), 0x9F);
-  assert_eq!(game_boy.mmu.read(0xFF1E), 0xBF);
-  assert_eq!(game_boy.mmu.read(0xFF20), 0xFF);
-  assert_eq!(game_boy.mmu.read(0xFF21), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFF22), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFF23), 0xBF);
-  assert_eq!(game_boy.mmu.read(0xFF24), 0x77);
-  assert_eq!(game_boy.mmu.read(0xFF25), 0xF3);
-  assert_eq!(game_boy.mmu.read(0xFF26), 0xF1);
-  assert_eq!(game_boy.mmu.read(0xFF40), 0x91);
-  assert_eq!(game_boy.mmu.read(0xFF42), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFF43), 0x00);
-  // assert_eq!(game_boy.mmu.read(0xFF45), 0x00);
-  // assert_eq!(game_boy.mmu.read(0xFF47), 0xFC);
-  // assert_eq!(game_boy.mmu.read(0xFF48), 0xFF);
-  // assert_eq!(game_boy.mmu.read(0xFF49), 0xFF);
-  // assert_eq!(game_boy.mmu.read(0xFF4A), 0x00);
-  // assert_eq!(game_boy.mmu.read(0xFF4B), 0x00);
-  assert_eq!(game_boy.mmu.read(0xFFFF), 0x00)
+  assert!(game_boy.cpu.tick_counter >= 1_000_000);
 }
