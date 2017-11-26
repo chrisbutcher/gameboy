@@ -1,8 +1,6 @@
 use std::io::prelude::*;
 use std::fs::File;
-use std::io::BufWriter;
 use std::cell::RefCell;
-use std::rc::Rc;
 
 pub use super::bootrom;
 pub use super::cartridge;
@@ -25,8 +23,8 @@ pub struct MMU {
   pub input: input::Input,
 
   // Switches banks via the MBC (memory bank controller)
-  pub InterruptEnabled: u8,
-  pub InterruptFlags: u8,
+  pub interrupt_enabled: u8,
+  pub interrupt_flags: u8,
 }
 
 impl MMU {
@@ -44,14 +42,14 @@ impl MMU {
       ppu: RefCell::new(ppu::PPU::new()),
       input: input::Input::new(),
 
-      InterruptEnabled: 0x00,
-      InterruptFlags: 0x00,
+      interrupt_enabled: 0x00,
+      interrupt_flags: 0x00,
     }
   }
 
   pub fn load_game(&mut self, rom_filename: &str) {
     let mut f = File::open(rom_filename).unwrap();
-    f.read(&mut self.cartridge.buffer);
+    f.read(&mut self.cartridge.buffer).unwrap();
   }
 
   pub fn read(&self, address: u16) -> u8 {
@@ -92,7 +90,7 @@ impl MMU {
         self.io[ address as usize - 0xFF00 ]
       }
       0xFF0F => {
-        self.InterruptFlags
+        self.interrupt_flags
       }
       0xFF10...0xFF3F => {
         debug!("MMU#read from io");
@@ -112,9 +110,9 @@ impl MMU {
         self.zram[ address as usize - 0xFF80 ]
       }
       0xFFFF => {
-        debug!("Read from InterruptEnabled");
-        self.InterruptEnabled
-      } // TODO Should return self.InterruptEnabled
+        debug!("Read from interrupt_enabled");
+        self.interrupt_enabled
+      } // TODO Should return self.interrupt_enabled
       _ => {
         panic!("Memory access is out of bounds: {:#X}", address);
       }
@@ -174,7 +172,7 @@ impl MMU {
         self.io[ address as usize - 0xFF00 ] = data
       }
       0xFF0F => {
-        self.InterruptFlags = data;
+        self.interrupt_flags = data;
       }
       0xFF10...0xFF3F => {
         debug!("MMU#write to io");
@@ -199,7 +197,7 @@ impl MMU {
         self.zram[ address as usize - 0xFF80 ] = data
       }
       0xFFFF => {
-        self.InterruptEnabled = data;
+        self.interrupt_enabled = data;
       }
       _ => {
         panic!("Memory access is out of bounds: {:#X}", address);
@@ -215,21 +213,3 @@ impl MMU {
     self.read(0x148)
   }
 }
-
-// #[test]
-// fn can_write_to_memory_in_allowed_regions() {
-//   let mut mmu = MMU::new();
-//   mmu.write(0xC000, 0xFF);
-//   assert_eq!(mmu.read(0xC000), 0xFF);
-//   mmu.write(0x8000, 0xFF);
-//   assert_eq!(mmu.read(0x8000), 0xFF);
-// }
-
-// #[test]
-// fn cannot_write_to_memory_in_disallowed_regions() {
-//   let mut mmu = MMU::new();
-//   mmu.write(0x0000, 0xFF);
-//   assert_eq!(mmu.read(0x0000), 0x00);
-//   mmu.write(0x7FFF, 0xFF);
-//   assert_eq!(mmu.read(0x7FFF), 0x00);
-// }

@@ -1,8 +1,8 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_mut)]
-#![allow(unused_must_use)]
-#![allow(non_snake_case)] // TODO remove these
+// #![allow(dead_code)]
+// #![allow(unused_variables)]
+// #![allow(unused_mut)]
+// #![allow(unused_must_use)]
+// #![allow(non_snake_case)] // TODO remove these
 
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
@@ -32,19 +32,15 @@ pub mod fps;
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
-  cycles: u32,
 
   state_reporter: StateReporter,
 }
-
-const CYCLES_PER_FRAME: u32 = 70224;
 
 impl GameBoy {
   pub fn new() -> GameBoy {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
-      cycles: 0,
 
       state_reporter: StateReporter::new("5555"),
     }
@@ -52,13 +48,13 @@ impl GameBoy {
 
   pub fn initialize(&mut self) {
     // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
-    self.cpu.PC = 0x0100;
+    self.cpu.pc = 0x0100;
 
-    self.cpu.AF.write(0x01B0);
-    self.cpu.BC.write(0x0013);
-    self.cpu.DE.write(0x00D8);
-    self.cpu.HL.write(0x014D);
-    self.cpu.SP.write(0xFFFE);
+    self.cpu.af.write(0x01B0);
+    self.cpu.bc.write(0x0013);
+    self.cpu.de.write(0x00D8);
+    self.cpu.hl.write(0x014D);
+    self.cpu.sp.write(0xFFFE);
 
     self.mmu.write(0xFF05, 0x00);
     self.mmu.write(0xFF06, 0x00);
@@ -105,6 +101,8 @@ impl GameBoy {
 
   // Avoid large array allocations [0; SIZE], use vec![] instead or box [] to put data on heap, not stack
 
+  // TODO remove all unwrap()s
+
   fn render_frame(&mut self) {
     let cycles_per_frame = (4194304f64 / 1000.0 * 16.0).round() as u32;
     let mut cycles_this_frame = 0;
@@ -132,14 +130,14 @@ impl GameBoy {
     self.render_screen();
   }
 
-  fn update_timers(&mut self, cycles: i32) {
+  fn update_timers(&mut self, _cycles: i32) {
     // NOOP
   }
 
   fn update_graphics(&mut self, cycles: i32) {
     self.mmu.ppu.borrow_mut().tick(cycles);
-    self.mmu.InterruptFlags |= self.mmu.ppu.borrow_mut().InterruptFlags;
-    self.mmu.ppu.borrow_mut().InterruptFlags = 0x00;
+    self.mmu.interrupt_flags |= self.mmu.ppu.borrow_mut().interrupt_flags;
+    self.mmu.ppu.borrow_mut().interrupt_flags = 0x00;
   }
 
   fn render_screen(&mut self) {
@@ -150,8 +148,8 @@ impl GameBoy {
     let mut title = String::with_capacity(14);
 
     for i in 0x134..0x142 {
-      let ch = self.mmu.read(i) as char;
-      let mut ch = if ch == '\u{0}' { ' ' } else { ch };
+      let mut ch = self.mmu.read(i) as char;
+      ch = if ch == '\u{0}' { ' ' } else { ch };
 
       title.push(ch)
     }
@@ -185,7 +183,7 @@ fn main() {
   debug!("The game uses {:?} ROM banks", game_boy.mmu.num_rom_banks());
   debug!("The game uses {:?} RAM banks", game_boy.mmu.num_ram_banks());
 
-  let mut events;
+  let events;
   let mut fps_counter = fps::Counter::new();
 
   {
@@ -203,7 +201,7 @@ fn main() {
       }
     }
 
-    // fps_counter.print_fps();
+    fps_counter.print_fps();
 
     game_boy.render_frame();
     // TODO limit to 60fps

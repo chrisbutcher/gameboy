@@ -3,20 +3,11 @@ pub use super::sdl2::pixels;
 pub use super::sdl2::render::Renderer;
 pub use super::sdl2::video::WindowPos;
 
-static mut COUNTER: i32 = 5;
-
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
 const SKIP_RENDERING: bool = true;
-
-fn print_call_count() {
-  unsafe {
-    COUNTER += 1;
-    println!("print_call_count: {}", COUNTER);
-  }
-}
 
 // PPU supports tiles: 8x8 pixel groups
 // Modes: Sprite Read, Video Read, Horizontal Blank, Vertical Blank
@@ -44,7 +35,7 @@ pub struct PPU {
 
   pub horiz_blanking: bool,
 
-  pub InterruptFlags: u8,
+  pub interrupt_flags: u8,
 
   pub sdl_context: sdl2::Sdl,
   pub game_renderer: Renderer<'static>,
@@ -90,7 +81,7 @@ impl PPU {
 
       horiz_blanking: false,
 
-      InterruptFlags: 0x00,
+      interrupt_flags: 0x00,
 
       sdl_context: sdl_context,
       game_renderer: game_renderer,
@@ -101,9 +92,9 @@ impl PPU {
     }
   }
 
-  pub fn new_window(sdl_context: sdl2::Sdl, title: &str, width: i32, height: i32, x_offset: i32) -> (sdl2::video::Window, sdl2::Sdl) {
+  pub fn new_window(sdl_context: sdl2::Sdl, title: &str, width: u32, height: u32, x_offset: i32) -> (sdl2::video::Window, sdl2::Sdl) {
     let video_subsys = sdl_context.video().unwrap();
-    let mut window = video_subsys.window(title, 160, 144).position_centered().opengl().build().unwrap();
+    let mut window = video_subsys.window(title, width, height).position_centered().opengl().build().unwrap();
 
     let position = window.position();
     window.set_position(WindowPos::Positioned(position.0 + x_offset), WindowPos::Positioned(position.1));
@@ -276,7 +267,7 @@ impl PPU {
         let pixel_a = self.framebuffer[ framebuffer_index as usize + 3 ];
 
         self.game_renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-        self.game_renderer.draw_point(sdl2::rect::Point::new(x, y)); // TODO benchmark draw_points
+        self.game_renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap(); // TODO benchmark draw_points
       }
     }
 
@@ -296,7 +287,7 @@ impl PPU {
             self.debug_renderer.set_draw_color(
               pixels::Color::RGBA(pixel_palette[ 0 ], pixel_palette[ 1 ], pixel_palette[ 2 ], pixel_palette[ 3 ]),
             );
-            self.debug_renderer.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8)));
+            self.debug_renderer.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8))).unwrap();
           }
         }
       }
@@ -359,7 +350,7 @@ impl PPU {
         false
       },
       1 => {
-        self.InterruptFlags |= 0x01;
+        self.interrupt_flags |= 0x01;
         // self.updated = true;
         // self.m1_inte
         false
@@ -367,7 +358,7 @@ impl PPU {
       2 => false, //self.m2_inte,
       _ => false,
     } {
-      self.InterruptFlags |= 0x02;
+      self.interrupt_flags |= 0x02;
     }
   }
 }

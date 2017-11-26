@@ -1,6 +1,5 @@
 use std::fmt;
 
-use std::io::prelude::*;
 pub use super::cartridge;
 pub use super::mmu;
 pub mod opcode_cycles;
@@ -63,15 +62,15 @@ impl fmt::Debug for Register {
 }
 
 pub struct CPU {
-  pub AF: Register,
-  pub BC: Register,
-  pub DE: Register,
-  pub HL: Register,
-  pub SP: Register,
-  pub PC: u16,
+  pub af: Register,
+  pub bc: Register,
+  pub de: Register,
+  pub hl: Register,
+  pub sp: Register,
+  pub pc: u16,
 
-  pub BranchTaken: bool,
-  pub IME: bool, // Master interrupt
+  pub branch_taken: bool,
+  pub master_interrupt_toggle: bool, // Master interrupt
   pub ei_cycles: u8,
   pub di_cycles: u8,
 
@@ -96,9 +95,9 @@ impl fmt::Debug for CPU {
     write!(
       f,
       "[PC] {:#X}\n[Regs] A:{:#X}, F:{:#X}, B:{:#X}, C:{:#X}, D:{:#X}, E:{:#X}, H:{:#X}, L:{:#X}\n[Flags]: {} [SP] {:#X}",
-      self.PC, self.AF.read_hi(), self.AF.read_lo(), self.BC.read_hi(), self.BC.read_lo(),
-      self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo(),
-      formatted_flags(self), self.SP.read()
+      self.pc, self.af.read_hi(), self.af.read_lo(), self.bc.read_hi(), self.bc.read_lo(),
+      self.de.read_hi(), self.de.read_lo(), self.hl.read_hi(), self.hl.read_lo(),
+      formatted_flags(self), self.sp.read()
     )
   }
 }
@@ -108,12 +107,12 @@ impl CPU {
     let state_reporter = StateReporter::new("5555");
 
     CPU {
-      AF: Register::new(), BC: Register::new(), DE: Register::new(), HL: Register::new(), SP: Register::new(),
-      PC: 0x0000,
+      af: Register::new(), bc: Register::new(), de: Register::new(), hl: Register::new(), sp: Register::new(),
+      pc: 0x0000,
 
-      BranchTaken: false,
-      IME: true,
-      // IMECycles: 0,
+      branch_taken: false,
+      master_interrupt_toggle: true,
+      // master_interrupt_toggleCycles: 0,
       ei_cycles: 0,
       di_cycles: 0,
 
@@ -124,62 +123,62 @@ impl CPU {
     }
   }
 
-  pub fn write_byte_reg(&mut self, regEnum: RegEnum, byte: u8) {
-    match regEnum {
-      RegEnum::A => self.AF.write_hi(byte),
-      RegEnum::F => self.AF.write_lo(byte),
-      RegEnum::B => self.BC.write_hi(byte),
-      RegEnum::C => self.BC.write_lo(byte),
-      RegEnum::D => self.DE.write_hi(byte),
-      RegEnum::E => self.DE.write_lo(byte),
-      RegEnum::H => self.HL.write_hi(byte),
-      RegEnum::L => self.HL.write_lo(byte),
-      RegEnum::S => self.SP.write_hi(byte),
-      RegEnum::P => self.SP.write_lo(byte),
-      _ => panic!("Unexpected regEnum: {:?}", regEnum),
+  pub fn write_byte_reg(&mut self, reg_enum: RegEnum, byte: u8) {
+    match reg_enum {
+      RegEnum::A => self.af.write_hi(byte),
+      RegEnum::F => self.af.write_lo(byte),
+      RegEnum::B => self.bc.write_hi(byte),
+      RegEnum::C => self.bc.write_lo(byte),
+      RegEnum::D => self.de.write_hi(byte),
+      RegEnum::E => self.de.write_lo(byte),
+      RegEnum::H => self.hl.write_hi(byte),
+      RegEnum::L => self.hl.write_lo(byte),
+      RegEnum::S => self.sp.write_hi(byte),
+      RegEnum::P => self.sp.write_lo(byte),
+      _ => panic!("Unexpected reg_enum: {:?}", reg_enum),
     }
   }
 
-  pub fn write_word_reg(&mut self, regEnum: RegEnum, word: u16) {
-    match regEnum {
-      RegEnum::AF => self.AF.write(word),
-      RegEnum::BC => self.BC.write(word),
-      RegEnum::DE => self.DE.write(word),
-      RegEnum::HL => self.HL.write(word),
-      RegEnum::SP => self.SP.write(word),
-      _ => panic!("Unexpected regEnum: {:?}", regEnum),
+  pub fn write_word_reg(&mut self, reg_enum: RegEnum, word: u16) {
+    match reg_enum {
+      RegEnum::AF => self.af.write(word),
+      RegEnum::BC => self.bc.write(word),
+      RegEnum::DE => self.de.write(word),
+      RegEnum::HL => self.hl.write(word),
+      RegEnum::SP => self.sp.write(word),
+      _ => panic!("Unexpected reg_enum: {:?}", reg_enum),
     }
   }
 
-  pub fn read_byte_reg(&mut self, regEnum: RegEnum) -> u8 {
-    match regEnum {
-      RegEnum::A => self.AF.read_hi(),
-      RegEnum::F => self.AF.read_lo(),
-      RegEnum::B => self.BC.read_hi(),
-      RegEnum::C => self.BC.read_lo(),
-      RegEnum::D => self.DE.read_hi(),
-      RegEnum::E => self.DE.read_lo(),
-      RegEnum::H => self.HL.read_hi(),
-      RegEnum::L => self.HL.read_lo(),
-      RegEnum::S => self.SP.read_hi(),
-      RegEnum::P => self.SP.read_lo(),
-      _ => panic!("Unexpected regEnum: {:?}", regEnum),
+  pub fn read_byte_reg(&mut self, reg_enum: RegEnum) -> u8 {
+    match reg_enum {
+      RegEnum::A => self.af.read_hi(),
+      RegEnum::F => self.af.read_lo(),
+      RegEnum::B => self.bc.read_hi(),
+      RegEnum::C => self.bc.read_lo(),
+      RegEnum::D => self.de.read_hi(),
+      RegEnum::E => self.de.read_lo(),
+      RegEnum::H => self.hl.read_hi(),
+      RegEnum::L => self.hl.read_lo(),
+      RegEnum::S => self.sp.read_hi(),
+      RegEnum::P => self.sp.read_lo(),
+      _ => panic!("Unexpected reg_enum: {:?}", reg_enum),
     }
   }
 
-  pub fn read_word_reg(&mut self, regEnum: RegEnum) -> u16 {
-    match regEnum {
-      RegEnum::AF => self.AF.read(),
-      RegEnum::BC => self.BC.read(),
-      RegEnum::DE => self.DE.read(),
-      RegEnum::HL => self.HL.read(),
-      RegEnum::SP => self.SP.read(),
-      _ => panic!("Unexpected regEnum: {:?}", regEnum),
+  pub fn read_word_reg(&mut self, reg_enum: RegEnum) -> u16 {
+    match reg_enum {
+      RegEnum::AF => self.af.read(),
+      RegEnum::BC => self.bc.read(),
+      RegEnum::DE => self.de.read(),
+      RegEnum::HL => self.hl.read(),
+      RegEnum::SP => self.sp.read(),
+      _ => panic!("Unexpected reg_enum: {:?}", reg_enum),
     }
   }
 
   fn explode(&mut self, message: String) {
-    println!("PC: {:?} tick_counter: {}", self, self.tick_counter);
+    println!("pc: {:?} tick_counter: {}", self, self.tick_counter);
     panic!(message)
   }
 
@@ -194,19 +193,19 @@ impl CPU {
       return 1
     }
 
-    let opcode: u8 = mmu.read(self.PC);
+    let opcode: u8 = mmu.read(self.pc);
 
     if SYNC_STATE && self.tick_counter >= AFTER_TICK_COUNT {
-      // println!("pc: {:4x}, opcode: {:2x}, tick_counter: {}", self.PC, opcode, self.tick_counter);
+      // println!("pc: {:4x}, opcode: {:2x}, tick_counter: {}", self.pc, opcode, self.tick_counter);
 
       let registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
-        self.PC, self.SP.value,
-        self.AF.read_hi(), self.AF.read_lo(), self.BC.read_hi(), self.BC.read_lo(),
-        self.DE.read_hi(), self.DE.read_lo(), self.HL.read_hi(), self.HL.read_lo()
+        self.pc, self.sp.value,
+        self.af.read_hi(), self.af.read_lo(), self.bc.read_hi(), self.bc.read_lo(),
+        self.de.read_hi(), self.de.read_lo(), self.hl.read_hi(), self.hl.read_lo()
       );
 
-      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, IME: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.IME, mmu.InterruptEnabled, mmu.InterruptFlags);
+      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, master_interrupt_toggle: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.master_interrupt_toggle, mmu.interrupt_enabled, mmu.interrupt_flags);
       self.state_reporter.send_message(msg.as_bytes());
       let received = self.state_reporter.receive_message();
       if received == "kill" {
@@ -216,34 +215,34 @@ impl CPU {
 
     self.tick_counter += 1;
 
-    self.PC += 1;
+    self.pc += 1;
 
     self.execute_opcode(opcode, mmu)
   }
 
   pub fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
-    if self.IME == false && self.halted == false { return 0 }
+    if self.master_interrupt_toggle == false && self.halted == false { return 0 }
 
-    let interrupt_to_handle = mmu.InterruptEnabled & mmu.InterruptFlags;
+    let interrupt_to_handle = mmu.interrupt_enabled & mmu.interrupt_flags;
     if interrupt_to_handle == 0 { return 0 }
 
     self.halted = false;
-    if self.IME == false { return 0 }
-    self.IME = false;
+    if self.master_interrupt_toggle == false { return 0 }
+    self.master_interrupt_toggle = false;
 
     let interrupt_offset = interrupt_to_handle.trailing_zeros() as u16;
     if interrupt_offset >= 5 { panic!("Invalid interrupt"); }
 
-    mmu.InterruptFlags &= !(1 << interrupt_offset);
+    mmu.interrupt_flags &= !(1 << interrupt_offset);
 
-    let current_PC = self.PC;
-    self.stack_push(current_PC, mmu);
+    let current_pc = self.pc;
+    self.stack_push(current_pc, mmu);
 
     if interrupt_offset != 0 {
       panic!("Doing interrupt other than vblank, {}", interrupt_offset);
     }
 
-    self.PC = 0x0040 | ((interrupt_offset) << 3);
+    self.pc = 0x0040 | ((interrupt_offset) << 3);
 
     16
   }
@@ -251,12 +250,12 @@ impl CPU {
   fn update_ime(&mut self) {
     self.di_cycles = match self.di_cycles {
         2 => 1,
-        1 => { self.IME = false; 0 },
+        1 => { self.master_interrupt_toggle = false; 0 },
         _ => 0,
     };
     self.ei_cycles = match self.ei_cycles {
         2 => 1,
-        1 => { self.IME = true; 0 },
+        1 => { self.master_interrupt_toggle = true; 0 },
         _ => 0,
     };
   }
@@ -662,7 +661,8 @@ impl CPU {
       0x8F => self.explode(format!("ADC A,A : adc_a_a() not implemented! {:#X}", opcode)),
       0x90 => {
         debug!("SUB B");
-        self.sub_b()
+        let b = self.read_byte_reg(RegEnum::B);
+        shared_sub_n(self, b, false)
       }
       0x91 => self.explode(format!("SUB C : sub_c() not implemented! {:#X}", opcode)),
       0x92 => self.explode(format!("SUB D : sub_d() not implemented! {:#X}", opcode)),
@@ -753,10 +753,10 @@ impl CPU {
       0xB7 => self.explode(format!("OR A : or_a() not implemented! {:#X}", opcode)),
       0xB8 => {
         debug!("CP B : cp_b()");
-        let A = self.read_byte_reg(RegEnum::A);
+        let a = self.read_byte_reg(RegEnum::A);
         let value = self.read_byte_reg(RegEnum::B);
         shared_cp(self, value);
-        self.write_byte_reg(RegEnum::A, A);
+        self.write_byte_reg(RegEnum::A, a);
       }
       0xB9 => self.explode(format!("CP C : cp_c() not implemented! {:#X}", opcode)),
       0xBA => self.explode(format!("CP D : cp_d() not implemented! {:#X}", opcode)),
@@ -811,7 +811,7 @@ impl CPU {
       }
       0xCB => {
         debug!("CB prefixed instruction");
-        cb_opcode = Some(mmu.read(self.PC));
+        cb_opcode = Some(mmu.read(self.pc));
         self.cb_prefixed_instruction(cb_opcode.unwrap(), mmu)
       }
       0xCC => self.explode(format!("CALL Z,nn : call_z_nn() not implemented! {:#X}", opcode)),
@@ -835,7 +835,7 @@ impl CPU {
       }
       0xD6 => {
         debug!("SUB n : sub_n()");
-        let value = mmu.read(self.PC);
+        let value = mmu.read(self.pc);
         shared_sub_n(self, value, false);
       }
       0xD7 => self.explode(format!("RST 10H : rst_10h() not implemented! {:#X}", opcode)),
@@ -899,10 +899,7 @@ impl CPU {
         self.pop_af(mmu)
       }
       0xF2 => self.explode(format!("LD A,(C) : ld_a_c() not implemented! {:#X}", opcode)),
-      0xF3 => {
-        debug!("DI");
-        self.di(mmu)
-      }
+      0xF3 => { debug!("DI"); self.di() }
       0xF4 => debug!("Unhandled opcode"),
       0xF5 => {
         debug!("PUSH AF");
@@ -919,10 +916,7 @@ impl CPU {
         debug!("LD A,(nn)");
         self.ld_a_nn(mmu)
       }
-      0xFB => {
-        debug!("EI");
-        self.ei(mmu)
-      }
+      0xFB => { debug!("EI"); self.ei() }
       0xFC => debug!("Unhandled opcode"),
       0xFD => debug!("Unhandled opcode"),
       0xFE => {
@@ -936,8 +930,8 @@ impl CPU {
     let raw_cycles = if opcode == 0xCB {
       opcode_cycles::cb(cb_opcode.unwrap())
     } else {
-      if self.BranchTaken {
-        self.BranchTaken = false;
+      if self.branch_taken {
+        self.branch_taken = false;
         opcode_cycles::branch(opcode)
       } else {
         opcode_cycles::regular(opcode)
@@ -951,75 +945,75 @@ impl CPU {
   fn nop(&self) {}
 
   fn jp_nn(&mut self, mmu: &mmu::MMU) {
-    self.PC = mmu.read_word(self.PC);
+    self.pc = mmu.read_word(self.pc);
   }
 
   fn xor_a(&mut self) {
-    let A = self.AF.read_hi();
-    shared_xor_n(self, A);
+    let a = self.af.read_hi();
+    shared_xor_n(self, a);
   }
 
   fn xor_b(&mut self) {
-    let B = self.BC.read_hi();
-    shared_xor_n(self, B);
+    let b = self.bc.read_hi();
+    shared_xor_n(self, b);
   }
 
   fn xor_c(&mut self) {
-    let C = self.BC.read_lo();
-    shared_xor_n(self, C);
+    let c = self.bc.read_lo();
+    shared_xor_n(self, c);
   }
 
   fn xor_d(&mut self) {
-    let D = self.DE.read_hi();
-    shared_xor_n(self, D);
+    let d = self.de.read_hi();
+    shared_xor_n(self, d);
   }
 
   fn xor_e(&mut self) {
-    let E = self.DE.read_lo();
-    shared_xor_n(self, E);
+    let e = self.de.read_lo();
+    shared_xor_n(self, e);
   }
 
   fn xor_h(&mut self) {
-    let H = self.HL.read_hi();
-    shared_xor_n(self, H);
+    let h = self.hl.read_hi();
+    shared_xor_n(self, h);
   }
 
   fn xor_l(&mut self) {
-    let L = self.HL.read_lo();
-    shared_xor_n(self, L);
+    let l = self.hl.read_lo();
+    shared_xor_n(self, l);
   }
 
   fn ld_hl_nn(&mut self, mmu: &mut mmu::MMU) {
-    let value = mmu.read_word(self.PC);
+    let value = mmu.read_word(self.pc);
     self.write_word_reg(RegEnum::HL, value);
-    self.PC += 2;
+    self.pc += 2;
   }
 
   fn ld_hl_n(&mut self, mmu: &mut mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     let address = self.read_word_reg(RegEnum::HL);
     mmu.write(address, value);
 
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn ld_b_n(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     shared_ld_n_n(self, RegEnum::B, value);
   }
 
   fn ld_c_n(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     shared_ld_n_n(self, RegEnum::C, value);
   }
 
   fn ld_d_n(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     shared_ld_n_n(self, RegEnum::D, value);
   }
 
   fn ld_e_n(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     shared_ld_n_n(self, RegEnum::E, value);
   }
 
@@ -1061,18 +1055,13 @@ impl CPU {
     shared_dec_byte_reg(self, RegEnum::L);
   }
 
-  fn sub_b(&mut self) {
-    shared_sub_byte_reg(self, RegEnum::B);
-  }
-
   fn jr_nz_n(&mut self, mmu: &mmu::MMU) {
-    let addr = self.PC;
-    let offset = mmu.read(self.PC) as i8;
-    self.PC = self.PC.wrapping_add(1);
+    let offset = mmu.read(self.pc) as i8;
+    self.pc = self.pc.wrapping_add(1);
 
     if !self.util_is_flag_set(FLAG_ZERO) {
-      self.PC = self.PC.wrapping_add(offset as u16);
-      self.BranchTaken = true;
+      self.pc = self.pc.wrapping_add(offset as u16);
+      self.branch_taken = true;
     }
   }
 
@@ -1175,46 +1164,41 @@ impl CPU {
     self.write_byte_reg(RegEnum::H, operand)
   }
 
-  fn adc_a_c(&mut self) {
-    let operand = self.read_byte_reg(RegEnum::C);
-    shared_adc(self, operand);
-  }
-
   fn ld_a_n(&mut self, mmu: &mmu::MMU) {
-    let operand = mmu.read(self.PC);
+    let operand = mmu.read(self.pc);
     self.write_byte_reg(RegEnum::A, operand);
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn ld_l_n(&mut self, mmu: &mmu::MMU) {
-    let operand = mmu.read(self.PC);
+    let operand = mmu.read(self.pc);
     self.write_byte_reg(RegEnum::L, operand);
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn ld_0xff00_plus_n_a(&mut self, mmu: &mut mmu::MMU) {
     let value = self.read_byte_reg(RegEnum::A);
-    let operand = mmu.read(self.PC) as u16;
+    let operand = mmu.read(self.pc) as u16;
 
     mmu.write(0xFF00 + operand, value);
 
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn ld_a_0xff00_plus_n(&mut self, mmu: &mut mmu::MMU) {
-    let operand = mmu.read(self.PC) as u16;
+    let operand = mmu.read(self.pc) as u16;
     let value = mmu.read(0xFF00 + operand);
 
     self.write_byte_reg(RegEnum::A, value);
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn cp_n(&mut self, mmu: &mut mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     let a = self.read_byte_reg(RegEnum::A);
     shared_cp(self, value);
     self.write_byte_reg(RegEnum::A, a);
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn cp_hl(&mut self, mmu: &mut mmu::MMU) {
@@ -1224,16 +1208,16 @@ impl CPU {
   }
 
   fn ld_nn_a(&mut self, mmu: &mut mmu::MMU) {
-    let address = mmu.read_word(self.PC);
+    let address = mmu.read_word(self.pc);
     let value = self.read_byte_reg(RegEnum::A);
     mmu.write(address, value);
 
-    self.PC += 2;
+    self.pc += 2;
   }
 
   fn ld_sp_nn(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read_word(self.PC);
-    self.PC += 2;
+    let value = mmu.read_word(self.pc);
+    self.pc += 2;
 
     self.write_word_reg(RegEnum::SP, value);
   }
@@ -1279,9 +1263,9 @@ impl CPU {
   }
 
   fn call_nn(&mut self, mmu: &mut mmu::MMU) {
-    let current_PC = self.PC; // Get current PC
-    self.PC = mmu.read_word(self.PC); // set PC to nn
-    self.stack_push(current_PC + 2, mmu); // Push onto stack current PC + 2
+    let current_pc = self.pc; // Get current PC
+    self.pc = mmu.read_word(self.pc); // set PC to nn
+    self.stack_push(current_pc + 2, mmu); // Push onto stack current PC + 2
   }
 
   fn call_nz_nn(&mut self, mmu: &mut mmu::MMU) {
@@ -1291,10 +1275,10 @@ impl CPU {
   }
 
   fn ld_bc_nn(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read_word(self.PC);
+    let value = mmu.read_word(self.pc);
     self.write_word_reg(RegEnum::BC, value);
 
-    self.PC += 2;
+    self.pc += 2;
   }
 
   fn dec_bc(&mut self) {
@@ -1302,9 +1286,9 @@ impl CPU {
   }
 
   fn or_n(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     shared_or_n(self, value);
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn or_b(&mut self) {
@@ -1318,7 +1302,7 @@ impl CPU {
   }
 
   fn ret(&mut self, mmu: &mmu::MMU) {
-    self.PC = self.stack_pop(mmu);
+    self.pc = self.stack_pop(mmu);
   }
 
   fn ld_hl_a(&mut self, mmu: &mut mmu::MMU) {
@@ -1347,20 +1331,20 @@ impl CPU {
   }
 
   fn and_n(&mut self, mmu: &mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     shared_and_n(self, value);
 
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn jr_z_n(&mut self, mmu: &mmu::MMU) {
     if self.util_is_flag_set(FLAG_ZERO) {
-      let operand_dest = mmu.read(self.PC) as i8;
-      self.PC = self.PC.wrapping_add((1 + operand_dest) as u16);
+      let operand_dest = mmu.read(self.pc) as i8;
+      self.pc = self.pc.wrapping_add((1 + operand_dest) as u16);
 
-      self.BranchTaken = true;
+      self.branch_taken = true;
     } else {
-      self.PC += 1;
+      self.pc += 1;
     }
   }
 
@@ -1377,10 +1361,10 @@ impl CPU {
   }
 
   fn inc_hl_indirect(&mut self, mmu: &mut mmu::MMU) {
-    let HL = self.read_word_reg(RegEnum::HL);
-    let value = mmu.read(HL);
+    let hl = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(hl);
     let result = value.wrapping_add(1);
-    mmu.write(HL, result);
+    mmu.write(hl, result);
 
     if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
     self.util_toggle_zero_flag_from_result(result);
@@ -1391,10 +1375,10 @@ impl CPU {
   }
 
   fn dec_hl_indirect(&mut self, mmu: &mut mmu::MMU) {
-    let HL = self.read_word_reg(RegEnum::HL);
-    let value = mmu.read(HL);
+    let hl = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(hl);
     let result = value.wrapping_sub(1);
-    mmu.write(HL, result);
+    mmu.write(hl, result);
 
     if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
     self.util_toggle_flag(FLAG_SUB);
@@ -1405,11 +1389,11 @@ impl CPU {
     }
   }
 
-  fn ei(&mut self, mmu: &mut mmu::MMU) {
+  fn ei(&mut self) {
     self.ei_cycles = 2;
   }
 
-  fn di(&mut self, mmu: &mut mmu::MMU) {
+  fn di(&mut self) {
     self.di_cycles = 2;
   }
 
@@ -1478,29 +1462,29 @@ impl CPU {
 
   fn ret_nz(&mut self, mmu: &mut mmu::MMU) {
     if !self.util_is_flag_set(FLAG_ZERO) {
-      self.PC = self.stack_pop(mmu);
-      self.BranchTaken = true;
+      self.pc = self.stack_pop(mmu);
+      self.branch_taken = true;
     }
   }
 
   fn ld_a_nn(&mut self, mmu: &mut mmu::MMU) {
-    let address = mmu.read_word(self.PC);
+    let address = mmu.read_word(self.pc);
     let value = mmu.read(address);
     self.write_byte_reg(RegEnum::A, value);
 
-    self.PC += 2;
+    self.pc += 2;
   }
 
   fn ret_z(&mut self, mmu: &mut mmu::MMU) {
     if self.util_is_flag_set(FLAG_ZERO) {
-      self.PC = self.stack_pop(mmu);
-      self.BranchTaken = true;
+      self.pc = self.stack_pop(mmu);
+      self.branch_taken = true;
     }
   }
 
   fn pop_af(&mut self, mmu: &mut mmu::MMU) {
-    let current_SP = self.read_word_reg(RegEnum::SP);
-    let value = mmu.read_word(current_SP);
+    let current_sp = self.read_word_reg(RegEnum::SP);
+    let value = mmu.read_word(current_sp);
     self.write_word_reg(RegEnum::AF, value);
     self.stack_pop(mmu);
   }
@@ -1511,34 +1495,34 @@ impl CPU {
   }
 
   fn pop_de(&mut self, mmu: &mut mmu::MMU) {
-    let current_SP = self.read_word_reg(RegEnum::SP);
-    let value = mmu.read_word(current_SP);
+    let current_sp = self.read_word_reg(RegEnum::SP);
+    let value = mmu.read_word(current_sp);
     self.write_word_reg(RegEnum::DE, value);
     self.stack_pop(mmu);
   }
 
   fn pop_hl(&mut self, mmu: &mut mmu::MMU) {
-    let current_SP = self.read_word_reg(RegEnum::SP);
-    let value = mmu.read_word(current_SP);
+    let current_sp = self.read_word_reg(RegEnum::SP);
+    let value = mmu.read_word(current_sp);
     self.write_word_reg(RegEnum::HL, value);
     self.stack_pop(mmu);
   }
 
   fn reti(&mut self, mmu: &mut mmu::MMU) {
-    self.PC = self.stack_pop(mmu);
+    self.pc = self.stack_pop(mmu);
     self.ei_cycles = 1;
   }
 
   fn rst_28h(&mut self, mmu: &mut mmu::MMU) {
-    let current_PC = self.PC;
-    self.stack_push(current_PC, mmu);
-    self.PC = 0x28;
+    let current_pc = self.pc;
+    self.stack_push(current_pc, mmu);
+    self.pc = 0x28;
   }
 
   fn add_a_n(&mut self, mmu: &mut mmu::MMU) {
-    let value = mmu.read(self.PC);
+    let value = mmu.read(self.pc);
     shared_add_n(self, value, false);
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn add_a_hl(&mut self, mmu: &mut mmu::MMU) {
@@ -1573,14 +1557,14 @@ impl CPU {
 
   fn jp_hl(&mut self) {
     let address = self.read_word_reg(RegEnum::HL);
-    self.PC = address;
+    self.pc = address;
   }
 
   fn ld_de_nn(&mut self, mmu: &mut mmu::MMU) {
-    let value = mmu.read_word(self.PC);
+    let value = mmu.read_word(self.pc);
     self.write_word_reg(RegEnum::DE, value);
 
-    self.PC += 2;
+    self.pc += 2;
   }
 
   fn ld_a_de(&mut self, mmu: &mut mmu::MMU) {
@@ -1595,21 +1579,21 @@ impl CPU {
 
   fn jp_z_nn(&mut self, mmu: &mut mmu::MMU) {
     if self.util_is_flag_set(FLAG_ZERO) {
-      let address = mmu.read_word(self.PC);
-      self.PC = address;
-      self.BranchTaken = true;
+      let address = mmu.read_word(self.pc);
+      self.pc = address;
+      self.branch_taken = true;
     } else {
-      self.PC += 2;
+      self.pc += 2;
     }
   }
 
   fn jp_nz_nn(&mut self, mmu: &mut mmu::MMU) {
     if !self.util_is_flag_set(FLAG_ZERO) {
-      let address = mmu.read_word(self.PC);
-      self.PC = address;
-      self.BranchTaken = true;
+      let address = mmu.read_word(self.pc);
+      self.pc = address;
+      self.branch_taken = true;
     } else {
-      self.PC += 2;
+      self.pc += 2;
     }
   }
 
@@ -1624,27 +1608,27 @@ impl CPU {
   }
 
   fn jr_n(&mut self, mmu: &mut mmu::MMU) {
-    let operand_dest = mmu.read(self.PC) as i8;
-    self.PC = self.PC.wrapping_add((1 + operand_dest) as u16);
+    let operand_dest = mmu.read(self.pc) as i8;
+    self.pc = self.pc.wrapping_add((1 + operand_dest) as u16);
   }
 
   // Helpers
 
   fn cb_prefixed_instruction(&mut self, cb_opcode: u8, mmu: &mut mmu::MMU) {
     self.execute_cb_opcode(cb_opcode, mmu);
-    self.PC += 1;
+    self.pc += 1;
   }
 
   fn stack_push(&mut self, word: u16, mmu: &mut mmu::MMU) {
-    let current_SP = self.read_word_reg(RegEnum::SP); // TODO just manipulate .value directly
-    self.write_word_reg(RegEnum::SP, current_SP - 2);
+    let current_sp = self.read_word_reg(RegEnum::SP); // TODO just manipulate .value directly
+    self.write_word_reg(RegEnum::SP, current_sp - 2);
     mmu.write_word(self.read_word_reg(RegEnum::SP), word);
   }
 
   fn stack_pop(&mut self, mmu: &mmu::MMU) -> u16 {
-    let current_SP = self.read_word_reg(RegEnum::SP);
-    let popped_value = mmu.read_word(current_SP);
-    self.SP.write(current_SP + 2);
+    let current_sp = self.read_word_reg(RegEnum::SP);
+    let popped_value = mmu.read_word(current_sp);
+    self.sp.write(current_sp + 2);
 
     popped_value
   }
@@ -1665,32 +1649,26 @@ impl CPU {
     }
   }
 
-  fn util_toggle_zero_flag_from_word_result(&mut self, result: u16) {
-    if result == 0 {
-      self.util_toggle_flag(FLAG_ZERO);
-    }
-  }
-
   fn util_clear_all_flags(&mut self) {
     self.util_set_flag(FLAG_NONE);
   }
 
   fn util_set_flag(&mut self, byte: u8) {
-    self.AF.write_lo(byte);
+    self.af.write_lo(byte);
   }
 
   fn util_is_flag_set(&self, byte: u8) -> bool {
-    (self.AF.read_lo() & byte) != 0
+    (self.af.read_lo() & byte) != 0
   }
 
   fn util_toggle_flag(&mut self, byte: u8) {
-    let previous_flags = self.AF.read_lo();
-    self.AF.write_lo(previous_flags | byte);
+    let previous_flags = self.af.read_lo();
+    self.af.write_lo(previous_flags | byte);
   }
 
   fn util_untoggle_flag(&mut self, byte: u8) {
-    let previous_flags = self.AF.read_lo();
-    self.AF.write_lo(previous_flags & (!byte));
+    let previous_flags = self.af.read_lo();
+    self.af.write_lo(previous_flags & (!byte));
   }
 
   // CB opcode handling
@@ -1985,15 +1963,7 @@ impl CPU {
     let address = self.read_word_reg(RegEnum::HL);
     let value = mmu.read(address);
     let result = value & (!(0x1 << bit));
-    mmu.write(address, value);
-  }
-
-  fn bit_7_a(&mut self) {
-    shared_bit_n_reg(self, 7, RegEnum::A);
-  }
-
-  fn bit_7_h(&mut self, bit_number: u8, register: RegEnum) {
-    shared_bit_n_reg(self, bit_number, register);
+    mmu.write(address, result);
   }
 
   fn rl_c(&mut self) {
@@ -2009,14 +1979,14 @@ impl CPU {
   }
 }
 
-fn shared_reset_bit_reg(cpu: &mut CPU, bit: u8, regEnum: RegEnum) {
-  let value = cpu.read_byte_reg(regEnum);
+fn shared_reset_bit_reg(cpu: &mut CPU, bit: u8, reg_enum: RegEnum) {
+  let value = cpu.read_byte_reg(reg_enum);
   let result = value & (!(0x1 << bit));
-  cpu.write_byte_reg(regEnum, result);
+  cpu.write_byte_reg(reg_enum, result);
 }
 
-fn shared_bit_n_reg(cpu: &mut CPU, bit: u8, regEnum: RegEnum) {
-  let reg_value = cpu.read_byte_reg(regEnum);
+fn shared_bit_n_reg(cpu: &mut CPU, bit: u8, reg_enum: RegEnum) {
+  let reg_value = cpu.read_byte_reg(reg_enum);
   let result = reg_value & (1 << (bit as u32)) == 0;
 
   cpu.util_set_flag_by_boolean(FLAG_SUB, false);
@@ -2039,10 +2009,10 @@ fn shared_bit_n_hl(cpu: &mut CPU, bit: u8, mmu: &mmu::MMU) {
   cpu.util_untoggle_flag(FLAG_SUB);
 }
 
-fn shared_rl_n(cpu: &mut CPU, regEnum: RegEnum) {
+fn shared_rl_n(cpu: &mut CPU, reg_enum: RegEnum) {
   let carry = cpu.util_is_flag_set(FLAG_CARRY);
 
-  let mut result = cpu.read_byte_reg(regEnum);
+  let mut result = cpu.read_byte_reg(reg_enum);
   if result & 0x80 != 0 {
     cpu.util_set_flag(FLAG_CARRY);
   } else {
@@ -2052,15 +2022,15 @@ fn shared_rl_n(cpu: &mut CPU, regEnum: RegEnum) {
   result <<= 1;
   result |= carry as u8;
 
-  cpu.write_byte_reg(regEnum, result);
+  cpu.write_byte_reg(reg_enum, result);
 
-  if regEnum != RegEnum::A {
+  if reg_enum != RegEnum::A {
     cpu.util_toggle_zero_flag_from_result(result);
   }
 }
 
-fn shared_sla_n(cpu: &mut CPU, regEnum: RegEnum) {
-  let value = cpu.read_byte_reg(regEnum);
+fn shared_sla_n(cpu: &mut CPU, reg_enum: RegEnum) {
+  let value = cpu.read_byte_reg(reg_enum);
   if value & 0x80 != 0 {
     cpu.util_set_flag(FLAG_CARRY);
   } else {
@@ -2069,17 +2039,17 @@ fn shared_sla_n(cpu: &mut CPU, regEnum: RegEnum) {
 
   let result = value << 1;
 
-  cpu.write_byte_reg(regEnum, result);
+  cpu.write_byte_reg(reg_enum, result);
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
-fn shared_srl_n(cpu: &mut CPU, regEnum: RegEnum) {
-  let value = cpu.read_byte_reg(regEnum);
+fn shared_srl_n(cpu: &mut CPU, reg_enum: RegEnum) {
+  let value = cpu.read_byte_reg(reg_enum);
   let carry = value & 0x01 == 0x01;
   let result = value >> 1;
 
   shared_update_srl_flags(cpu, result, carry);
-  cpu.write_byte_reg(regEnum, result);
+  cpu.write_byte_reg(reg_enum, result);
 }
 
 fn shared_update_srl_flags(cpu: &mut CPU, result: u8, carry: bool) {
@@ -2089,43 +2059,43 @@ fn shared_update_srl_flags(cpu: &mut CPU, result: u8, carry: bool) {
   cpu.util_set_flag_by_boolean(FLAG_CARRY, carry);
 }
 
-fn shared_ld_reg_n(cpu: &mut CPU, regEnum: RegEnum, mmu: &mmu::MMU) {
-    let operand = mmu.read(cpu.PC);
-    cpu.write_byte_reg(regEnum, operand);
-    cpu.PC += 1;
+fn shared_ld_reg_n(cpu: &mut CPU, reg_enum: RegEnum, mmu: &mmu::MMU) {
+    let operand = mmu.read(cpu.pc);
+    cpu.write_byte_reg(reg_enum, operand);
+    cpu.pc += 1;
   }
 
-fn shared_swap_register(cpu: &mut CPU, regEnum: RegEnum) {
-  let value = cpu.read_byte_reg(regEnum);
+fn shared_swap_register(cpu: &mut CPU, reg_enum: RegEnum) {
+  let value = cpu.read_byte_reg(reg_enum);
   let low_half = value & 0x0F;
   let high_half = (value >> 4) & 0x0F;
   let result = (low_half << 4) + high_half;
-  cpu.write_byte_reg(regEnum, result);
+  cpu.write_byte_reg(reg_enum, result);
 
   cpu.util_clear_all_flags();
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
-fn shared_inc_word_reg(cpu: &mut CPU, regEnum: RegEnum) {
-  let result = cpu.read_word_reg(regEnum).wrapping_add(1);
-  cpu.write_word_reg(regEnum, result);
+fn shared_inc_word_reg(cpu: &mut CPU, reg_enum: RegEnum) {
+  let result = cpu.read_word_reg(reg_enum).wrapping_add(1);
+  cpu.write_word_reg(reg_enum, result);
 }
 
 fn shared_xor_n(cpu: &mut CPU, byte: u8) {
-  let result = cpu.AF.read_hi() ^ byte;
+  let result = cpu.af.read_hi() ^ byte;
   cpu.write_byte_reg(RegEnum::A, result);
   cpu.util_clear_all_flags();
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
-fn shared_ld_n_n(cpu: &mut CPU, regEnum: RegEnum, byte: u8) {
-  cpu.write_byte_reg(regEnum, byte);
-  cpu.PC += 1;
+fn shared_ld_n_n(cpu: &mut CPU, reg_enum: RegEnum, byte: u8) {
+  cpu.write_byte_reg(reg_enum, byte);
+  cpu.pc += 1;
 }
 
-fn shared_inc_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
-  let result = cpu.read_byte_reg(regEnum).wrapping_add(1);
-  cpu.write_byte_reg(regEnum, result);
+fn shared_inc_byte_reg(cpu: &mut CPU, reg_enum: RegEnum) {
+  let result = cpu.read_byte_reg(reg_enum).wrapping_add(1);
+  cpu.write_byte_reg(reg_enum, result);
 
   if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
   cpu.util_toggle_zero_flag_from_result(result);
@@ -2137,38 +2107,38 @@ fn shared_inc_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
 
 fn shared_add_n(cpu: &mut CPU, byte: u8, carry_preserve: bool) {
   let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
-  let A = cpu.read_byte_reg(RegEnum::A);
-  let result = A.wrapping_add(byte).wrapping_add(carry);
+  let a = cpu.read_byte_reg(RegEnum::A);
+  let result = a.wrapping_add(byte).wrapping_add(carry);
 
   cpu.util_set_flag_by_boolean(FLAG_ZERO, result == 0);
-  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0xF) + (byte & 0xF) + carry > 0xF);
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (a & 0xF) + (byte & 0xF) + carry > 0xF);
   cpu.util_set_flag_by_boolean(FLAG_SUB, false);
-  cpu.util_set_flag_by_boolean(FLAG_CARRY, (A as u16) + (byte as u16) + (carry as u16) > 0xFF);
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, (a as u16) + (byte as u16) + (carry as u16) > 0xFF);
 
   cpu.write_byte_reg(RegEnum::A, result);
 }
 
-fn shared_add_word_and_word_regs(cpu: &mut CPU, regEnum1: RegEnum, regEnum2: RegEnum) {
-  let value_1 = cpu.read_word_reg(regEnum1);
-  let value_2 = cpu.read_word_reg(regEnum2);
+fn shared_add_word_and_word_regs(cpu: &mut CPU, reg_enum1: RegEnum, reg_enum2: RegEnum) {
+  let value_1 = cpu.read_word_reg(reg_enum1);
+  let value_2 = cpu.read_word_reg(reg_enum2);
 
   let result = value_1.wrapping_add(value_2);
 
   cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (value_1 & 0x07FF) + (value_2 & 0x07FF) > 0x07FF);
   cpu.util_set_flag_by_boolean(FLAG_SUB, false);
   cpu.util_set_flag_by_boolean(FLAG_CARRY, value_1 > 0xFFFF - value_2);
-  cpu.write_word_reg(regEnum1, result);
+  cpu.write_word_reg(reg_enum1, result);
 }
 
-fn shared_ld_n_nn(cpu: &mut CPU, mmu: &mut mmu::MMU, regEnumDst: RegEnum, regEnumSrc: RegEnum) {
-  let address = cpu.read_word_reg(regEnumSrc);
+fn shared_ld_n_nn(cpu: &mut CPU, mmu: &mut mmu::MMU, reg_enum_dst: RegEnum, reg_enum_src: RegEnum) {
+  let address = cpu.read_word_reg(reg_enum_src);
   let value = mmu.read(address);
-  cpu.write_byte_reg(regEnumDst, value);
+  cpu.write_byte_reg(reg_enum_dst, value);
 }
 
-fn shared_dec_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
-  let result = cpu.read_byte_reg(regEnum).wrapping_sub(1);
-  cpu.write_byte_reg(regEnum, result);
+fn shared_dec_byte_reg(cpu: &mut CPU, reg_enum: RegEnum) {
+  let result = cpu.read_byte_reg(reg_enum).wrapping_sub(1);
+  cpu.write_byte_reg(reg_enum, result);
 
   if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
   cpu.util_toggle_flag(FLAG_SUB);
@@ -2179,56 +2149,34 @@ fn shared_dec_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
   }
 }
 
-fn shared_sub_byte_reg(cpu: &mut CPU, regEnum: RegEnum) {
-  let A = cpu.read_byte_reg(RegEnum::A);
-  let number = cpu.read_byte_reg(regEnum);
-  let result = A - number;
-  let carry_bits = A ^ number ^ result;
-
-  cpu.write_byte_reg(RegEnum::A, carry_bits as u8);
-  cpu.util_set_flag(FLAG_SUB);
-  cpu.util_toggle_zero_flag_from_result(result as u8);
-
-  if carry_bits & 0x100 != 0 {
-    cpu.util_toggle_flag(FLAG_CARRY);
-  }
-
-  if carry_bits & 0x10 != 0 {
-    cpu.util_toggle_flag(FLAG_HALF_CARRY);
-  }
+fn shared_dec_word_reg(cpu: &mut CPU, reg_enum: RegEnum) {
+  let result = cpu.read_word_reg(reg_enum).wrapping_sub(1);
+  cpu.write_word_reg(reg_enum, result);
 }
 
-fn shared_dec_word_reg(cpu: &mut CPU, regEnum: RegEnum) {
-  let result = cpu.read_word_reg(regEnum).wrapping_sub(1);
-  cpu.write_word_reg(regEnum, result);
-}
-
-fn shared_rotate_rr(cpu: &mut CPU, regEnum: RegEnum) {
+fn shared_rotate_rr(cpu: &mut CPU, reg_enum: RegEnum) {
   let carry = if cpu.util_is_flag_set(FLAG_CARRY) { 0x80 } else { 0x00 };
-  let result = cpu.read_byte_reg(regEnum);
+  let result = cpu.read_byte_reg(reg_enum);
 
   if result & 0x01 != 0 { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
   let result = result >> 1;
   let result = result | carry;
-  cpu.write_byte_reg(regEnum, result);
+  cpu.write_byte_reg(reg_enum, result);
 
-  match regEnum {
+  match reg_enum {
     RegEnum::A => cpu.util_toggle_zero_flag_from_result(result),
     _ => {} // NOTE Only do this for Register A
   }
 }
 
-fn shared_adc(cpu: &mut CPU, byte: u8) {
-}
-
 fn shared_cp(cpu: &mut CPU, byte: u8) {
-  let A = cpu.read_byte_reg(RegEnum::A);
-  let result = A.wrapping_sub(byte);
+  let a = cpu.read_byte_reg(RegEnum::A);
+  let result = a.wrapping_sub(byte);
 
   cpu.util_set_flag_by_boolean(FLAG_ZERO, result == 0);
-  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0x0F) < (byte & 0x0F));
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (a & 0x0F) < (byte & 0x0F));
   cpu.util_set_flag_by_boolean(FLAG_SUB, true);
-  cpu.util_set_flag_by_boolean(FLAG_CARRY, (A as u16) < (byte as u16));
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, (a as u16) < (byte as u16));
 
   cpu.write_byte_reg(RegEnum::A, result);
 }
@@ -2247,26 +2195,26 @@ fn shared_and_n(cpu: &mut CPU, byte: u8) {
   cpu.util_toggle_zero_flag_from_result(result);
 }
 
-fn shared_rlc_n(cpu: &mut CPU, regEnum: RegEnum) {
-  let value = cpu.read_byte_reg(regEnum);
+fn shared_rlc_n(cpu: &mut CPU, reg_enum: RegEnum) {
+  let value = cpu.read_byte_reg(reg_enum);
   let carry = value & 0x80 == 0x80;
   let result = (value << 1) | (if carry { 1 } else { 0 });
   shared_update_srl_flags(cpu, result, carry);
-  cpu.write_byte_reg(regEnum, result);
+  cpu.write_byte_reg(reg_enum, result);
 }
 
 fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
   let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
-  let A = cpu.read_byte_reg(RegEnum::A);
-  let result = A.wrapping_sub(value).wrapping_sub(carry);
+  let a = cpu.read_byte_reg(RegEnum::A);
+  let result = a.wrapping_sub(value).wrapping_sub(carry);
 
   cpu.util_set_flag_by_boolean(FLAG_ZERO, result == 0);
-  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (A & 0x0F) < (value & 0x0F) + carry);
+  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (a & 0x0F) < (value & 0x0F) + carry);
   cpu.util_set_flag_by_boolean(FLAG_SUB, true);
-  cpu.util_set_flag_by_boolean(FLAG_CARRY, (A as u16) < (value as u16) + (carry as u16));
+  cpu.util_set_flag_by_boolean(FLAG_CARRY, (a as u16) < (value as u16) + (carry as u16));
   cpu.write_byte_reg(RegEnum::A, result);
 
-  cpu.PC += 1;
+  cpu.pc += 1;
 }
 
 // #[test]
@@ -2297,7 +2245,7 @@ fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
 //
 //   let cycles = cpu.execute_next_opcode(&mut mmu);
 //   assert_eq!(4, cycles);
-//   assert_eq!(0x0001, cpu.PC);
+//   assert_eq!(0x0001, cpu.pc);
 // }
 //
 // #[test]
@@ -2308,7 +2256,7 @@ fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
 //
 //   let cycles = cpu.execute_next_opcode(&mut mmu);
 //   assert_eq!(12, cycles);
-//   assert_eq!(0x0150, cpu.PC);
+//   assert_eq!(0x0150, cpu.pc);
 // }
 
 // #[test]
@@ -2317,12 +2265,12 @@ fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
 //   let mut mmu = mmu::MMU::new();
 //   mmu.cartridge = cartridge::Cartridge { buffer: vec![ opcodes::XOR_A ] };
 
-//   cpu.AF.write_hi(0xFF);
+//   cpu.af.write_hi(0xFF);
 
 //   let cycles = cpu.execute_next_opcode(&mut mmu);
-//   assert_eq!(0x00, cpu.AF.read_hi());
+//   assert_eq!(0x00, cpu.af.read_hi());
 //   assert_eq!(4, cycles);
-//   assert_eq!(0x0001, cpu.PC);
+//   assert_eq!(0x0001, cpu.pc);
 //   assert!(cpu.util_is_flag_set(FLAG_ZERO));
 //   assert!(!cpu.util_is_flag_set(FLAG_SUB));
 //   assert!(!cpu.util_is_flag_set(FLAG_HALF_CARRY));
@@ -2339,12 +2287,12 @@ fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
 //   // XOR 11010100 = D4
 //   //     00110001 = 31
 //   cpu.BC.write_hi(0xE5);
-//   cpu.AF.write_hi(0xD4);
+//   cpu.af.write_hi(0xD4);
 
 //   let cycles = cpu.execute_next_opcode(&mut mmu);
-//   assert_eq!(0x31, cpu.AF.read_hi());
+//   assert_eq!(0x31, cpu.af.read_hi());
 //   assert_eq!(4, cycles);
-//   assert_eq!(0x0001, cpu.PC);
+//   assert_eq!(0x0001, cpu.pc);
 //   assert!(!cpu.util_is_flag_set(FLAG_ZERO));
 //   assert!(!cpu.util_is_flag_set(FLAG_SUB));
 //   assert!(!cpu.util_is_flag_set(FLAG_HALF_CARRY));
@@ -2360,9 +2308,9 @@ fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
 //   cpu.BC.write_hi(0xF0);
 //
 //   let cycles = cpu.execute_next_opcode(&mut mmu);
-//   // assert_eq!(0x31, cpu.AF.read_hi());
+//   // assert_eq!(0x31, cpu.af.read_hi());
 //   assert_eq!(4, cycles);
-//   assert_eq!(0x0001, cpu.PC);
+//   assert_eq!(0x0001, cpu.pc);
 //   assert!(!cpu.util_is_flag_set(FLAG_ZERO));
 //   assert!(cpu.util_is_flag_set(FLAG_SUB));
 //   assert!(cpu.util_is_flag_set(FLAG_HALF_CARRY));

@@ -3,12 +3,11 @@ extern crate time;
 pub struct Counter {
   frames: i32,
   last_time: u64,
-  current_frame_rate: u16,
 }
 
 impl Counter {
   pub fn new() -> Counter {
-    Counter { frames: 0, last_time: 0, current_frame_rate: 0 }
+    Counter { frames: 0, last_time: 0, }
   }
 
   pub fn print_fps(&mut self) {
