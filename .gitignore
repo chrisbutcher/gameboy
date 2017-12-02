@@ -8,3 +8,4 @@ cpu_timing_dump
 pics
 .DS_Store
 chris_cpu_regs_dump.log
+.vscode/
