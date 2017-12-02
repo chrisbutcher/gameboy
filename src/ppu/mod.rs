@@ -7,7 +7,7 @@ extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const SKIP_RENDERING: bool = true;
+const RENDER_PIXELS: bool = false;
 
 pub struct PPU {
   pub framebuffer: [ u8; 160 * 144 * 4 ],
@@ -35,8 +35,8 @@ pub struct PPU {
   pub interrupt_flags: u8,
 
   pub sdl_context: sdl2::Sdl,
-  pub game_renderer: Renderer<'static>,
-  pub debug_renderer: Renderer<'static>,
+  pub game_renderer: Option<Renderer<'static>>,
+  pub debug_renderer: Option<Renderer<'static>>,
 
   pub state_reporter: StateReporter,
   pub tick_counter: u64,
@@ -45,12 +45,23 @@ pub struct PPU {
 impl PPU {
   pub fn new() -> PPU {
     let sdl_context = sdl2::init().unwrap();
-    let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192, 160);
-    let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
+    let debug_renderer;
+    let game_renderer;
 
-    let debug_renderer = debug_window.renderer().present_vsync().build().unwrap();
+    let sdl_context = if RENDER_PIXELS {
+      let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192, 160);
+      let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
 
-    let game_renderer = game_window.renderer().present_vsync().build().unwrap();
+      debug_renderer = Some(debug_window.renderer().present_vsync().build().unwrap());
+      game_renderer = Some(game_window.renderer().present_vsync().build().unwrap());
+
+      sdl_context
+    } else {
+      debug_renderer = None;
+      game_renderer = None;
+
+      sdl_context
+    };
 
     PPU {
       framebuffer: [ 0x00; 160 * 144 * 4 ],
@@ -168,7 +179,7 @@ impl PPU {
   }
 
   pub fn update_tile(&mut self, address: u16, value: u8) {
-    if SKIP_RENDERING { return }
+    if !RENDER_PIXELS { return }
 
     // Get the "base address" for this tile row
     let base_address = address & 0x1FFE;
@@ -196,7 +207,7 @@ impl PPU {
 
   // NOTE borrowed from github.com/alexcrichton/jba
   pub fn render_scanline(&mut self) {
-    if SKIP_RENDERING { return }
+    if !RENDER_PIXELS { return }
 
     // tiles: 8x8 pixels
     // two maps: 32x32 each
@@ -245,7 +256,7 @@ impl PPU {
   }
 
   pub fn render_screen(&mut self) {
-    if SKIP_RENDERING { return }
+    if !RENDER_PIXELS { return }
 
     for y in 0..144 {
       for x in 0..160 {
@@ -256,16 +267,24 @@ impl PPU {
         let pixel_b = self.framebuffer[ framebuffer_index as usize + 2 ];
         let pixel_a = self.framebuffer[ framebuffer_index as usize + 3 ];
 
-        self.game_renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-        self.game_renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap();
+        match self.game_renderer {
+          Some(ref mut renderer) => {
+            renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
+             renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
+          }
+          _ => {}
+        }
       }
     }
 
-    self.game_renderer.present();
+    match self.game_renderer {
+      Some(ref mut renderer) => { renderer.present() },
+      _ => {}
+    }
   }
 
   pub fn show_debug_tiles(&mut self) {
-    if SKIP_RENDERING { return }
+    if !RENDER_PIXELS { return }
 
     for tile_y in 0..17 {
       for tile_x in 0..17 {
@@ -274,16 +293,26 @@ impl PPU {
             let target_tile = tile_x + (tile_y * 18);
             let pixel_palette = self.palette[ self.tileset[ target_tile as usize ][ y as usize ][ x as usize ] as usize ];
 
-            self.debug_renderer.set_draw_color(
-              pixels::Color::RGBA(pixel_palette[ 0 ], pixel_palette[ 1 ], pixel_palette[ 2 ], pixel_palette[ 3 ]),
-            );
-            self.debug_renderer.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8))).unwrap();
+            match self.debug_renderer {
+              Some(ref mut renderer) => {
+                renderer.set_draw_color(
+                  pixels::Color::RGBA(pixel_palette[ 0 ], pixel_palette[ 1 ], pixel_palette[ 2 ], pixel_palette[ 3 ]),
+                );
+                renderer.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8))).unwrap()
+              },
+              _ => {}
+            }
           }
         }
       }
     }
 
-    self.debug_renderer.present();
+    match self.debug_renderer {
+      Some(ref mut renderer) => {
+        renderer.present()
+      },
+      _ => {}
+    }
   }
 
   pub fn tick(&mut self, cycles: i32) {
