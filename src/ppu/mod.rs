@@ -7,7 +7,7 @@ extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const RENDER_PIXELS: bool = false;
+const RENDER_PIXELS: bool = true;
 
 pub struct PPU {
   pub framebuffer: [ u8; 160 * 144 * 4 ],
@@ -29,6 +29,12 @@ pub struct PPU {
   pub lcdc_obj_sprite_size: bool,
   pub lcdc_obj_sprite_display_enabled: bool,
   pub lcdc_bg_enabled: bool,
+
+  pub ly_coicidence: u8,
+  pub ly_coicidence_interrupt_enabled: bool,
+  pub mode_0_interrupt_enabled: bool,
+  pub mode_1_interrupt_enabled: bool,
+  pub mode_2_interrupt_enabled: bool,
 
   pub horiz_blanking: bool,
 
@@ -87,6 +93,12 @@ impl PPU {
       lcdc_obj_sprite_display_enabled: false,
       lcdc_bg_enabled: false,
 
+      ly_coicidence: 0x00,
+      ly_coicidence_interrupt_enabled: false,
+      mode_0_interrupt_enabled: false,
+      mode_1_interrupt_enabled: false,
+      mode_2_interrupt_enabled: false,
+
       horiz_blanking: false,
 
       interrupt_flags: 0x00,
@@ -121,6 +133,17 @@ impl PPU {
           (if self.lcdc_obj_sprite_size { 0b0000_0100 } else { 0 }) |
           (if self.lcdc_obj_sprite_display_enabled { 0b0000_0010 } else { 0 }) |
           (if self.lcdc_bg_enabled { 0b0000_0001 } else { 0 })
+      },
+      0xFF41 => {
+        // TODO rename all
+        let ff41_val = (if self.ly_coicidence_interrupt_enabled { 0x40 } else { 0 }) |
+          (if self.mode_2_interrupt_enabled { 0x20 } else { 0 }) |
+          (if self.mode_1_interrupt_enabled { 0x10 } else { 0 }) |
+          (if self.mode_0_interrupt_enabled { 0x08 } else { 0 }) |
+          (if self.line == self.ly_coicidence { 0x04 } else { 0 }) |
+          self.mode;
+
+        ff41_val
       }
       0xFF42 => self.scroll_y as u8,
       0xFF43 => {
@@ -154,6 +177,12 @@ impl PPU {
           self.line = 0;
           self.mode = 0;
         }
+      },
+      0xFF41 => {
+        self.ly_coicidence_interrupt_enabled = value & 0x40 == 0x40;
+        self.mode_2_interrupt_enabled = value & 0x20 == 0x20;
+        self.mode_1_interrupt_enabled = value & 0x10 == 0x10;
+        self.mode_0_interrupt_enabled = value & 0x08 == 0x08;
       }
       0xFF42 => self.scroll_y = value,
       0xFF43 => self.scroll_x = value,
@@ -342,6 +371,9 @@ impl PPU {
       if self.mode_clock >= 456 {
         self.mode_clock -= 456;
         self.line = (self.line + 1) % 154;
+        if self.ly_coicidence_interrupt_enabled && self.line == self.ly_coicidence {
+          self.interrupt_flags |= 0x02;
+        }
 
         if self.line >= 144 && self.mode != 1 {
           self.change_mode(1);
@@ -367,13 +399,13 @@ impl PPU {
       0 => {
         self.render_scanline();
         self.horiz_blanking = true;
-        false
+        self.mode_0_interrupt_enabled
       },
       1 => {
         self.interrupt_flags |= 0x01;
-        false
+        self.mode_1_interrupt_enabled
       },
-      2 => false,
+      2 => self.mode_2_interrupt_enabled,
       _ => false,
     } {
       self.interrupt_flags |= 0x02;

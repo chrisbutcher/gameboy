@@ -14,7 +14,7 @@ extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const AFTER_TICK_COUNT: u64 = 20_574_537;
+const AFTER_TICK_COUNT: u64 = 32057900;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RegEnum {
@@ -206,7 +206,7 @@ impl CPU {
         self.de.read_hi(), self.de.read_lo(), self.hl.read_hi(), self.hl.read_lo()
       );
 
-      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, master_interrupt_toggle: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.master_interrupt_toggle, mmu.interrupt_enabled, mmu.interrupt_flags);
+      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, IME: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.master_interrupt_toggle, mmu.interrupt_enabled, mmu.interrupt_flags);
       self.state_reporter.send_message(msg.as_bytes());
       let received = self.state_reporter.receive_message();
       if received == "kill" {
@@ -309,7 +309,7 @@ impl CPU {
       0x24 => { debug!("INC H"); self.inc_h() }
       0x25 => self.explode(format!("DEC H : dec_h() not implemented! {:#X}", opcode)),
       0x26 => { debug!("LD H,n : ld_h_n()"); shared_ld_reg_n(self, RegEnum::H, mmu) }
-      0x27 => self.explode(format!("DAA : daa() not implemented! {:#X}", opcode)),
+      0x27 => { debug!("DAA : daa()"); self.daa() } ,
       0x28 => { debug!("JR Z,n"); self.jr_z_n(mmu) }
       0x29 => self.explode(format!("ADD HL,HL : add_hl_hl() not implemented! {:#X}", opcode)),
       0x2A => { debug!("LD A,(HLI)"); self.ld_a_hli(mmu) }
@@ -318,7 +318,7 @@ impl CPU {
       0x2D => { debug!("DEC L"); self.dec_l(); }
       0x2E => { debug!("LD L,n : ld_l_n()"); self.ld_l_n(mmu) },
       0x2F => { debug!("CPL"); self.cpl() }
-      0x30 => self.explode(format!("JR NC,n : jr_nc_n() not implemented! {:#X}", opcode)),
+      0x30 => { debug!("JR NC,n : jr_nc_n()"); self.jr_nc_n(mmu) },
       0x31 => { debug!("LD SP,nn"); self.ld_sp_nn(mmu) }
       0x32 => { debug!("LD (HLD), A"); self.ld_hld_a(mmu) }
       0x33 => self.explode(format!("INC SP : inc_sp() not implemented! {:#X}", opcode)),
@@ -367,7 +367,7 @@ impl CPU {
       0x5E => { debug!("LD E,(HL)"); self.ld_e_hl(mmu) }
       0x5F => { debug!("LD E,A"); self.ld_e_a() }
       0x60 => { debug!("LD H,B"); self.ld_h_b() }
-      0x61 => self.explode(format!("LD H,C : ld_h_c() not implemented! {:#X}", opcode)),
+      0x61 => { debug!("LD H,C : ld_h_c()"); self.ld_h_c() }
       0x62 => { debug!("LD H,D"); self.ld_h_d() }
       0x63 => self.explode(format!("LD H,E : ld_h_e() not implemented! {:#X}", opcode)),
       0x64 => self.explode(format!("LD H,H : ld_h_h() not implemented! {:#X}", opcode)),
@@ -412,7 +412,7 @@ impl CPU {
       0x8B => self.explode(format!("ADC A,E : adc_a_e() not implemented! {:#X}", opcode)),
       0x8C => self.explode(format!("ADC A,H : adc_a_h() not implemented! {:#X}", opcode)),
       0x8D => self.explode(format!("ADC A,L : adc_a_l() not implemented! {:#X}", opcode)),
-      0x8E => self.explode(format!("ADC A,(HL) : adc_a_hl() not implemented! {:#X}", opcode)),
+      0x8E => { debug!("ADC A,(HL) : adc_a_hl()"); let address = self.read_word_reg(RegEnum::HL); let value = mmu.read(address); shared_add_n(self, value, true) },
       0x8F => self.explode(format!("ADC A,A : adc_a_a() not implemented! {:#X}", opcode)),
       0x90 => { debug!("SUB B"); let b = self.read_byte_reg(RegEnum::B); shared_sub_n(self, b, false) }
       0x91 => self.explode(format!("SUB C : sub_c() not implemented! {:#X}", opcode)),
@@ -460,8 +460,14 @@ impl CPU {
         let value = self.read_byte_reg(RegEnum::B);
         shared_cp(self, value);
         self.write_byte_reg(RegEnum::A, a);
-      }
-      0xB9 => self.explode(format!("CP C : cp_c() not implemented! {:#X}", opcode)),
+      },
+      0xB9 => {
+        debug!("CP C : cp_c()");
+        let a = self.read_byte_reg(RegEnum::A);
+        let value = self.read_byte_reg(RegEnum::C);
+        shared_cp(self, value);
+        self.write_byte_reg(RegEnum::A, a);
+      },
       0xBA => self.explode(format!("CP D : cp_d() not implemented! {:#X}", opcode)),
       0xBB => self.explode(format!("CP E : cp_e() not implemented! {:#X}", opcode)),
       0xBC => self.explode(format!("CP H : cp_h() not implemented! {:#X}", opcode)),
@@ -488,17 +494,13 @@ impl CPU {
       0xCD => { debug!("CALL nn"); self.call_nn(mmu) }
       0xCE => self.explode(format!("ADC A,n : adc_a_n() not implemented! {:#X}", opcode)),
       0xCF => self.explode(format!("RST 08H : rst_08h() not implemented! {:#X}", opcode)),
-      0xD0 => self.explode(format!("RET NC : ret_nc() not implemented! {:#X}", opcode)),
+      0xD0 => { debug!("RET NC : ret_nc()"); self.ret_nc(mmu) },
       0xD1 => { debug!("POP DE"); self.pop_de(mmu) }
       0xD2 => self.explode(format!("JP NC,nn : jp_nc_nn() not implemented! {:#X}", opcode)),
       0xD3 => debug!("Unhandled opcode"),
       0xD4 => self.explode(format!("CALL NC,nn : call_nc_nn() not implemented! {:#X}", opcode)),
       0xD5 => { debug!("PUSH DE"); self.push_de(mmu) }
-      0xD6 => {
-        debug!("SUB n : sub_n()");
-        let value = mmu.read(self.pc);
-        shared_sub_n(self, value, false);
-      }
+      0xD6 => { debug!("SUB n : sub_n()"); let value = mmu.read(self.pc); shared_sub_n(self, value, false); }
       0xD7 => self.explode(format!("RST 10H : rst_10h() not implemented! {:#X}", opcode)),
       0xD8 => self.explode(format!("RET C : ret_c() not implemented! {:#X}", opcode)),
       0xD9 => { debug!("RETI"); self.reti(mmu) }
@@ -681,6 +683,16 @@ impl CPU {
     }
   }
 
+  fn jr_nc_n(&mut self, mmu: &mmu::MMU) {
+    let offset = mmu.read(self.pc) as i8;
+    self.pc = self.pc.wrapping_add(1);
+
+    if !self.util_is_flag_set(FLAG_CARRY) {
+      self.pc = self.pc.wrapping_add(offset as u16);
+      self.branch_taken = true;
+    }
+  }
+
   fn rra(&mut self) {
     shared_rotate_rr(self, RegEnum::A)
   }
@@ -777,6 +789,11 @@ impl CPU {
 
   fn ld_h_d(&mut self) {
     let operand = self.read_byte_reg(RegEnum::D);
+    self.write_byte_reg(RegEnum::H, operand)
+  }
+
+  fn ld_h_c(&mut self) {
+    let operand = self.read_byte_reg(RegEnum::C);
     self.write_byte_reg(RegEnum::H, operand)
   }
 
@@ -1083,6 +1100,13 @@ impl CPU {
     }
   }
 
+  fn ret_nc(&mut self, mmu: &mut mmu::MMU) {
+    if !self.util_is_flag_set(FLAG_CARRY) {
+      self.pc = self.stack_pop(mmu);
+      self.branch_taken = true;
+    }
+  }
+
   fn ld_a_nn(&mut self, mmu: &mut mmu::MMU) {
     let address = mmu.read_word(self.pc);
     let value = mmu.read(address);
@@ -1226,6 +1250,28 @@ impl CPU {
   fn jr_n(&mut self, mmu: &mut mmu::MMU) {
     let operand_dest = mmu.read(self.pc) as i8;
     self.pc = self.pc.wrapping_add((1 + operand_dest) as u16);
+  }
+
+  fn daa(&mut self) {
+    let mut a = self.read_byte_reg(RegEnum::A);
+    let mut add_or_subtract = if self.util_is_flag_set(FLAG_CARRY) { 0x60 } else { 0x00 };
+
+    if self.util_is_flag_set(FLAG_HALF_CARRY) {
+      add_or_subtract |= 0x06;
+    }
+
+    if self.util_is_flag_set(FLAG_SUB) {
+      a = a.wrapping_sub(add_or_subtract);
+    } else {
+      if a & 0x0F > 0x09 { add_or_subtract |= 0x06; }
+      if a > 0x99 { add_or_subtract |= 0x60; }
+      a = a.wrapping_add(add_or_subtract);
+    }
+
+    self.util_set_flag_by_boolean(FLAG_ZERO, a == 0);
+    self.util_set_flag_by_boolean(FLAG_HALF_CARRY, false);
+    self.util_set_flag_by_boolean(FLAG_CARRY, add_or_subtract >= 0x60);
+    self.write_byte_reg(RegEnum::A, a);
   }
 
   // Helpers
