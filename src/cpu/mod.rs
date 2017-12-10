@@ -297,7 +297,7 @@ impl CPU {
       0x18 => { debug!("JR n"); self.jr_n(mmu) }
       0x19 => { debug!("ADD HL,DE"); self.add_hl_de() }
       0x1A => { debug!("LD A,(DE)"); self.ld_a_de(mmu) }
-      0x1B => self.explode(format!("DEC DE : dec_de() not implemented! {:#X}", opcode)),
+      0x1B => { debug!("DEC DE : dec_de()"); shared_dec_word_reg(self, RegEnum::DE) },
       0x1C => { debug!("INC E"); self.inc_e() }
       0x1D => { debug!("DEC E"); self.dec_e() }
       0x1E => { debug!("LD E,n"); self.ld_e_n(mmu) }
@@ -329,7 +329,7 @@ impl CPU {
       0x38 => self.explode(format!("JR C,n : jr_c_n() not implemented! {:#X}", opcode)),
       0x39 => self.explode(format!("ADD HL,SP : add_hl_sp() not implemented! {:#X}", opcode)),
       0x3A => { debug!("LD A,(HLD)"); self.ld_a_hld(mmu) }
-      0x3B => self.explode(format!("DEC SP : dec_sp() not implemented! {:#X}", opcode)),
+      0x3B => { debug!("DEC SP : dec_sp()"); let sp = self.read_word_reg(RegEnum::SP); self.write_word_reg(RegEnum::SP, sp.wrapping_sub(1)) }
       0x3C => { debug!("INC A"); self.inc_a() }
       0x3D => { debug!("DEC A"); self.dec_a() }
       0x3E => { debug!("LD A,n"); self.ld_a_n(mmu) }
@@ -453,7 +453,7 @@ impl CPU {
       0xB4 => self.explode(format!("OR H : or_h() not implemented! {:#X}", opcode)),
       0xB5 => self.explode(format!("OR L : or_l() not implemented! {:#X}", opcode)),
       0xB6 => self.explode(format!("OR (HL) : or_hl() not implemented! {:#X}", opcode)),
-      0xB7 => self.explode(format!("OR A : or_a() not implemented! {:#X}", opcode)),
+      0xB7 => { debug!("OR A : or_a()"); let value = self.read_byte_reg(RegEnum::A); shared_or_n(self, value) },
       0xB8 => {
         debug!("CP B : cp_b()");
         let a = self.read_byte_reg(RegEnum::A);
@@ -502,7 +502,7 @@ impl CPU {
       0xD5 => { debug!("PUSH DE"); self.push_de(mmu) }
       0xD6 => { debug!("SUB n : sub_n()"); let value = mmu.read(self.pc); shared_sub_n(self, value, false); }
       0xD7 => self.explode(format!("RST 10H : rst_10h() not implemented! {:#X}", opcode)),
-      0xD8 => self.explode(format!("RET C : ret_c() not implemented! {:#X}", opcode)),
+      0xD8 => { debug!("RET C : ret_c()"); self.ret_c(mmu) },
       0xD9 => { debug!("RETI"); self.reti(mmu) }
       0xDA => self.explode(format!("JP C,nn : jp_c_nn() not implemented! {:#X}", opcode)),
       0xDB => debug!("Unhandled opcode"),
@@ -1095,6 +1095,13 @@ impl CPU {
 
   fn ret_nz(&mut self, mmu: &mut mmu::MMU) {
     if !self.util_is_flag_set(FLAG_ZERO) {
+      self.pc = self.stack_pop(mmu);
+      self.branch_taken = true;
+    }
+  }
+
+  fn ret_c(&mut self, mmu: &mut mmu::MMU) {
+    if self.util_is_flag_set(FLAG_CARRY) {
       self.pc = self.stack_pop(mmu);
       self.branch_taken = true;
     }
