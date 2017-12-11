@@ -272,13 +272,13 @@ impl CPU {
     match opcode {
       0x00 => { debug!("NOP"); self.nop() }
       0x01 => { debug!("LD BC,nn"); self.ld_bc_nn(mmu) }
-      0x02 => self.explode(format!("LD (BC),A : ld_bc_a() not implemented! {:#X}", opcode)),
+      0x02 => { debug!("LD (BC),A : ld_bc_a()"); self.shared_ld_nn_reg(RegEnum::A, RegEnum::BC, mmu) }
       0x03 => { debug!("INC BC"); self.inc_bc() }
       0x04 => { debug!("INC B : inc_b()"); self.inc_b() }
       0x05 => { debug!("DEC B"); self.dec_b() }
       0x06 => { debug!("LD B,n"); self.ld_b_n(mmu) }
       0x07 => { debug!("RLCA : rlca()"); shared_rlc_n(self, RegEnum::A); self.util_set_flag_by_boolean(FLAG_ZERO, false) }
-      0x08 => self.explode(format!("LD (nn),SP : ld_nn_sp() not implemented! {:#X}", opcode)),
+      0x08 => { debug!("LD (nn),SP : ld_nn_sp()"); self.ld_nn_sp(mmu) }
       0x09 => { debug!("ADD HL,BC"); self.add_hl_bc() }
       0x0A => { debug!("LD A,(BC)"); self.ld_a_bc(mmu) }
       0x0B => { debug!("DEC BC"); self.dec_bc() }
@@ -290,10 +290,10 @@ impl CPU {
       0x11 => { debug!("LD DE,nn"); self.ld_de_nn(mmu) }
       0x12 => { debug!("LD (DE),A"); self.ld_de_a(mmu) }
       0x13 => { debug!("INC DE"); self.inc_de() }
-      0x14 => self.explode(format!("INC D : inc_d() not implemented! {:#X}", opcode)),
+      0x14 => { debug!("INC D : inc_d()"); shared_inc_byte_reg(self, RegEnum::D) },
       0x15 => { debug!("DEC D"); self.dec_d() }
       0x16 => { debug!("LD D,n"); self.ld_d_n(mmu) }
-      0x17 => { debug!("RLA : rla()"); self.rla() },
+      0x17 => { debug!("RLA : rla()"); self.rla() }
       0x18 => { debug!("JR n"); self.jr_n(mmu) }
       0x19 => { debug!("ADD HL,DE"); self.add_hl_de() }
       0x1A => { debug!("LD A,(DE)"); self.ld_a_de(mmu) }
@@ -326,7 +326,7 @@ impl CPU {
       0x35 => { debug!("DEC (HL)"); self.dec_hl_indirect(mmu) }
       0x36 => { debug!("LD (HL),n"); self.ld_hl_n(mmu) }
       0x37 => self.explode(format!("SCF : scf() not implemented! {:#X}", opcode)),
-      0x38 => self.explode(format!("JR C,n : jr_c_n() not implemented! {:#X}", opcode)),
+      0x38 => { debug!("JR C,n : jr_c_n()"); self.jr_c_n(mmu) },
       0x39 => self.explode(format!("ADD HL,SP : add_hl_sp() not implemented! {:#X}", opcode)),
       0x3A => { debug!("LD A,(HLD)"); self.ld_a_hld(mmu) }
       0x3B => { debug!("DEC SP : dec_sp()"); let sp = self.read_word_reg(RegEnum::SP); self.write_word_reg(RegEnum::SP, sp.wrapping_sub(1)) }
@@ -335,15 +335,15 @@ impl CPU {
       0x3E => { debug!("LD A,n"); self.ld_a_n(mmu) }
       0x3F => self.explode(format!("CCF : ccf() not implemented! {:#X}", opcode)),
       0x40 => { debug!("LD B,B"); self.ld_b_b() }
-      0x41 => self.explode(format!("LD B,C : ld_b_c() not implemented! {:#X}", opcode)),
-      0x42 => self.explode(format!("LD B,D : ld_b_d() not implemented! {:#X}", opcode)),
-      0x43 => self.explode(format!("LD B,E : ld_b_e() not implemented! {:#X}", opcode)),
-      0x44 => self.explode(format!("LD B,H : ld_b_h() not implemented! {:#X}", opcode)),
-      0x45 => self.explode(format!("LD B,L : ld_b_l() not implemented! {:#X}", opcode)),
+      0x41 => { debug!("LD B,C : ld_b_c()"); self.shared_ld_reg_reg(RegEnum::C, RegEnum::B) }
+      0x42 => { debug!("LD B,D : ld_b_d()"); self.shared_ld_reg_reg(RegEnum::D, RegEnum::B) }
+      0x43 => { debug!("LD B,E : ld_b_e()"); self.shared_ld_reg_reg(RegEnum::E, RegEnum::B) }
+      0x44 => { debug!("LD B,H : ld_b_h()"); self.shared_ld_reg_reg(RegEnum::H, RegEnum::B) }
+      0x45 => { debug!("LD B,L : ld_b_l()"); self.shared_ld_reg_reg(RegEnum::L, RegEnum::B) }
       0x46 => { debug!("LD B,(HL)"); self.ld_b_hl(mmu) }
       0x47 => { debug!("LD B,A"); self.ld_b_a() }
       0x48 => self.explode(format!("LD C,B : ld_c_b() not implemented! {:#X}", opcode)),
-      0x49 => self.explode(format!("LD C,C : ld_c_c() not implemented! {:#X}", opcode)),
+      0x49 => debug!("LD C,C : ld_c_c()"), // no-op
       0x4A => self.explode(format!("LD C,D : ld_c_d() not implemented! {:#X}", opcode)),
       0x4B => self.explode(format!("LD C,E : ld_c_e() not implemented! {:#X}", opcode)),
       0x4C => self.explode(format!("LD C,H : ld_c_h() not implemented! {:#X}", opcode)),
@@ -397,7 +397,7 @@ impl CPU {
       0x7C => { debug!("LD A,H"); self.ld_a_h() }
       0x7D => { debug!("LD A,L"); self.ld_a_l() }
       0x7E => { debug!("LD A,(HL)"); self.ld_a_hl(mmu) }
-      0x7F => self.explode(format!("LD A,A : ld_a_a() not implemented! {:#X}", opcode)),
+      0x7F => { debug!("LD A,A : ld_a_a()"); }
       0x80 => { debug!("ADD A,B"); let value = self.read_byte_reg(RegEnum::B); shared_add_n(self, value, false) }
       0x81 => self.explode(format!("ADD A,C : add_a_c() not implemented! {:#X}", opcode)),
       0x82 => self.explode(format!("ADD A,D : add_a_d() not implemented! {:#X}", opcode)),
@@ -541,7 +541,7 @@ impl CPU {
       0xFC => debug!("Unhandled opcode"),
       0xFD => debug!("Unhandled opcode"),
       0xFE => { debug!("CP"); self.cp_n(mmu) }
-      0xFF => self.explode(format!("RST 38H : rst_38h() not implemented! {:#X}", opcode)),
+      0xFF => { debug!("RST 38H : rst_38h()"); self.rst_38h(mmu) }
       _ => self.explode(format!("Unexpected opcode: {:#X}", opcode)),
     }
 
@@ -683,6 +683,16 @@ impl CPU {
     }
   }
 
+  fn jr_c_n(&mut self, mmu: &mmu::MMU) {
+    let offset = mmu.read(self.pc) as i8;
+    self.pc = self.pc.wrapping_add(1);
+
+    if self.util_is_flag_set(FLAG_CARRY) {
+      self.pc = self.pc.wrapping_add(offset as u16);
+      self.branch_taken = true;
+    }
+  }
+
   fn jr_nc_n(&mut self, mmu: &mmu::MMU) {
     let offset = mmu.read(self.pc) as i8;
     self.pc = self.pc.wrapping_add(1);
@@ -797,6 +807,11 @@ impl CPU {
     self.write_byte_reg(RegEnum::H, operand)
   }
 
+  fn shared_ld_reg_reg(&mut self, source_reg: RegEnum, dest_reg: RegEnum) {
+    let operand = self.read_byte_reg(source_reg);
+    self.write_byte_reg(dest_reg, operand);
+  }
+
   fn ld_a_n(&mut self, mmu: &mmu::MMU) {
     let operand = mmu.read(self.pc);
     self.write_byte_reg(RegEnum::A, operand);
@@ -838,6 +853,14 @@ impl CPU {
     let address = self.read_word_reg(RegEnum::HL);
     let value = mmu.read(address);
     shared_cp(self, value);
+  }
+
+  fn ld_nn_sp(&mut self, mmu: &mut mmu::MMU) {
+    let address = mmu.read_word(self.pc);
+    let value = self.read_word_reg(RegEnum::SP);
+    mmu.write_word(address, value);
+
+    self.pc += 2;
   }
 
   fn ld_nn_a(&mut self, mmu: &mut mmu::MMU) {
@@ -961,6 +984,11 @@ impl CPU {
   fn ld_de_a(&mut self, mmu: &mut mmu::MMU) {
     let addr = self.read_word_reg(RegEnum::DE);
     mmu.write(addr, self.read_byte_reg(RegEnum::A));
+  }
+
+  fn shared_ld_nn_reg(&mut self, source_reg: RegEnum, dest_reg_addr: RegEnum, mmu: &mut mmu::MMU) {
+    let addr = self.read_word_reg(dest_reg_addr);
+    mmu.write(addr, self.read_byte_reg(source_reg));
   }
 
   fn and_n(&mut self, mmu: &mmu::MMU) {
@@ -1164,6 +1192,12 @@ impl CPU {
     let current_pc = self.pc;
     self.stack_push(current_pc, mmu);
     self.pc = 0x28;
+  }
+
+  fn rst_38h(&mut self, mmu: &mut mmu::MMU) {
+    let current_pc = self.pc;
+    self.stack_push(current_pc, mmu);
+    self.pc = 0x38;
   }
 
   fn add_a_n(&mut self, mmu: &mut mmu::MMU) {
