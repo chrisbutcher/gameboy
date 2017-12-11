@@ -144,7 +144,12 @@ impl MMU {
       }
       0xE000...0xFDFF => self.write(address - 0xC000 - 0x2000, data), // ECHO work ram
       0xFE00...0xFE9F => {
-        self.sprite_info[ address as usize - 0xFE00 ] = data
+        let mut borrowed_ppu = self.ppu.borrow_mut();
+
+        let sprite_addr = address as usize - 0xFE00;
+        self.sprite_info[ sprite_addr ] = data;
+
+        borrowed_ppu.update_sprite_object(sprite_addr, data)
       }
       0xFEA0...0xFEFF => {
       } // no-op
@@ -160,12 +165,15 @@ impl MMU {
       0xFF10...0xFF3F => {
         self.io[ address as usize - 0xFF00 ] = data
       }
-      0xFF40...0xFF7F => {
+      0xFF40...0xFF45 | 0xFF47...0xFF7F => { // 0xFF40...0xFF7F
         if address == 0xFF50 {
           self.bootroom_active = false;
         }
 
         self.ppu.borrow_mut().write(address, data)
+      }
+      0xFF46 => {
+        self.oam_dma(data)
       }
       0xFF80...0xFFFE => {
         self.zram[ address as usize - 0xFF80 ] = data
@@ -176,6 +184,16 @@ impl MMU {
       _ => {
         panic!("Memory access is out of bounds: {:#X}", address);
       }
+    }
+  }
+
+  fn oam_dma(&mut self, source_address_high_byte: u8) {
+    let source_base_address = (source_address_high_byte as u16) << 8;
+    const OAM_START_ADDRESS: u16 = 0xFE00;
+
+    for index in 0x00 .. 0xA0 {
+      let source_byte = self.read(source_base_address + index);
+      self.write(OAM_START_ADDRESS + index, source_byte);
     }
   }
 

@@ -9,11 +9,44 @@ use self::socket_state_reporter::StateReporter;
 const SYNC_STATE: bool = false;
 const RENDER_PIXELS: bool = true;
 
+#[derive(Clone, Copy, Debug)]
+pub struct Sprite {
+  y_pos: i32, // TODO i8 or i16?
+  x_pos: i32,
+  tile: u8,
+
+  priority_behind_bg: bool,
+  y_flip: bool,
+  x_flip: bool,
+  use_palette_1: bool,
+
+  index: usize,
+}
+
+impl Sprite {
+  pub fn new() -> Sprite {
+    Sprite {
+      y_pos: 0x00,
+      x_pos: 0x00,
+      tile: 0x00,
+
+      priority_behind_bg: false,
+      y_flip: false,
+      x_flip: false,
+      use_palette_1: false,
+
+      index: 0,
+    }
+  }
+}
+
 pub struct PPU {
   pub framebuffer: [ u8; 160 * 144 * 4 ],
   pub video_ram: Vec<u8>,
   pub tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
   pub palette: [ [ u8; 4 ]; 4 ],
+
+  pub sprites: [ Sprite; 40 ],
 
   pub mode: u8,
   pub mode_clock: i32,
@@ -30,8 +63,8 @@ pub struct PPU {
   pub lcdc_obj_sprite_display_enabled: bool,
   pub lcdc_bg_enabled: bool,
 
-  pub ly_coicidence: u8,
-  pub ly_coicidence_interrupt_enabled: bool,
+  pub ly_coincidence: u8,
+  pub ly_coincidence_interrupt_enabled: bool,
   pub mode_0_interrupt_enabled: bool,
   pub mode_1_interrupt_enabled: bool,
   pub mode_2_interrupt_enabled: bool,
@@ -78,6 +111,8 @@ impl PPU {
                  [ 96, 96, 96, 255 ],
                  [ 0, 0, 0, 255 ] ],
 
+      sprites: [Sprite::new(); 40],
+
       mode: 0,
       mode_clock: 0,
       line: 0,
@@ -93,8 +128,8 @@ impl PPU {
       lcdc_obj_sprite_display_enabled: false,
       lcdc_bg_enabled: false,
 
-      ly_coicidence: 0x00,
-      ly_coicidence_interrupt_enabled: false,
+      ly_coincidence: 0x00,
+      ly_coincidence_interrupt_enabled: false,
       mode_0_interrupt_enabled: false,
       mode_1_interrupt_enabled: false,
       mode_2_interrupt_enabled: false,
@@ -136,21 +171,24 @@ impl PPU {
       },
       0xFF41 => {
         // TODO rename all
-        let ff41_val = (if self.ly_coicidence_interrupt_enabled { 0x40 } else { 0 }) |
+        let ff41_val = (if self.ly_coincidence_interrupt_enabled { 0x40 } else { 0 }) |
           (if self.mode_2_interrupt_enabled { 0x20 } else { 0 }) |
           (if self.mode_1_interrupt_enabled { 0x10 } else { 0 }) |
           (if self.mode_0_interrupt_enabled { 0x08 } else { 0 }) |
-          (if self.line == self.ly_coicidence { 0x04 } else { 0 }) |
+          (if self.line == self.ly_coincidence { 0x04 } else { 0 }) |
           self.mode;
 
         ff41_val
       }
       0xFF42 => self.scroll_y as u8,
       0xFF43 => {
-        self.scroll_x as u8
+        self.scroll_x
       },
       0xFF44 => {
-        self.line as u8
+        self.line
+      },
+      0xFF45 => {
+        self.ly_coincidence
       }
       _ => {
         panic!("Unexpected address in PPU#read: {:#X}", address);
@@ -163,14 +201,14 @@ impl PPU {
       0xFF40 => {
         let previous_lcdc_display_enabled = self.lcdc_display_enabled;
 
-        self.lcdc_display_enabled = if value & 0b1000_0000 != 0 { true } else { false };
-        self.lcdc_window_tilemap = if value & 0b0100_0000 != 0 { true } else { false };
-        self.lcdc_window_enabled = if value & 0b0010_0000 != 0 { true } else { false };
-        self.lcdc_bg_and_windown_tile_base = if value & 0b0001_0000 != 0 { true } else { false };
-        self.lcdc_bg_tilemap_base = if value & 0b0000_1000 != 0 { true } else { false };
-        self.lcdc_obj_sprite_size = if value & 0b0000_0100 != 0 { true } else { false };
-        self.lcdc_obj_sprite_display_enabled = if value & 0b0000_0010 != 0 { true } else { false };
-        self.lcdc_bg_enabled = if value & 0b0000_0001 != 0 { true } else { false };
+        self.lcdc_display_enabled = value & 0b1000_0000 != 0;
+        self.lcdc_window_tilemap = value & 0b0100_0000 != 0;
+        self.lcdc_window_enabled = value & 0b0010_0000 != 0;
+        self.lcdc_bg_and_windown_tile_base = value & 0b0001_0000 != 0;
+        self.lcdc_bg_tilemap_base = value & 0b0000_1000 != 0;
+        self.lcdc_obj_sprite_size = value & 0b0000_0100 != 0;
+        self.lcdc_obj_sprite_display_enabled = value & 0b0000_0010 != 0;
+        self.lcdc_bg_enabled = value & 0b0000_0001 != 0;
 
         if previous_lcdc_display_enabled && !self.lcdc_display_enabled {
           self.mode_clock = 0;
@@ -179,13 +217,17 @@ impl PPU {
         }
       },
       0xFF41 => {
-        self.ly_coicidence_interrupt_enabled = value & 0x40 == 0x40;
+        self.ly_coincidence_interrupt_enabled = value & 0x40 == 0x40;
         self.mode_2_interrupt_enabled = value & 0x20 == 0x20;
         self.mode_1_interrupt_enabled = value & 0x10 == 0x10;
         self.mode_0_interrupt_enabled = value & 0x08 == 0x08;
       }
       0xFF42 => self.scroll_y = value,
       0xFF43 => self.scroll_x = value,
+      0xFF44 => {
+        panic!("Writing to LY in PPU#write: {:#X}", address);
+      }
+      0xFF45 => self.ly_coincidence = value,
       0xFF47 => {
         for i in 0..4 {
           match (value >> (i * 2)) & 3 {
@@ -198,15 +240,44 @@ impl PPU {
             }
           }
         }
+      },
+      0xFF48 => {
+        println!("TODO, writing to FF48")
       }
-      0xFF44 => {
-        panic!("Writing to LY in PPU#write: {:#X}", address);
+      0xFF49 => {
+        println!("TODO, writing to FF49")
+      }
+      0xFF4A => {
+        println!("TODO, writing to FF4A")
+      }
+      0xFF4B => {
+        println!("TODO, writing to FF4B")
       }
       _ => {
+        // panic!("Writing to PPU {:#x}", address);
       }
     }
   }
 
+  pub fn update_sprite_object(&mut self, sprite_addr: usize, value: u8) {
+    let sprite_index = sprite_addr >> 2;
+    let byte = sprite_addr & 3;
+
+    match byte {
+      0x00 => { self.sprites[sprite_index].y_pos = value as i32 - 16 },
+      0x01 => { self.sprites[sprite_index].x_pos = value as i32 - 8 },
+      0x02 => { self.sprites[sprite_index].tile = value },
+      0x03 => {
+        self.sprites[sprite_index].priority_behind_bg = (value & 0b1000_0000) != 0;
+        self.sprites[sprite_index].y_flip = (value & 0b0100_0000) != 0;
+        self.sprites[sprite_index].x_flip = (value & 0b0010_0000) != 0;
+        self.sprites[sprite_index].use_palette_1 = (value & 0b0001_0000) != 0;
+      },
+      _ => { panic!("Invalid byte in update_sprite_object") }
+    }
+  }
+
+  // TODO optimize
   pub fn update_tile(&mut self, address: u16, value: u8) {
     if !RENDER_PIXELS { return }
 
@@ -234,8 +305,55 @@ impl PPU {
     }
   }
 
-  // NOTE borrowed from github.com/alexcrichton/jba
   pub fn render_scanline(&mut self) {
+    self.render_background();
+    self.render_sprites();
+  }
+
+  fn render_sprites(&mut self) {
+    if !RENDER_PIXELS { return }
+
+    for sprite in self.sprites.iter() {
+      let line = self.line as i32;
+
+      if self.lcdc_obj_sprite_size {
+        panic!("Double-sized sprites not yet supported");
+      }
+
+      // If the sprite falls within the scanline
+      // TODO account for double-sized sprites
+      if sprite.y_pos <= line && (sprite.y_pos + 8 ) > line {
+        let mut canvas_offset = ((line * 160) + sprite.x_pos) * 4;
+        let tile_row;
+
+        if sprite.y_flip {
+          tile_row = self.tileset[ sprite.tile as usize ][ 7 - (line - sprite.y_pos) as usize ];
+        } else {
+          tile_row = self.tileset[ sprite.tile as usize ][ (line - sprite.y_pos) as usize ];
+        }
+
+        let mut colour;
+
+        for x in 0..8 {
+          // TODO don't draw pixel if OAM doesn't have priority over BG and BG has non-zero colour pixel already drawn
+          if sprite.x_pos + x >= 0 && sprite.x_pos + x < 160 {
+            let palette_index = if sprite.x_flip { 7 - x as usize } else { x as usize };
+            colour = self.palette[ tile_row[ palette_index ] as usize ];
+
+            self.framebuffer[ canvas_offset as usize ] = colour[ 0 ];
+            self.framebuffer[ canvas_offset as usize + 1 ] = colour[ 1 ];
+            self.framebuffer[ canvas_offset as usize + 2 ] = colour[ 2 ];
+            self.framebuffer[ canvas_offset as usize + 3 ] = colour[ 3 ];
+
+            canvas_offset += 4;
+          }
+        }
+      }
+    }
+  }
+
+  // NOTE borrowed from github.com/alexcrichton/jba
+  pub fn render_background(&mut self) {
     if !RENDER_PIXELS { return }
 
     // tiles: 8x8 pixels
@@ -249,7 +367,7 @@ impl PPU {
     let y = (self.line.wrapping_add(self.scroll_y)) % 8;
     let mut x = self.scroll_x % 8;
 
-    let mut coff = (self.line as usize) * 160 * 4;
+    let mut canvas_offset = (self.line as usize) * 160 * 4;
 
     let mut i = 0;
     let tilebase = if !self.lcdc_bg_and_windown_tile_base { 256 } else { 0 };
@@ -264,17 +382,17 @@ impl PPU {
       row = self.tileset[ tilebase as usize ][ y as usize ];
 
       while x < 8 && i < 160 as u8 {
-        let colori = row[ x as usize ];
-        let color = self.palette[ colori as usize ];
+        let palette_index = row[ x as usize ];
+        let colour = self.palette[ palette_index as usize ];
 
-        self.framebuffer[ coff ] = color[ 0 ];
-        self.framebuffer[ coff + 1 ] = color[ 1 ];
-        self.framebuffer[ coff + 2 ] = color[ 2 ];
-        self.framebuffer[ coff + 3 ] = color[ 3 ];
+        self.framebuffer[ canvas_offset ] = colour[ 0 ];
+        self.framebuffer[ canvas_offset + 1 ] = colour[ 1 ];
+        self.framebuffer[ canvas_offset + 2 ] = colour[ 2 ];
+        self.framebuffer[ canvas_offset + 3 ] = colour[ 3 ];
 
         x += 1;
         i += 1;
-        coff += 4;
+        canvas_offset += 4;
       }
 
       x = 0;
@@ -371,7 +489,7 @@ impl PPU {
       if self.mode_clock >= 456 {
         self.mode_clock -= 456;
         self.line = (self.line + 1) % 154;
-        if self.ly_coicidence_interrupt_enabled && self.line == self.ly_coicidence {
+        if self.ly_coincidence_interrupt_enabled && self.line == self.ly_coincidence {
           self.interrupt_flags |= 0x02;
         }
 

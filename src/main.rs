@@ -135,6 +135,7 @@ impl GameBoy {
 
   fn render_screen(&mut self) {
     self.mmu.ppu.borrow_mut().render_screen();
+    self.mmu.ppu.borrow_mut().show_debug_tiles();
   }
 
   pub fn print_game_title(&self) {

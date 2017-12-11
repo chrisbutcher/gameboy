@@ -14,7 +14,7 @@ impl Counter {
     let current_time = time::precise_time_ns();
     self.frames += 1;
     if current_time - self.last_time >= 1000000000 {
-      println!("fps: {}", self.frames);
+      // println!("fps: {}", self.frames);
       self.frames = 0;
       self.last_time = time::precise_time_ns();
     }
