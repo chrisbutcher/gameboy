@@ -8,23 +8,23 @@ pub use super::ppu;
 pub use super::input;
 
 pub struct MMU {
-  pub bootrom: bootrom::Bootrom,
-  pub bootroom_active: bool,
-
-  pub cartridge: cartridge::Cartridge, // 0000-7fff
-  // GPU's video ram                      8000-9FFF
-  pub external_ram: Vec<u8>, // A000-BFFF
-  pub work_ram: Vec<u8>, // C000-DFFF, with E000-FDFF shadow
-  pub sprite_info: Vec<u8>, // FE00-FE9F
-  pub io: Vec<u8>, // FF00-FF7F
-  pub zram: Vec<u8>, // FF80-FFFF (zero page ram)
-
-  pub ppu: RefCell<ppu::PPU>,
-  pub input: input::Input,
-
-  // Switches banks via the MBC (memory bank controller)
-  pub interrupt_enabled: u8,
   pub interrupt_flags: u8,
+  pub interrupt_enabled: u8,
+  pub ppu: RefCell<ppu::PPU>,
+
+  bootrom: bootrom::Bootrom,
+  bootroom_active: bool,
+
+  cartridge: cartridge::Cartridge, // 0000-7fff
+  // GPU's video ram                      8000-9FFF
+  external_ram: Vec<u8>, // A000-BFFF
+  work_ram: Vec<u8>, // C000-DFFF, with E000-FDFF shadow
+  sprite_info: Vec<u8>, // FE00-FE9F
+  io: Vec<u8>, // FF00-FF7F
+  zram: Vec<u8>, // FF80-FFFF (zero page ram)
+
+  input: input::Input,
+  // Switches banks via the MBC (memory bank controller)
 }
 
 impl MMU {
@@ -45,6 +45,40 @@ impl MMU {
       interrupt_enabled: 0x00,
       interrupt_flags: 0x00,
     }
+  }
+
+  pub fn initialize(&mut self) {
+    self.write(0xFF05, 0x00);
+    self.write(0xFF06, 0x00);
+    self.write(0xFF07, 0x00);
+    self.write(0xFF10, 0x80);
+    self.write(0xFF11, 0xBF);
+    self.write(0xFF12, 0xF3);
+    self.write(0xFF14, 0xBF);
+    self.write(0xFF16, 0x3F);
+    self.write(0xFF17, 0x00);
+    self.write(0xFF19, 0xBF);
+    self.write(0xFF1A, 0x7F);
+    self.write(0xFF1B, 0xFF);
+    self.write(0xFF1C, 0x9F);
+    self.write(0xFF1E, 0xBF);
+    self.write(0xFF20, 0xFF);
+    self.write(0xFF21, 0x00);
+    self.write(0xFF22, 0x00);
+    self.write(0xFF23, 0xBF);
+    self.write(0xFF24, 0x77);
+    self.write(0xFF25, 0xF3);
+    self.write(0xFF26, 0xF1);
+    self.write(0xFF40, 0x91);
+    self.write(0xFF42, 0x00);
+    self.write(0xFF43, 0x00);
+    self.write(0xFF45, 0x00);
+    self.write(0xFF47, 0xFC);
+    self.write(0xFF48, 0xFF);
+    self.write(0xFF49, 0xFF);
+    self.write(0xFF4A, 0x00);
+    self.write(0xFF4B, 0x00);
+    self.write(0xFFFF, 0x00);
   }
 
   pub fn load_game(&mut self, rom_filename: &str) {

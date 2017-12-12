@@ -4,7 +4,7 @@ use std::io::{Read};
 const MAX_BOOTROM_SIZE: usize = 0x100;
 
 pub struct Bootrom {
-  pub buffer: [u8; MAX_BOOTROM_SIZE]
+  pub buffer: [u8; MAX_BOOTROM_SIZE] // TODO make private, or delete?
 }
 
 impl Bootrom {

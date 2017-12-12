@@ -42,7 +42,7 @@ impl Register {
     (self.value & 0xFF) as u8
   }
 
-  pub fn write(&mut self, v: u16) {
+  fn write(&mut self, v: u16) {
     self.value = v
   }
 
@@ -62,22 +62,22 @@ impl fmt::Debug for Register {
 }
 
 pub struct CPU {
-  pub af: Register,
-  pub bc: Register,
-  pub de: Register,
-  pub hl: Register,
-  pub sp: Register,
-  pub pc: u16,
+  af: Register,
+  bc: Register,
+  de: Register,
+  hl: Register,
+  sp: Register,
+  pc: u16,
 
-  pub branch_taken: bool,
-  pub master_interrupt_toggle: bool, // Master interrupt
-  pub ei_cycles: u8,
-  pub di_cycles: u8,
+  branch_taken: bool,
+  master_interrupt_toggle: bool, // Master interrupt
+  ei_cycles: u8,
+  di_cycles: u8,
 
-  pub halted: bool,
+  halted: bool,
 
-  pub state_reporter: StateReporter,
-  pub tick_counter: u64,
+  state_reporter: StateReporter,
+  tick_counter: u64,
 }
 
 fn formatted_flags(cpu: &CPU) -> String {
@@ -121,6 +121,16 @@ impl CPU {
       state_reporter: state_reporter,
       tick_counter: 0u64,
     }
+  }
+
+  pub fn initialize(&mut self) {
+    self.pc = 0x0100;
+
+    self.af.write(0x01B0);
+    self.bc.write(0x0013);
+    self.de.write(0x00D8);
+    self.hl.write(0x014D);
+    self.sp.write(0xFFFE);
   }
 
   fn write_byte_reg(&mut self, reg_enum: RegEnum, byte: u8) {

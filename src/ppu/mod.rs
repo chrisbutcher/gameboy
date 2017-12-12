@@ -41,44 +41,44 @@ impl Sprite {
 }
 
 pub struct PPU {
-  pub framebuffer: [ u8; 160 * 144 * 4 ],
   pub video_ram: Vec<u8>,
-  pub tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
-  pub palette: [ [ u8; 4 ]; 4 ],
-
-  pub sprites: [ Sprite; 40 ],
-
-  pub mode: u8,
-  pub mode_clock: i32,
-  pub line: u8,
-  pub scroll_x: u8,
-  pub scroll_y: u8,
-
-  pub lcdc_display_enabled: bool,
-  pub lcdc_window_tilemap: bool,
-  pub lcdc_window_enabled: bool,
-  pub lcdc_bg_and_windown_tile_base: bool,
-  pub lcdc_bg_tilemap_base: bool,
-  pub lcdc_obj_sprite_size: bool,
-  pub lcdc_obj_sprite_display_enabled: bool,
-  pub lcdc_bg_enabled: bool,
-
-  pub ly_coincidence: u8,
-  pub ly_coincidence_interrupt_enabled: bool,
-  pub mode_0_interrupt_enabled: bool,
-  pub mode_1_interrupt_enabled: bool,
-  pub mode_2_interrupt_enabled: bool,
-
-  pub horiz_blanking: bool,
-
+  pub sdl_context: sdl2::Sdl,
   pub interrupt_flags: u8,
 
-  pub sdl_context: sdl2::Sdl,
-  pub game_renderer: Option<Renderer<'static>>,
-  pub debug_renderer: Option<Renderer<'static>>,
+  framebuffer: [ u8; 160 * 144 * 4 ],
+  tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
+  palette: [ [ u8; 4 ]; 4 ],
 
-  pub state_reporter: StateReporter,
-  pub tick_counter: u64,
+  sprites: [ Sprite; 40 ],
+
+  mode: u8,
+  mode_clock: i32,
+  line: u8,
+  scroll_x: u8,
+  scroll_y: u8,
+
+  lcdc_display_enabled: bool,
+  lcdc_window_tilemap: bool,
+  lcdc_window_enabled: bool,
+  lcdc_bg_and_windown_tile_base: bool,
+  lcdc_bg_tilemap_base: bool,
+  lcdc_obj_sprite_size: bool,
+  lcdc_obj_sprite_display_enabled: bool,
+  lcdc_bg_enabled: bool,
+
+  ly_coincidence: u8,
+  ly_coincidence_interrupt_enabled: bool,
+  mode_0_interrupt_enabled: bool,
+  mode_1_interrupt_enabled: bool,
+  mode_2_interrupt_enabled: bool,
+
+  horiz_blanking: bool,
+
+  game_renderer: Option<Renderer<'static>>,
+  debug_renderer: Option<Renderer<'static>>,
+
+  state_reporter: StateReporter,
+  tick_counter: u64,
 }
 
 impl PPU {
