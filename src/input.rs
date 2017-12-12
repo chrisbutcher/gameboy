@@ -39,7 +39,6 @@ impl Input {
   }
 
   pub fn key_pressed(&mut self, button: Button) {
-    println!("Button pressed! {:?}", button);
     match button {
       Button::Start => { self.rows[0] &= !0b0000_1000 },
       Button::Select => { self.rows[0] &= !0b0000_0100 },

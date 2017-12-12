@@ -112,7 +112,7 @@ impl CPU {
 
       branch_taken: false,
       master_interrupt_toggle: true,
-      // master_interrupt_toggleCycles: 0,
+
       ei_cycles: 0,
       di_cycles: 0,
 
@@ -156,7 +156,7 @@ impl CPU {
       RegEnum::DE => self.de.write(word),
       RegEnum::HL => self.hl.write(word),
       RegEnum::SP => self.sp.write(word),
-      _ => panic!("Unexpected reg_enum: {:?}", reg_enum),
+      _ => {panic!("Unexpected reg_enum: {:?}", reg_enum)},
     }
   }
 
@@ -200,9 +200,7 @@ impl CPU {
         interrupt_cycles => return interrupt_cycles,
     };
 
-    if self.halted {
-      return 1
-    }
+    if self.halted { return 1 }
 
     let opcode: u8 = mmu.read(self.pc);
 

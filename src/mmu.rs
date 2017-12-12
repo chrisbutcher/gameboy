@@ -2,6 +2,9 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::cell::RefCell;
 
+extern crate rand;
+use self::rand::Rng;
+
 pub use super::bootrom;
 pub use super::cartridge;
 pub use super::ppu;
@@ -110,6 +113,11 @@ impl MMU {
       }
       0xFF00 => {
         self.input.read()
+      }
+      0xFF04 => {
+        // TODO
+        let mut rng = rand::thread_rng();
+        rng.gen::<u8>()
       }
       0xFF01...0xFF0E => {
         self.io[ address as usize - 0xFF00 ]
