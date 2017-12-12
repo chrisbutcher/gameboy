@@ -296,7 +296,7 @@ impl CPU {
       0x0D => { debug!("DEC C"); self.dec_c() }
       0x0E => { debug!("LD C,n"); self.ld_c_n(mmu) }
       0x0F => self.explode(format!("RRCA : rrca() not implemented! {:#X}", opcode)),
-      0x10 => self.explode(format!("STOP : stop() not implemented! {:#X}", opcode)),
+      0x10 => { debug!("STOP : stop()"); println!("STOP not implemented.") },
       0x11 => { debug!("LD DE,nn"); self.ld_de_nn(mmu) }
       0x12 => { debug!("LD (DE),A"); self.ld_de_a(mmu) }
       0x13 => { debug!("INC DE"); self.inc_de() }
@@ -317,13 +317,13 @@ impl CPU {
       0x22 => { debug!("LD (HLI),A"); self.ld_hli_a(mmu) }
       0x23 => { debug!("INC HL"); self.inc_hl() }
       0x24 => { debug!("INC H"); self.inc_h() }
-      0x25 => self.explode(format!("DEC H : dec_h() not implemented! {:#X}", opcode)),
+      0x25 => { debug!("DEC H : dec_h()"); shared_dec_byte_reg(self, RegEnum::H) }
       0x26 => { debug!("LD H,n : ld_h_n()"); shared_ld_reg_n(self, RegEnum::H, mmu) }
       0x27 => { debug!("DAA : daa()"); self.daa() } ,
       0x28 => { debug!("JR Z,n"); self.jr_z_n(mmu) }
       0x29 => self.explode(format!("ADD HL,HL : add_hl_hl() not implemented! {:#X}", opcode)),
       0x2A => { debug!("LD A,(HLI)"); self.ld_a_hli(mmu) }
-      0x2B => self.explode(format!("DEC HL : dec_hl() not implemented! {:#X}", opcode)),
+      0x2B => { debug!("DEC HL : dec_hl()"); shared_dec_word_reg(self, RegEnum::HL) },
       0x2C => { debug!("INC L"); self.inc_l() }
       0x2D => { debug!("DEC L"); self.dec_l(); }
       0x2E => { debug!("LD L,n : ld_l_n()"); self.ld_l_n(mmu) },
@@ -409,10 +409,10 @@ impl CPU {
       0x7E => { debug!("LD A,(HL)"); self.ld_a_hl(mmu) }
       0x7F => { debug!("LD A,A : ld_a_a()"); }
       0x80 => { debug!("ADD A,B"); let value = self.read_byte_reg(RegEnum::B); shared_add_n(self, value, false) }
-      0x81 => self.explode(format!("ADD A,C : add_a_c() not implemented! {:#X}", opcode)),
-      0x82 => self.explode(format!("ADD A,D : add_a_d() not implemented! {:#X}", opcode)),
-      0x83 => self.explode(format!("ADD A,E : add_a_e() not implemented! {:#X}", opcode)),
-      0x84 => self.explode(format!("ADD A,H : add_a_h() not implemented! {:#X}", opcode)),
+      0x81 => { debug!("ADD A,C"); let value = self.read_byte_reg(RegEnum::C); shared_add_n(self, value, false) }
+      0x82 => { debug!("ADD A,D"); let value = self.read_byte_reg(RegEnum::D); shared_add_n(self, value, false) }
+      0x83 => { debug!("ADD A,E"); let value = self.read_byte_reg(RegEnum::E); shared_add_n(self, value, false) }
+      0x84 => { debug!("ADD A,H"); let value = self.read_byte_reg(RegEnum::H); shared_add_n(self, value, false) }
       0x85 => { debug!("ADD A,L"); let value = self.read_byte_reg(RegEnum::L); shared_add_n(self, value, false) }
       0x86 => { debug!("ADD A,(HL)"); self.add_a_hl(mmu) }
       0x87 => { debug!("ADD A,A"); let value = self.read_byte_reg(RegEnum::A); shared_add_n(self, value, false) }
@@ -430,7 +430,12 @@ impl CPU {
       0x93 => self.explode(format!("SUB E : sub_e() not implemented! {:#X}", opcode)),
       0x94 => self.explode(format!("SUB H : sub_h() not implemented! {:#X}", opcode)),
       0x95 => self.explode(format!("SUB L : sub_l() not implemented! {:#X}", opcode)),
-      0x96 => self.explode(format!("SUB (HL) : sub_hl() not implemented! {:#X}", opcode)),
+      0x96 => {
+        debug!("SUB (HL) : sub_hl()");
+        let address = self.read_word_reg(RegEnum:: HL);
+        let value = mmu.read(address);
+        shared_sub_n(self, value, false);
+      }
       0x97 => self.explode(format!("SUB A : sub_a() not implemented! {:#X}", opcode)),
       0x98 => self.explode(format!("SBC B : sbc_b() not implemented! {:#X}", opcode)),
       0x99 => self.explode(format!("SBC C : sbc_c() not implemented! {:#X}", opcode)),
@@ -458,10 +463,10 @@ impl CPU {
       0xAF => { debug!("XOR A"); self.xor_a() }
       0xB0 => { debug!("OR B"); self.or_b() }
       0xB1 => { debug!("OR C"); self.or_c() }
-      0xB2 => self.explode(format!("OR D : or_d() not implemented! {:#X}", opcode)),
-      0xB3 => self.explode(format!("OR E : or_e() not implemented! {:#X}", opcode)),
-      0xB4 => self.explode(format!("OR H : or_h() not implemented! {:#X}", opcode)),
-      0xB5 => self.explode(format!("OR L : or_l() not implemented! {:#X}", opcode)),
+      0xB2 => { debug!("OR D : or_d()"); let value = self.read_byte_reg(RegEnum::D); shared_or_n(self, value); }
+      0xB3 => { debug!("OR E : or_e()"); let value = self.read_byte_reg(RegEnum::E); shared_or_n(self, value); }
+      0xB4 => { debug!("OR H : or_h()"); let value = self.read_byte_reg(RegEnum::H); shared_or_n(self, value); }
+      0xB5 => { debug!("OR L : or_l()"); let value = self.read_byte_reg(RegEnum::L); shared_or_n(self, value); }
       0xB6 => self.explode(format!("OR (HL) : or_hl() not implemented! {:#X}", opcode)),
       0xB7 => { debug!("OR A : or_a()"); let value = self.read_byte_reg(RegEnum::A); shared_or_n(self, value) },
       0xB8 => {
@@ -534,7 +539,7 @@ impl CPU {
       0xEB => debug!("Unhandled opcode"),
       0xEC => debug!("Unhandled opcode"),
       0xED => debug!("Unhandled opcode"),
-      0xEE => self.explode(format!("XOR n : xor_n() not implemented! {:#X}", opcode)),
+      0xEE => { debug!("XOR n : xor_n()"); let value = mmu.read(self.pc); shared_xor_n(self, value); self.pc += 1; }
       0xEF => { debug!("RST 28H"); self.rst_28h(mmu) }
       0xF0 => { debug!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu) }
       0xF1 => { debug!("POP AF"); self.pop_af(mmu) }
@@ -958,8 +963,7 @@ impl CPU {
   }
 
   fn or_b(&mut self) {
-    let value = self.read_byte_reg(RegEnum::B);
-    shared_or_n(self, value);
+    let value = self.read_byte_reg(RegEnum::B); shared_or_n(self, value);
   }
 
   fn or_c(&mut self) {
@@ -1458,7 +1462,7 @@ impl CPU {
       0x43 => { debug!("CB: BIT 0 E"); shared_bit_n_reg(self, 0, RegEnum::E) }
       0x44 => { debug!("CB: BIT 0 H"); shared_bit_n_reg(self, 0, RegEnum::H) }
       0x45 => { debug!("CB: BIT 0 L"); shared_bit_n_reg(self, 0, RegEnum::L) }
-      0x46 => { panic!("CB: BIT 0 (HL) not implemented, {:#X}", opcode) }
+      0x46 => { debug!("CB: BIT 0 (HL)"); shared_bit_n_hl(self, 0, mmu) }
       0x47 => { debug!("CB: BIT 0 A"); shared_bit_n_reg(self, 0, RegEnum::A) }
       0x48 => { debug!("CB: BIT 1 B"); shared_bit_n_reg(self, 1, RegEnum::B) }
       0x49 => { debug!("CB: BIT 1 C"); shared_bit_n_reg(self, 1, RegEnum::C) }
@@ -1466,7 +1470,7 @@ impl CPU {
       0x4B => { debug!("CB: BIT 1 E"); shared_bit_n_reg(self, 1, RegEnum::E) }
       0x4C => { debug!("CB: BIT 1 H"); shared_bit_n_reg(self, 1, RegEnum::H) }
       0x4D => { debug!("CB: BIT 1 L"); shared_bit_n_reg(self, 1, RegEnum::L) }
-      0x4E => { panic!("CB: BIT 1 (HL) not implemented, {:#X}", opcode) }
+      0x4E => { debug!("CB: BIT 1 (HL)"); shared_bit_n_hl(self, 1, mmu) }
       0x4F => { debug!("CB: BIT 1 A"); shared_bit_n_reg(self, 1, RegEnum::A) }
       0x50 => { debug!("CB: BIT 2 B"); shared_bit_n_reg(self, 2, RegEnum::B) }
       0x51 => { debug!("CB: BIT 2 C"); shared_bit_n_reg(self, 2, RegEnum::C) }
@@ -1474,7 +1478,7 @@ impl CPU {
       0x53 => { debug!("CB: BIT 2 E"); shared_bit_n_reg(self, 2, RegEnum::E) }
       0x54 => { debug!("CB: BIT 2 H"); shared_bit_n_reg(self, 2, RegEnum::H) }
       0x55 => { debug!("CB: BIT 2 L"); shared_bit_n_reg(self, 2, RegEnum::L) }
-      0x56 => { panic!("CB: BIT 2 (HL) not implemented, {:#X}", opcode) }
+      0x56 => { debug!("CB: BIT 2 (HL)"); shared_bit_n_hl(self, 2, mmu) }
       0x57 => { debug!("CB: BIT 2 A"); shared_bit_n_reg(self, 2, RegEnum::A) }
       0x58 => { debug!("CB: BIT 3 B"); shared_bit_n_reg(self, 3, RegEnum::B) }
       0x59 => { debug!("CB: BIT 3 C"); shared_bit_n_reg(self, 3, RegEnum::C) }
@@ -1482,7 +1486,7 @@ impl CPU {
       0x5B => { debug!("CB: BIT 3 E"); shared_bit_n_reg(self, 3, RegEnum::E) }
       0x5C => { debug!("CB: BIT 3 H"); shared_bit_n_reg(self, 3, RegEnum::H) }
       0x5D => { debug!("CB: BIT 3 L"); shared_bit_n_reg(self, 3, RegEnum::L) }
-      0x5E => { panic!("CB: BIT 3 (HL) not implemented, {:#X}", opcode) }
+      0x5E => { debug!("CB: BIT 3 (HL)"); shared_bit_n_hl(self, 3, mmu) }
       0x5F => { debug!("CB: BIT 3 A"); shared_bit_n_reg(self, 3, RegEnum::A) }
       0x60 => { debug!("CB: BIT 4 B"); shared_bit_n_reg(self, 4, RegEnum::B) }
       0x61 => { debug!("CB: BIT 4 C"); shared_bit_n_reg(self, 4, RegEnum::C) }
@@ -1490,7 +1494,7 @@ impl CPU {
       0x63 => { debug!("CB: BIT 4 E"); shared_bit_n_reg(self, 4, RegEnum::E) }
       0x64 => { debug!("CB: BIT 4 H"); shared_bit_n_reg(self, 4, RegEnum::H) }
       0x65 => { debug!("CB: BIT 4 L"); shared_bit_n_reg(self, 4, RegEnum::L) }
-      0x66 => { panic!("CB: BIT 4 (HL) not implemented, {:#X}", opcode) }
+      0x66 => { debug!("CB: BIT 4 (HL)"); shared_bit_n_hl(self, 4, mmu) }
       0x67 => { debug!("CB: BIT 4 A"); shared_bit_n_reg(self, 4, RegEnum::A) }
       0x68 => { debug!("CB: BIT 5 B"); shared_bit_n_reg(self, 5, RegEnum::B) }
       0x69 => { debug!("CB: BIT 5 C"); shared_bit_n_reg(self, 5, RegEnum::C) }
@@ -1498,7 +1502,7 @@ impl CPU {
       0x6B => { debug!("CB: BIT 5 E"); shared_bit_n_reg(self, 5, RegEnum::E) }
       0x6C => { debug!("CB: BIT 5 H"); shared_bit_n_reg(self, 5, RegEnum::H) }
       0x6D => { debug!("CB: BIT 5 L"); shared_bit_n_reg(self, 5, RegEnum::L) }
-      0x6E => { panic!("CB: BIT 5 (HL) not implemented, {:#X}", opcode) }
+      0x6E => { debug!("CB: BIT 5 (HL)"); shared_bit_n_hl(self, 5, mmu) }
       0x6F => { debug!("CB: BIT 5 A"); shared_bit_n_reg(self, 5, RegEnum::A) }
       0x70 => { debug!("CB: BIT 6 B"); shared_bit_n_reg(self, 6, RegEnum::B) }
       0x71 => { debug!("CB: BIT 6 C"); shared_bit_n_reg(self, 6, RegEnum::C) }
@@ -1506,7 +1510,7 @@ impl CPU {
       0x73 => { debug!("CB: BIT 6 E"); shared_bit_n_reg(self, 6, RegEnum::E) }
       0x74 => { debug!("CB: BIT 6 H"); shared_bit_n_reg(self, 6, RegEnum::H) }
       0x75 => { debug!("CB: BIT 6 L"); shared_bit_n_reg(self, 6, RegEnum::L) }
-      0x76 => { panic!("CB: BIT 6 (HL) not implemented, {:#X}", opcode) }
+      0x76 => { debug!("CB: BIT 6 (HL)"); shared_bit_n_hl(self, 6, mmu) }
       0x77 => { debug!("CB: BIT 6 A"); shared_bit_n_reg(self, 6, RegEnum::A) }
       0x78 => { debug!("CB: BIT 7 B"); shared_bit_n_reg(self, 7, RegEnum::B) }
       0x79 => { debug!("CB: BIT 7 C"); shared_bit_n_reg(self, 7, RegEnum::C) }
@@ -1546,7 +1550,7 @@ impl CPU {
       0x9B => self.explode(format!("CB: RES 3 E : res_3_e() not implemented! {:#X}", opcode)),
       0x9C => self.explode(format!("CB: RES 3 H : res_3_h() not implemented! {:#X}", opcode)),
       0x9D => self.explode(format!("CB: RES 3 L : res_3_l() not implemented! {:#X}", opcode)),
-      0x9E => self.explode(format!("CB: RES 3 (HL) : res_3_hl() not implemented! {:#X}", opcode)),
+      0x9E => { debug!("CB: RES 3 (HL) : res_3_hl()"); self.shared_reset_n_hl(3, mmu) }
       0x9F => self.explode(format!("CB: RES 3 A : res_3_a() not implemented! {:#X}", opcode)),
       0xA0 => self.explode(format!("CB: RES 4 B : res_4_b() not implemented! {:#X}", opcode)),
       0xA1 => self.explode(format!("CB: RES 4 C : res_4_c() not implemented! {:#X}", opcode)),
@@ -1578,7 +1582,7 @@ impl CPU {
       0xBB => self.explode(format!("CB: RES 7 E : res_7_e() not implemented! {:#X}", opcode)),
       0xBC => self.explode(format!("CB: RES 7 H : res_7_h() not implemented! {:#X}", opcode)),
       0xBD => self.explode(format!("CB: RES 7 L : res_7_l() not implemented! {:#X}", opcode)),
-      0xBE => self.explode(format!("CB: RES 7 (HL) : res_7_hl() not implemented! {:#X}", opcode)),
+      0xBE => { debug!("CB: RES 7 (HL) : res_7_hl()"); self.shared_reset_n_hl(7, mmu) }
       0xBF => self.explode(format!("CB: RES 7 A : res_7_a() not implemented! {:#X}", opcode)),
       0xC0 => self.explode(format!("CB: SET 0 B : set_0_b() not implemented! {:#X}", opcode)),
       0xC1 => self.explode(format!("CB: SET 0 C : set_0_c() not implemented! {:#X}", opcode)),
@@ -1610,7 +1614,7 @@ impl CPU {
       0xDB => self.explode(format!("CB: SET 3 E : set_3_e() not implemented! {:#X}", opcode)),
       0xDC => self.explode(format!("CB: SET 3 H : set_3_h() not implemented! {:#X}", opcode)),
       0xDD => self.explode(format!("CB: SET 3 L : set_3_l() not implemented! {:#X}", opcode)),
-      0xDE => self.explode(format!("CB: SET 3 (HL) : set_3_hl() not implemented! {:#X}", opcode)),
+      0xDE => { debug!("CB: SET 3 (HL) : set_3_hl()"); self.shared_set_n_hl(3, mmu) }
       0xDF => self.explode(format!("CB: SET 3 A : set_3_a() not implemented! {:#X}", opcode)),
       0xE0 => self.explode(format!("CB: SET 4 B : set_4_b() not implemented! {:#X}", opcode)),
       0xE1 => self.explode(format!("CB: SET 4 C : set_4_c() not implemented! {:#X}", opcode)),
@@ -1642,7 +1646,7 @@ impl CPU {
       0xFB => self.explode(format!("CB: SET 7 E : set_7_e() not implemented! {:#X}", opcode)),
       0xFC => self.explode(format!("CB: SET 7 H : set_7_h() not implemented! {:#X}", opcode)),
       0xFD => self.explode(format!("CB: SET 7 L : set_7_l() not implemented! {:#X}", opcode)),
-      0xFE => self.explode(format!("CB: SET 7 (HL) : set_7_hl() not implemented! {:#X}", opcode)),
+      0xFE => { debug!("CB: SET 7 (HL) : set_7_hl()"); self.shared_set_n_hl(7, mmu) }
       0xFF => self.explode(format!("CB: SET 7 A : set_7_a() not implemented! {:#X}", opcode)),
       _ => self.explode(format!("Unexpected CB opcode: {:#X}", opcode)),
     }
@@ -1671,6 +1675,18 @@ impl CPU {
 
   fn sla_a(&mut self) {
     shared_sla_n(self, RegEnum::A);
+  }
+
+  fn shared_set_n_hl(&mut self, n: u8, mmu: &mut mmu::MMU) {
+    let address = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(address) | (1 << n);
+    mmu.write(address, value);
+  }
+
+  fn shared_reset_n_hl(&mut self, n: u8, mmu: &mut mmu::MMU) {
+    let address = self.read_word_reg(RegEnum::HL);
+    let value = mmu.read(address) & !(1 << n);
+    mmu.write(address, value);
   }
 }
 

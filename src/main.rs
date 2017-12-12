@@ -168,7 +168,7 @@ fn main() {
             game_boy.mmu.input.key_pressed(pressed_button);
           }
 
-          println!("{:?}", keycode);
+          // println!("{:?}", keycode);
         },
         Event::KeyUp { keycode, .. } => {
           if let Some(pressed_button) = translate_sdl2_keycode(keycode) {
