@@ -12,7 +12,6 @@ impl Bootrom {
     let mut file = File::open("dmg_boot.bin").unwrap();
     let mut buffer = [0x00; MAX_BOOTROM_SIZE];
     file.read_exact(&mut buffer).unwrap();
-    // Bootrom::from_data(data);
 
     Bootrom {
       buffer: buffer

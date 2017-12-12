@@ -6,6 +6,6 @@ cpu_dump
 cpu_timing_dump
 *.swp
 pics
-.DS_Store
 chris_cpu_regs_dump.log
+.DS_Store
 .vscode/

@@ -152,6 +152,9 @@ fn main() {
     for event in events.poll_iter() {
       match event {
         Event::Quit { .. } => break 'main,
+        Event::KeyDown { keycode, .. } => {
+          println!("{:?}", keycode);
+        },
         _ => {}
       }
     }

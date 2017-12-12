@@ -12,7 +12,7 @@ pub struct MMU {
   pub interrupt_enabled: u8,
   pub ppu: RefCell<ppu::PPU>,
 
-  bootrom: bootrom::Bootrom,
+  // bootrom: bootrom::Bootrom, // TODO
   bootroom_active: bool,
 
   cartridge: cartridge::Cartridge, // 0000-7fff
@@ -30,7 +30,7 @@ pub struct MMU {
 impl MMU {
   pub fn new() -> MMU {
     MMU {
-      bootrom: bootrom::Bootrom::new(),
+      // bootrom: bootrom::Bootrom::new(),
       bootroom_active: true,
       cartridge: cartridge::Cartridge::new(),
       external_ram: vec![ 0x00; 0x2000 ],
