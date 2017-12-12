@@ -11,6 +11,7 @@ pub struct MMU {
   pub interrupt_flags: u8,
   pub interrupt_enabled: u8,
   pub ppu: RefCell<ppu::PPU>,
+  pub input: input::Input,
 
   // bootrom: bootrom::Bootrom, // TODO
   bootroom_active: bool,
@@ -22,9 +23,6 @@ pub struct MMU {
   sprite_info: Vec<u8>, // FE00-FE9F
   io: Vec<u8>, // FF00-FF7F
   zram: Vec<u8>, // FF80-FFFF (zero page ram)
-
-  input: input::Input,
-  // Switches banks via the MBC (memory bank controller)
 }
 
 impl MMU {
@@ -111,7 +109,7 @@ impl MMU {
         self.sprite_info[ address as usize - 0xFE00 ]
       }
       0xFF00 => {
-        self.input.read(address)
+        self.input.read()
       }
       0xFF01...0xFF0E => {
         self.io[ address as usize - 0xFF00 ]
@@ -188,7 +186,7 @@ impl MMU {
       0xFEA0...0xFEFF => {
       } // no-op
       0xFF00 => {
-        self.input.write(address, data)
+        self.input.write(data)
       }
       0xFF01...0xFF0E => {
         self.io[ address as usize - 0xFF00 ] = data

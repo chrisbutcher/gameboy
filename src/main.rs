@@ -14,6 +14,7 @@ extern crate env_logger;
 
 pub extern crate sdl2;
 use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 pub mod cpu;
 pub mod bootrom;
@@ -91,6 +92,14 @@ impl GameBoy {
   }
 
   fn update_graphics(&mut self, cycles: i32) {
+    // TODO input interrupt handling to separate method
+    self.mmu.interrupt_flags |= self.mmu.input.interrupt_flags;
+    if self.mmu.input.interrupt_flags != 0x00 {
+      // panic!("hi: {:02x}", self.mmu.input.interrupt_flags);
+    }
+    self.mmu.input.interrupt_flags = 0x00;
+    // TODO see above
+
     self.mmu.ppu.borrow_mut().tick(cycles);
     self.mmu.interrupt_flags |= self.mmu.ppu.borrow_mut().interrupt_flags;
     self.mmu.ppu.borrow_mut().interrupt_flags = 0x00;
@@ -153,7 +162,20 @@ fn main() {
       match event {
         Event::Quit { .. } => break 'main,
         Event::KeyDown { keycode, .. } => {
+          match keycode { Some(Keycode::Escape) | Some(Keycode::Q) => break 'main, _ => {} }
+
+          if let Some(pressed_button) = translate_sdl2_keycode(keycode) {
+            game_boy.mmu.input.key_pressed(pressed_button);
+          }
+
           println!("{:?}", keycode);
+        },
+        Event::KeyUp { keycode, .. } => {
+          if let Some(pressed_button) = translate_sdl2_keycode(keycode) {
+            game_boy.mmu.input.key_released(pressed_button);
+          }
+
+          // println!("{:?}", keycode);
         },
         _ => {}
       }
@@ -163,6 +185,20 @@ fn main() {
 
     game_boy.render_frame();
     // TODO limit to 60fps
+  }
+}
+
+fn translate_sdl2_keycode(keycode: Option<Keycode>) -> Option<input::Button> {
+  match keycode {
+    Some(Keycode::Up) => Some(input::Button::Up),
+    Some(Keycode::Down) => Some(input::Button::Down),
+    Some(Keycode::Left) => Some(input::Button::Left),
+    Some(Keycode::Right) => Some(input::Button::Right),
+    Some(Keycode::X) => Some(input::Button::B),
+    Some(Keycode::Z) => Some(input::Button::A),
+    Some(Keycode::RShift) => Some(input::Button::Select),
+    Some(Keycode::Return) => Some(input::Button::Start),
+    _ => None
   }
 }
 
