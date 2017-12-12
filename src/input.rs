@@ -41,10 +41,15 @@ impl Input {
   pub fn key_pressed(&mut self, button: Button) {
     println!("Button pressed! {:?}", button);
     match button {
-      Button::Start => {
-        self.rows[0] &= !0b0000_1000;
-      },
-      _ => {}
+      Button::Start => { self.rows[0] &= !0b0000_1000 },
+      Button::Select => { self.rows[0] &= !0b0000_0100 },
+      Button::B => { self.rows[0] &= !0b0000_0010 },
+      Button::A => { self.rows[0] &= !0b0000_0001 },
+
+      Button::Down => { self.rows[1] &= !0b0000_1000 },
+      Button::Up => { self.rows[1] &= !0b0000_0100 },
+      Button::Left => { self.rows[1] &= !0b0000_0010 },
+      Button::Right => { self.rows[1] &= !0b0000_0001 },
     }
 
     self.interrupt_flags |= 0x10;
@@ -53,10 +58,15 @@ impl Input {
 
   pub fn key_released(&mut self, button: Button) {
     match button {
-      Button::Start => {
-        self.rows[0] |= 0b0000_1000;
-      },
-      _ => {}
+      Button::Start => { self.rows[0] |= 0b0000_1000 },
+      Button::Select => { self.rows[0] |= 0b0000_0100 },
+      Button::B => { self.rows[0] |= 0b0000_0010 },
+      Button::A => { self.rows[0] |= 0b0000_0001 },
+
+      Button::Down => { self.rows[1] |= 0b0000_1000 },
+      Button::Up => { self.rows[1] |= 0b0000_0100 },
+      Button::Left => { self.rows[1] |= 0b0000_0010 },
+      Button::Right => { self.rows[1] |= 0b0000_0001 },
     }
 
     self.update();
