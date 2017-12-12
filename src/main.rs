@@ -31,7 +31,7 @@ struct GameBoy {
 }
 
 impl GameBoy {
-  pub fn new() -> GameBoy {
+  fn new() -> GameBoy {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
@@ -40,7 +40,7 @@ impl GameBoy {
     }
   }
 
-  pub fn initialize(&mut self) {
+  fn initialize(&mut self) {
     // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
     self.cpu.pc = 0x0100;
 
@@ -138,7 +138,7 @@ impl GameBoy {
     self.mmu.ppu.borrow_mut().show_debug_tiles();
   }
 
-  pub fn print_game_title(&self) {
+  fn print_game_title(&self) {
     let mut title = String::with_capacity(14);
 
     for i in 0x134..0x142 {

@@ -24,7 +24,7 @@ pub struct Sprite {
 }
 
 impl Sprite {
-  pub fn new() -> Sprite {
+  fn new() -> Sprite {
     Sprite {
       y_pos: 0x00,
       x_pos: 0x00,
@@ -147,7 +147,7 @@ impl PPU {
     }
   }
 
-  pub fn new_window(sdl_context: sdl2::Sdl, title: &str, width: u32, height: u32, x_offset: i32) -> (sdl2::video::Window, sdl2::Sdl) {
+  fn new_window(sdl_context: sdl2::Sdl, title: &str, width: u32, height: u32, x_offset: i32) -> (sdl2::video::Window, sdl2::Sdl) {
     let video_subsys = sdl_context.video().unwrap();
     let mut window = video_subsys.window(title, width, height).position_centered().opengl().build().unwrap();
 
@@ -305,7 +305,7 @@ impl PPU {
     }
   }
 
-  pub fn render_scanline(&mut self) {
+  fn render_scanline(&mut self) {
     self.render_background();
     self.render_sprites();
   }
@@ -353,7 +353,7 @@ impl PPU {
   }
 
   // NOTE borrowed from github.com/alexcrichton/jba
-  pub fn render_background(&mut self) {
+  fn render_background(&mut self) {
     if !RENDER_PIXELS { return }
 
     // tiles: 8x8 pixels

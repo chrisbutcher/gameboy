@@ -22,7 +22,7 @@ impl Input {
     self.update();
   }
 
-  pub fn update(&mut self) {
+  fn update(&mut self) {
     self.column &= 0x30;
     if self.column & 0x10 == 0x10 { self.column |= self.rows[0]; }
     if self.column & 0x20 == 0x20 { self.column |= self.rows[1]; }

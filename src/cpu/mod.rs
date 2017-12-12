@@ -26,19 +26,19 @@ pub struct Register {
 }
 
 impl Register {
-  pub fn new() -> Register {
+  fn new() -> Register {
     Register { value: 0x0 }
   }
 
-  pub fn read(&self) -> u16 {
+  fn read(&self) -> u16 {
     self.value
   }
 
-  pub fn read_hi(&self) -> u8 {
+  fn read_hi(&self) -> u8 {
     ((self.value >> 8) & 0xFF) as u8
   }
 
-  pub fn read_lo(&self) -> u8 {
+  fn read_lo(&self) -> u8 {
     (self.value & 0xFF) as u8
   }
 
@@ -46,11 +46,11 @@ impl Register {
     self.value = v
   }
 
-  pub fn write_hi(&mut self, v: u8) {
+  fn write_hi(&mut self, v: u8) {
     self.value = self.value & 0x00FF | (v as u16) << 8
   }
 
-  pub fn write_lo(&mut self, v: u8) {
+  fn write_lo(&mut self, v: u8) {
     self.value = self.value & 0xFF00 | v as u16
   }
 }
@@ -123,7 +123,7 @@ impl CPU {
     }
   }
 
-  pub fn write_byte_reg(&mut self, reg_enum: RegEnum, byte: u8) {
+  fn write_byte_reg(&mut self, reg_enum: RegEnum, byte: u8) {
     match reg_enum {
       RegEnum::A => self.af.write_hi(byte),
       RegEnum::F => self.af.write_lo(byte),
@@ -139,7 +139,7 @@ impl CPU {
     }
   }
 
-  pub fn write_word_reg(&mut self, reg_enum: RegEnum, word: u16) {
+  fn write_word_reg(&mut self, reg_enum: RegEnum, word: u16) {
     match reg_enum {
       RegEnum::AF => self.af.write(word),
       RegEnum::BC => self.bc.write(word),
@@ -150,7 +150,7 @@ impl CPU {
     }
   }
 
-  pub fn read_byte_reg(&mut self, reg_enum: RegEnum) -> u8 {
+  fn read_byte_reg(&mut self, reg_enum: RegEnum) -> u8 {
     match reg_enum {
       RegEnum::A => self.af.read_hi(),
       RegEnum::F => self.af.read_lo(),
@@ -166,7 +166,7 @@ impl CPU {
     }
   }
 
-  pub fn read_word_reg(&mut self, reg_enum: RegEnum) -> u16 {
+  fn read_word_reg(&mut self, reg_enum: RegEnum) -> u16 {
     match reg_enum {
       RegEnum::AF => self.af.read(),
       RegEnum::BC => self.bc.read(),
@@ -220,7 +220,7 @@ impl CPU {
     self.execute_opcode(opcode, mmu)
   }
 
-  pub fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
+  fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
     if self.master_interrupt_toggle == false && self.halted == false { return 0 }
 
     let interrupt_to_handle = mmu.interrupt_enabled & mmu.interrupt_flags;
