@@ -19,3 +19,6 @@ features = ["image","gfx"]
 [dependencies.socket_state_reporter]
 path = "../socket-state-reporter"
 
+# TODO remove this
+# [profile.release]
+# debug = true

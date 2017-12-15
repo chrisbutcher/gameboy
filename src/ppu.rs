@@ -402,6 +402,7 @@ impl PPU {
     }
   }
 
+  // Perf: Profiled with profile.release setting in Cargo.toml, and used XCode tool Instruments. Found that draw_point and Point::new dominated
   pub fn render_screen(&mut self) {
     if !RENDER_PIXELS { return }
 
