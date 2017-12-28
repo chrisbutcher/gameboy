@@ -11,7 +11,7 @@ clap = "2"
 zmq = "0.8"
 
 [dependencies.sdl2]
-version = "0.29"
+version = "0.31.0"
 default-features = false
 features = ["image","gfx"]
 

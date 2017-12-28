@@ -1,6 +1,6 @@
 pub use super::sdl2;
 pub use super::sdl2::pixels;
-pub use super::sdl2::render::Renderer;
+pub use super::sdl2::render::WindowCanvas;
 pub use super::sdl2::video::WindowPos;
 
 extern crate socket_state_reporter;
@@ -74,8 +74,8 @@ pub struct PPU {
 
   horiz_blanking: bool,
 
-  game_renderer: Option<Renderer<'static>>,
-  debug_renderer: Option<Renderer<'static>>,
+  game_canvas: Option<WindowCanvas>,
+  debug_canvas: Option<WindowCanvas>,
 
   state_reporter: StateReporter,
   tick_counter: u64,
@@ -84,20 +84,20 @@ pub struct PPU {
 impl PPU {
   pub fn new() -> PPU {
     let sdl_context = sdl2::init().unwrap();
-    let debug_renderer;
-    let game_renderer;
+    let debug_canvas;
+    let game_canvas;
 
     let sdl_context = if RENDER_PIXELS {
       let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192, 160);
       let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
 
-      debug_renderer = Some(debug_window.renderer().present_vsync().build().unwrap());
-      game_renderer = Some(game_window.renderer().present_vsync().build().unwrap());
+      debug_canvas = Some(debug_window.into_canvas().accelerated().present_vsync().build().unwrap());
+      game_canvas = Some(game_window.into_canvas().accelerated().present_vsync().build().unwrap());
 
       sdl_context
     } else {
-      debug_renderer = None;
-      game_renderer = None;
+      debug_canvas = None;
+      game_canvas = None;
 
       sdl_context
     };
@@ -139,8 +139,8 @@ impl PPU {
       interrupt_flags: 0x00,
 
       sdl_context: sdl_context,
-      game_renderer: game_renderer,
-      debug_renderer: debug_renderer,
+      game_canvas: game_canvas,
+      debug_canvas: debug_canvas,
 
       state_reporter: StateReporter::new("5555"),
       tick_counter: 0,
@@ -415,18 +415,18 @@ impl PPU {
         let pixel_b = self.framebuffer[ framebuffer_index as usize + 2 ];
         let pixel_a = self.framebuffer[ framebuffer_index as usize + 3 ];
 
-        match self.game_renderer {
-          Some(ref mut renderer) => {
-            renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-            renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
+        match self.game_canvas {
+          Some(ref mut canvas) => {
+            canvas.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
+            canvas.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
           }
           _ => {}
         }
       }
     }
 
-    match self.game_renderer {
-      Some(ref mut renderer) => { renderer.present() },
+    match self.game_canvas {
+      Some(ref mut canvas) => { canvas.present() },
       _ => {}
     }
   }
@@ -441,12 +441,12 @@ impl PPU {
             let target_tile = tile_x + (tile_y * 18);
             let pixel_palette = self.palette[ self.tileset[ target_tile as usize ][ y as usize ][ x as usize ] as usize ];
 
-            match self.debug_renderer {
-              Some(ref mut renderer) => {
-                renderer.set_draw_color(
+            match self.debug_canvas {
+              Some(ref mut canvas) => {
+                canvas.set_draw_color(
                   pixels::Color::RGBA(pixel_palette[ 0 ], pixel_palette[ 1 ], pixel_palette[ 2 ], pixel_palette[ 3 ]),
                 );
-                renderer.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8))).unwrap()
+                canvas.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8))).unwrap()
               },
               _ => {}
             }
@@ -455,9 +455,9 @@ impl PPU {
       }
     }
 
-    match self.debug_renderer {
-      Some(ref mut renderer) => {
-        renderer.present()
+    match self.debug_canvas {
+      Some(ref mut canvas) => {
+        canvas.present()
       },
       _ => {}
     }
