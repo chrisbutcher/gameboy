@@ -38,12 +38,11 @@ impl Sprite {
 pub struct PPU {
   pub video_ram: Vec<u8>,
   pub interrupt_flags: u8,
-
   pub framebuffer: [ u8; 160 * 144 * 4 ],
-  tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
-  palette: [ [ u8; 4 ]; 4 ],
 
+  tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
   sprites: [ Sprite; 40 ],
+  palette: [ [ u8; 4 ]; 4 ],
 
   mode: u8,
   mode_clock: i32,
