@@ -17,13 +17,9 @@ const SYNC_STATE: bool = false;
 const AFTER_TICK_COUNT: u64 = 32057900;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum RegEnum {
-  A, F, B, C, D, E, H, L, S, P, AF, BC, DE, HL, SP,
-}
+pub enum RegEnum { A, F, B, C, D, E, H, L, S, P, AF, BC, DE, HL, SP }
 
-pub struct Register {
-  value: u16,
-}
+pub struct Register { value: u16 }
 
 impl Register {
   fn new() -> Register {

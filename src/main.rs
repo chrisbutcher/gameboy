@@ -138,7 +138,7 @@ fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
 
 fn main() {
   let args = handle_cli_args();
-  let rom_filename = args.value_of("rom").unwrap_or("zelda.gb");
+  let rom_filename = args.value_of("rom").unwrap_or("tetris.gb");
 
   env_logger::init().unwrap();
 
