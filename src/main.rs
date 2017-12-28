@@ -20,6 +20,7 @@ pub mod cpu;
 pub mod bootrom;
 pub mod cartridge;
 pub mod mmu;
+pub mod timer;
 pub mod ppu;
 pub mod input;
 pub mod fps;

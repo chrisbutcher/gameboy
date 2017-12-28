@@ -2,19 +2,18 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::cell::RefCell;
 
-extern crate rand;
-use self::rand::Rng;
-
 pub use super::bootrom;
 pub use super::cartridge;
 pub use super::ppu;
 pub use super::input;
+pub use super::timer;
 
 pub struct MMU {
   pub interrupt_flags: u8,
   pub interrupt_enabled: u8,
   pub ppu: RefCell<ppu::PPU>,
   pub input: input::Input,
+  pub timer: timer::Timer,
 
   // bootrom: bootrom::Bootrom, // TODO
   bootroom_active: bool,
@@ -42,6 +41,7 @@ impl MMU {
 
       ppu: RefCell::new(ppu::PPU::new()),
       input: input::Input::new(),
+      timer: timer::Timer::new(),
 
       interrupt_enabled: 0x00,
       interrupt_flags: 0x00,
@@ -82,11 +82,6 @@ impl MMU {
     self.write(0xFFFF, 0x00);
   }
 
-  pub fn load_game(&mut self, rom_filename: &str) {
-    let mut f = File::open(rom_filename).unwrap();
-    f.read(&mut self.cartridge.buffer).unwrap();
-  }
-
   pub fn read(&self, address: u16) -> u8 {
     let result = match address {
       0x0000...0x7FFF => {
@@ -114,10 +109,8 @@ impl MMU {
       0xFF00 => {
         self.input.read()
       }
-      0xFF04 => {
-        // TODO
-        let mut rng = rand::thread_rng();
-        rng.gen::<u8>()
+      0xFF04...0xFF07 => {
+        self.timer.read(address)
       }
       0xFF01...0xFF0E => {
         self.io[ address as usize - 0xFF00 ]
@@ -149,19 +142,6 @@ impl MMU {
     };
 
     result
-  }
-
-  pub fn read_word(&self, address: u16) -> u16 {
-    let lo_byte = self.read(address);
-    let hi_byte = self.read(address + 1);
-    ((hi_byte as u16) << 8) | lo_byte as u16
-  }
-
-  pub fn write_word(&mut self, address: u16, data: u16) {
-    let lo_data = (0x00FF & data) as u8;
-    let hi_data = ((0xFF00 & data) >> 8) as u8;
-    self.write(address + 1, hi_data);
-    self.write(address, lo_data);
   }
 
   pub fn write(&mut self, address: u16, data: u8) {
@@ -225,6 +205,25 @@ impl MMU {
         panic!("Memory access is out of bounds: {:#X}", address);
       }
     }
+  }
+
+  pub fn load_game(&mut self, rom_filename: &str) {
+    let mut f = File::open(rom_filename).unwrap();
+    f.read(&mut self.cartridge.buffer).unwrap();
+  }
+
+
+  pub fn read_word(&self, address: u16) -> u16 {
+    let lo_byte = self.read(address);
+    let hi_byte = self.read(address + 1);
+    ((hi_byte as u16) << 8) | lo_byte as u16
+  }
+
+  pub fn write_word(&mut self, address: u16, data: u16) {
+    let lo_data = (0x00FF & data) as u8;
+    let hi_data = ((0xFF00 & data) >> 8) as u8;
+    self.write(address + 1, hi_data);
+    self.write(address, lo_data);
   }
 
   fn oam_dma(&mut self, source_address_high_byte: u8) {
