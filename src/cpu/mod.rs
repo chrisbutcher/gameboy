@@ -414,14 +414,14 @@ impl CPU {
       0x85 => { debug!("ADD A,L"); let value = self.read_byte_reg(RegEnum::L); shared_add_n(self, value, false) }
       0x86 => { debug!("ADD A,(HL)"); self.add_a_hl(mmu) }
       0x87 => { debug!("ADD A,A"); let value = self.read_byte_reg(RegEnum::A); shared_add_n(self, value, false) }
-      0x88 => self.explode(format!("ADC A,B {:#X}", opcode)),
+      0x88 => { debug!("ADC A,B"); let value = self.read_byte_reg(RegEnum::B); shared_add_n(self, value, true) }
       0x89 => { debug!("ADC A,C"); let value = self.read_byte_reg(RegEnum::C); shared_add_n(self, value, true) }
-      0x8A => self.explode(format!("ADC A,D {:#X}", opcode)),
-      0x8B => self.explode(format!("ADC A,E {:#X}", opcode)),
-      0x8C => self.explode(format!("ADC A,H {:#X}", opcode)),
-      0x8D => self.explode(format!("ADC A,L {:#X}", opcode)),
+      0x8A => { debug!("ADC A,D"); let value = self.read_byte_reg(RegEnum::D); shared_add_n(self, value, true) }
+      0x8B => { debug!("ADC A,E"); let value = self.read_byte_reg(RegEnum::E); shared_add_n(self, value, true) }
+      0x8C => { debug!("ADC A,H"); let value = self.read_byte_reg(RegEnum::H); shared_add_n(self, value, true) }
+      0x8D => { debug!("ADC A,L"); let value = self.read_byte_reg(RegEnum::L); shared_add_n(self, value, true) }
       0x8E => { debug!("ADC A,(HL)"); let address = self.read_word_reg(RegEnum::HL); let value = mmu.read(address); shared_add_n(self, value, true) },
-      0x8F => self.explode(format!("ADC A,A {:#X}", opcode)),
+      0x8F => { debug!("ADC A,A"); let value = self.read_byte_reg(RegEnum::A); shared_add_n(self, value, true) }
       0x90 => { debug!("SUB B"); let b = self.read_byte_reg(RegEnum::B); shared_sub_n(self, b, false) }
       0x91 => self.explode(format!("SUB C {:#X}", opcode)),
       0x92 => self.explode(format!("SUB D {:#X}", opcode)),
@@ -457,7 +457,7 @@ impl CPU {
       0xAB => { debug!("XOR E"); self.xor_e() }
       0xAC => { debug!("XOR H"); self.xor_h() }
       0xAD => { debug!("XOR L"); self.xor_l() }
-      0xAE => self.explode(format!("XOR (HL) {:#X}", opcode)),
+      0xAE => { debug!("XOR (HL)"); let hl = self.read_word_reg(RegEnum::HL); let value = mmu.read(hl); shared_xor_n(self, value) }
       0xAF => { debug!("XOR A"); self.xor_a() }
       0xB0 => { debug!("OR B"); self.or_b() }
       0xB1 => { debug!("OR C"); self.or_c() }

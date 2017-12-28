@@ -418,7 +418,7 @@ impl PPU {
         match self.game_renderer {
           Some(ref mut renderer) => {
             renderer.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-             renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
+            renderer.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
           }
           _ => {}
         }
