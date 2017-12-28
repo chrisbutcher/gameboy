@@ -176,6 +176,9 @@ impl MMU {
       0xFF00 => {
         self.input.write(data)
       }
+      0xFF04...0xFF07 => {
+        self.timer.write(address, data)
+      }
       0xFF01...0xFF0E => {
         self.io[ address as usize - 0xFF00 ] = data
       }

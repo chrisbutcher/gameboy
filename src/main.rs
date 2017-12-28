@@ -88,8 +88,8 @@ impl GameBoy {
     self.render_screen();
   }
 
-  fn update_timers(&mut self, _cycles: i32) {
-    // NOOP
+  fn update_timers(&mut self, cycles: i32) {
+    self.mmu.timer.tick(cycles);
   }
 
   fn update_graphics(&mut self, cycles: i32) {
