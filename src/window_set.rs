@@ -15,22 +15,18 @@ pub struct WindowSet {
 impl WindowSet {
   pub fn new() -> WindowSet {
     let sdl_context = sdl2::init().unwrap();
-    let debug_canvas;
-    let game_canvas;
 
-    let sdl_context = if RENDER_PIXELS {
+    let (sdl_context, game_canvas, debug_canvas) = if RENDER_PIXELS {
       let (debug_window, sdl_context) = WindowSet::new_window(sdl_context, "DEBUG", 192, 192, 160);
       let (game_window, sdl_context) = WindowSet::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
 
-      debug_canvas = Some(debug_window.into_canvas().accelerated().present_vsync().build().unwrap());
-      game_canvas = Some(game_window.into_canvas().accelerated().present_vsync().build().unwrap());
-
-      sdl_context
+      (
+        sdl_context,
+        Some(game_window.into_canvas().accelerated().present_vsync().build().unwrap()),
+        Some(debug_window.into_canvas().accelerated().present_vsync().build().unwrap())
+      )
     } else {
-      debug_canvas = None;
-      game_canvas = None;
-
-      sdl_context
+      (sdl_context, None, None)
     };
 
     WindowSet {
