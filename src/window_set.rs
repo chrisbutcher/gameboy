@@ -1,6 +1,12 @@
 pub use super::sdl2;
 pub use super::sdl2::pixels;
+pub use super::sdl2::pixels::PixelFormatEnum;
+
+pub use super::sdl2::render::Texture;
+pub use super::sdl2::render::TextureCreator;
 pub use super::sdl2::render::WindowCanvas;
+
+pub use super::sdl2::video::WindowContext;
 pub use super::sdl2::video::WindowPos;
 
 const RENDER_PIXELS: bool = true;
@@ -8,31 +14,28 @@ const RENDER_PIXELS: bool = true;
 pub struct WindowSet {
   pub sdl_context: sdl2::Sdl,
 
-  game_canvas: Option<WindowCanvas>,
-  debug_canvas: Option<WindowCanvas>,
+  // game_texture: Texture,
+  // game_texture_creator: TextureCreator<WindowContext>,
+
+  game_canvas: WindowCanvas,
+  debug_canvas: WindowCanvas,
 }
 
 impl WindowSet {
   pub fn new() -> WindowSet {
     let sdl_context = sdl2::init().unwrap();
 
-    let (sdl_context, game_canvas, debug_canvas) = if RENDER_PIXELS {
-      let (debug_window, sdl_context) = WindowSet::new_window(sdl_context, "DEBUG", 192, 192, 160);
-      let (game_window, sdl_context) = WindowSet::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
+    let (debug_window, sdl_context) = WindowSet::new_window(sdl_context, "DEBUG", 192, 192, 160);
+    let (game_window, sdl_context) = WindowSet::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
 
-      (
-        sdl_context,
-        Some(game_window.into_canvas().accelerated().present_vsync().build().unwrap()),
-        Some(debug_window.into_canvas().accelerated().present_vsync().build().unwrap())
-      )
-    } else {
-      (sdl_context, None, None)
-    };
+    let game_canvas = game_window.into_canvas().accelerated().present_vsync().build().unwrap();
+    // let game_texture_creator = game_canvas.texture_creator();
+    // let mut game_texture = game_texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, 160, 144).unwrap();
 
     WindowSet {
       sdl_context: sdl_context,
       game_canvas: game_canvas,
-      debug_canvas: debug_canvas
+      debug_canvas: debug_window.into_canvas().accelerated().present_vsync().build().unwrap()
     }
   }
 
@@ -59,20 +62,17 @@ impl WindowSet {
         let pixel_b = framebuffer[ framebuffer_index as usize + 2 ];
         let pixel_a = framebuffer[ framebuffer_index as usize + 3 ];
 
-        match self.game_canvas {
-          Some(ref mut canvas) => {
-            canvas.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-            canvas.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
-          }
-          _ => {}
-        }
+        // match self.game_canvas {
+          // Some(ref mut canvas) => {
+            self.game_canvas.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
+            self.game_canvas.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
+          // }
+          // _ => {}
+        // }
       }
     }
 
-    match self.game_canvas {
-      Some(ref mut canvas) => { canvas.present() },
-      _ => {}
-    }
+    self.game_canvas.present();
   }
 
   pub fn show_debug_tiles(&mut self) {
@@ -99,11 +99,6 @@ impl WindowSet {
     //   }
     // }
 
-    match self.debug_canvas {
-      Some(ref mut canvas) => {
-        canvas.present()
-      },
-      _ => {}
-    }
+    self.debug_canvas.present()
   }
 }
