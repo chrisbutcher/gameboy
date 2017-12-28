@@ -74,6 +74,7 @@ impl GameBoy {
 
       cycles_this_frame = cycles_this_frame.wrapping_add(cycles as u32);
       self.update_timers(cycles);
+      self.update_mmu();
       self.update_graphics(cycles);
 
       if SYNC_STATE {
@@ -95,15 +96,12 @@ impl GameBoy {
     self.mmu.timer.tick(cycles);
   }
 
-  fn update_graphics(&mut self, cycles: i32) {
-    // TODO input interrupt handling to separate method
+  fn update_mmu(&mut self) {
     self.mmu.interrupt_flags |= self.mmu.input.interrupt_flags;
-    if self.mmu.input.interrupt_flags != 0x00 {
-      // panic!("hi: {:02x}", self.mmu.input.interrupt_flags);
-    }
     self.mmu.input.interrupt_flags = 0x00;
-    // TODO see above
+  }
 
+  fn update_graphics(&mut self, cycles: i32) {
     self.mmu.ppu.borrow_mut().tick(cycles);
     self.mmu.interrupt_flags |= self.mmu.ppu.borrow_mut().interrupt_flags;
     self.mmu.ppu.borrow_mut().interrupt_flags = 0x00;
@@ -148,7 +146,6 @@ fn main() {
   let mut game_boy = GameBoy::new();
   game_boy.initialize();
   game_boy.mmu.load_game(rom_filename);
-
   game_boy.print_game_title();
 
   let mut fps_counter = fps::Counter::new();
@@ -164,15 +161,11 @@ fn main() {
           if let Some(pressed_button) = translate_sdl2_keycode(keycode) {
             game_boy.mmu.input.key_pressed(pressed_button);
           }
-
-          // println!("{:?}", keycode);
         },
         Event::KeyUp { keycode, .. } => {
           if let Some(pressed_button) = translate_sdl2_keycode(keycode) {
             game_boy.mmu.input.key_released(pressed_button);
           }
-
-          // println!("{:?}", keycode);
         },
         _ => {}
       }
@@ -180,8 +173,7 @@ fn main() {
 
     fps_counter.print_fps();
 
-    game_boy.render_frame();
-    // TODO limit to 60fps
+    game_boy.render_frame(); // TODO limit to 60fps
   }
 }
 

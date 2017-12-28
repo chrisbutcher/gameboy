@@ -31,8 +31,6 @@ impl WindowSet {
     let (game_window, sdl_context) = WindowSet::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
 
     let game_canvas = game_window.into_canvas().accelerated().present_vsync().build().unwrap();
-    // let game_texture_creator = game_canvas.texture_creator();
-    // let mut game_texture = game_texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, 160, 144).unwrap();
 
     WindowSet {
       sdl_context: sdl_context,
