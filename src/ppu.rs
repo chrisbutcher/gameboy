@@ -1,8 +1,3 @@
-pub use super::sdl2;
-pub use super::sdl2::pixels;
-pub use super::sdl2::render::WindowCanvas;
-pub use super::sdl2::video::WindowPos;
-
 extern crate socket_state_reporter;
 use self::socket_state_reporter::StateReporter;
 
@@ -42,10 +37,9 @@ impl Sprite {
 
 pub struct PPU {
   pub video_ram: Vec<u8>,
-  pub sdl_context: sdl2::Sdl,
   pub interrupt_flags: u8,
 
-  framebuffer: [ u8; 160 * 144 * 4 ],
+  pub framebuffer: [ u8; 160 * 144 * 4 ],
   tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
   palette: [ [ u8; 4 ]; 4 ],
 
@@ -74,34 +68,12 @@ pub struct PPU {
 
   horiz_blanking: bool,
 
-  game_canvas: Option<WindowCanvas>,
-  debug_canvas: Option<WindowCanvas>,
-
   state_reporter: StateReporter,
   tick_counter: u64,
 }
 
 impl PPU {
   pub fn new() -> PPU {
-    let sdl_context = sdl2::init().unwrap();
-    let debug_canvas;
-    let game_canvas;
-
-    let sdl_context = if RENDER_PIXELS {
-      let (debug_window, sdl_context) = PPU::new_window(sdl_context, "DEBUG", 192, 192, 160);
-      let (game_window, sdl_context) = PPU::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
-
-      debug_canvas = Some(debug_window.into_canvas().accelerated().present_vsync().build().unwrap());
-      game_canvas = Some(game_window.into_canvas().accelerated().present_vsync().build().unwrap());
-
-      sdl_context
-    } else {
-      debug_canvas = None;
-      game_canvas = None;
-
-      sdl_context
-    };
-
     PPU {
       framebuffer: [ 0x00; 160 * 144 * 4 ],
       video_ram: vec![ 0x00; 0x2000 ],
@@ -135,26 +107,11 @@ impl PPU {
       mode_2_interrupt_enabled: false,
 
       horiz_blanking: false,
-
       interrupt_flags: 0x00,
-
-      sdl_context: sdl_context,
-      game_canvas: game_canvas,
-      debug_canvas: debug_canvas,
 
       state_reporter: StateReporter::new("5555"),
       tick_counter: 0,
     }
-  }
-
-  fn new_window(sdl_context: sdl2::Sdl, title: &str, width: u32, height: u32, x_offset: i32) -> (sdl2::video::Window, sdl2::Sdl) {
-    let video_subsys = sdl_context.video().unwrap();
-    let mut window = video_subsys.window(title, width, height).position_centered().opengl().build().unwrap();
-
-    let position = window.position();
-    window.set_position(WindowPos::Positioned(position.0 + x_offset), WindowPos::Positioned(position.1));
-
-    (window, sdl_context)
   }
 
   pub fn read(&mut self, address: u16) -> u8 {
@@ -170,7 +127,6 @@ impl PPU {
           (if self.lcdc_bg_enabled { 0b0000_0001 } else { 0 })
       },
       0xFF41 => {
-        // TODO rename all
         let ff41_val = (if self.ly_coincidence_interrupt_enabled { 0x40 } else { 0 }) |
           (if self.mode_2_interrupt_enabled { 0x20 } else { 0 }) |
           (if self.mode_1_interrupt_enabled { 0x10 } else { 0 }) |
@@ -399,67 +355,6 @@ impl PPU {
       if i >= 160 as u8 {
         break;
       }
-    }
-  }
-
-  // Perf: Profiled with profile.release setting in Cargo.toml, and used XCode tool Instruments. Found that draw_point and Point::new dominated
-  pub fn render_screen(&mut self) {
-    if !RENDER_PIXELS { return }
-
-    for y in 0..144 {
-      for x in 0..160 {
-        let framebuffer_index = (y * 4) * 160 + (x * 4);
-
-        let pixel_r = self.framebuffer[ framebuffer_index as usize ];
-        let pixel_g = self.framebuffer[ framebuffer_index as usize + 1 ];
-        let pixel_b = self.framebuffer[ framebuffer_index as usize + 2 ];
-        let pixel_a = self.framebuffer[ framebuffer_index as usize + 3 ];
-
-        match self.game_canvas {
-          Some(ref mut canvas) => {
-            canvas.set_draw_color(pixels::Color::RGBA(pixel_r, pixel_g, pixel_b, pixel_a));
-            canvas.draw_point(sdl2::rect::Point::new(x, y)).unwrap()
-          }
-          _ => {}
-        }
-      }
-    }
-
-    match self.game_canvas {
-      Some(ref mut canvas) => { canvas.present() },
-      _ => {}
-    }
-  }
-
-  pub fn show_debug_tiles(&mut self) {
-    if !RENDER_PIXELS { return }
-
-    for tile_y in 0..17 {
-      for tile_x in 0..17 {
-        for y in 0..8 {
-          for x in 0..8 {
-            let target_tile = tile_x + (tile_y * 18);
-            let pixel_palette = self.palette[ self.tileset[ target_tile as usize ][ y as usize ][ x as usize ] as usize ];
-
-            match self.debug_canvas {
-              Some(ref mut canvas) => {
-                canvas.set_draw_color(
-                  pixels::Color::RGBA(pixel_palette[ 0 ], pixel_palette[ 1 ], pixel_palette[ 2 ], pixel_palette[ 3 ]),
-                );
-                canvas.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8))).unwrap()
-              },
-              _ => {}
-            }
-          }
-        }
-      }
-    }
-
-    match self.debug_canvas {
-      Some(ref mut canvas) => {
-        canvas.present()
-      },
-      _ => {}
     }
   }
 

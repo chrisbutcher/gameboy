@@ -22,12 +22,14 @@ pub mod cartridge;
 pub mod mmu;
 pub mod timer;
 pub mod ppu;
+pub mod window_set;
 pub mod input;
 pub mod fps;
 
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
+  window_set: window_set::WindowSet,
 
   state_reporter: StateReporter,
 }
@@ -37,6 +39,7 @@ impl GameBoy {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
+      window_set: window_set::WindowSet::new(),
 
       state_reporter: StateReporter::new("5555"),
     }
@@ -107,8 +110,8 @@ impl GameBoy {
   }
 
   fn render_screen(&mut self) {
-    self.mmu.ppu.borrow_mut().render_screen();
-    self.mmu.ppu.borrow_mut().show_debug_tiles();
+    self.window_set.render_screen(&self.mmu.ppu.borrow_mut().framebuffer);
+    self.window_set.show_debug_tiles();
   }
 
   fn print_game_title(&self) {
@@ -148,15 +151,8 @@ fn main() {
 
   game_boy.print_game_title();
 
-  let events;
   let mut fps_counter = fps::Counter::new();
-
-  {
-    let ppu = game_boy.mmu.ppu.borrow_mut();
-    events = Some(ppu.sdl_context.event_pump().unwrap());
-  }
-
-  let mut events = events.unwrap();
+  let mut events = game_boy.window_set.sdl_context.event_pump().unwrap();
 
   'main: loop {
     for event in events.poll_iter() {
