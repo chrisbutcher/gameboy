@@ -27,10 +27,13 @@ pub mod window_set;
 pub mod input;
 pub mod fps;
 
+use std::thread;
+use std::sync::mpsc::{channel, sync_channel};
+use std::sync::mpsc::{SyncSender, Receiver, TrySendError, TryRecvError};
+
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
-  window_set: window_set::WindowSet,
 
   state_reporter: StateReporter,
 }
@@ -40,7 +43,6 @@ impl GameBoy {
     GameBoy {
       cpu: cpu::CPU::new(),
       mmu: mmu::MMU::new(),
-      window_set: window_set::WindowSet::new(),
 
       state_reporter: StateReporter::new("5555"),
     }
@@ -89,8 +91,6 @@ impl GameBoy {
     }
 
     cycles_this_frame.wrapping_sub(cycles_per_frame);
-
-    self.render_screen();
   }
 
   fn update_timers(&mut self, cycles: i32) {
@@ -106,11 +106,6 @@ impl GameBoy {
     self.mmu.ppu.borrow_mut().tick(cycles);
     self.mmu.interrupt_flags |= self.mmu.ppu.borrow_mut().interrupt_flags;
     self.mmu.ppu.borrow_mut().interrupt_flags = 0x00;
-  }
-
-  fn render_screen(&mut self) {
-    self.window_set.render_screen(&self.mmu.ppu.borrow_mut().framebuffer);
-    self.window_set.show_debug_tiles();
   }
 
   fn print_game_title(&self) {
@@ -149,8 +144,16 @@ fn main() {
   game_boy.mmu.load_game(rom_filename);
   game_boy.print_game_title();
 
-  let mut fps_counter = fps::Counter::new();
-  let mut events = game_boy.window_set.sdl_context.event_pump().unwrap();
+  let mut window_set = window_set::WindowSet::new();
+
+  let (events_sender, events_receiver) = channel();
+  let (frames_sender, frames_receiver) = sync_channel(1);
+
+  let game_thread = thread::Builder::new().name("game".to_string()).spawn(move || {
+    main_loop(game_boy, events_receiver, frames_sender)
+  }).unwrap();
+
+  let mut events = window_set.sdl_context.event_pump().unwrap();
 
   'main: loop {
     for event in events.poll_iter() {
@@ -160,21 +163,54 @@ fn main() {
           match keycode { Some(Keycode::Escape) | Some(Keycode::Q) => break 'main, _ => {} }
 
           if let Some(pressed_button) = translate_sdl2_keycode(keycode) {
-            game_boy.mmu.input.key_pressed(pressed_button);
+            events_sender.send((pressed_button, true)).unwrap();
           }
         },
         Event::KeyUp { keycode, .. } => {
           if let Some(pressed_button) = translate_sdl2_keycode(keycode) {
-            game_boy.mmu.input.key_released(pressed_button);
+            events_sender.send((pressed_button, false)).unwrap();
           }
         },
         _ => {}
       }
     }
 
+    match frames_receiver.try_recv() {
+      Ok(framebuffer) => { window_set.render_screen(&framebuffer) },
+      Err(TryRecvError::Empty) => (),
+      Err(TryRecvError::Disconnected) => break 'main,
+    }
+  }
+
+  drop(events_sender);
+  drop(frames_receiver);
+  game_thread.join().unwrap();
+}
+
+fn main_loop(mut game_boy: GameBoy, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<Vec<u8>>) {
+  let mut fps_counter = fps::Counter::new();
+
+  'game: loop {
     fps_counter.print_fps();
 
+    match events_receiver.try_recv() {
+      Ok((input_button, pressed)) => {
+        if pressed {
+          game_boy.mmu.input.key_pressed(input_button);
+        } else {
+          game_boy.mmu.input.key_released(input_button);
+        }
+      },
+      _ => {}
+    }
+
     game_boy.render_frame(); // TODO limit to 60fps
+
+    let framebuffer = game_boy.mmu.ppu.borrow_mut().framebuffer.to_vec();
+    match frames_sender.try_send(framebuffer) {
+      Err(TrySendError::Disconnected(_)) => break 'game,
+      _ => {}
+    }
   }
 }
 
