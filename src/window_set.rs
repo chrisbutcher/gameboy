@@ -3,21 +3,13 @@ pub use super::sdl2::pixels;
 pub use super::sdl2::pixels::PixelFormatEnum;
 pub use super::sdl2::rect::Rect;
 
-pub use super::sdl2::render::Texture;
-pub use super::sdl2::render::TextureAccess;
-pub use super::sdl2::render::TextureCreator;
-pub use super::sdl2::render::WindowCanvas;
-
-pub use super::sdl2::video::WindowContext;
-pub use super::sdl2::video::WindowPos;
+pub use super::sdl2::render::{Texture, TextureAccess, TextureCreator, WindowCanvas};
+pub use super::sdl2::video::{WindowContext, WindowPos};
 
 const RENDER_PIXELS: bool = true;
 
 pub struct WindowSet {
   pub sdl_context: sdl2::Sdl,
-
-  // game_texture: Texture,
-  // game_texture_creator: TextureCreator<WindowContext>,
 
   game_canvas: WindowCanvas,
   debug_canvas: WindowCanvas,
@@ -56,22 +48,10 @@ impl WindowSet {
     if !RENDER_PIXELS { return }
 
     let game_texture_creator = self.game_canvas.texture_creator();
-    let mut game_texture = game_texture_creator.create_texture_streaming(PixelFormatEnum::ABGR8888, 160, 144).unwrap();
-
-    game_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-      for y in 0..144 {
-        for x in 0..160 {
-          let offset = y * pitch + x * 4;
-
-          buffer[offset] = framebuffer[offset];
-          buffer[offset + 1] = framebuffer[offset + 1];
-          buffer[offset + 2] = framebuffer[offset + 2];
-          buffer[offset + 3] = framebuffer[offset + 3];
-        }
-      }
-    }).unwrap();
+    let mut game_texture = game_texture_creator.create_texture(PixelFormatEnum::ABGR8888, TextureAccess::Target, 160, 144).unwrap();
 
     self.game_canvas.clear();
+    game_texture.update(Rect::new(0, 0, 160, 144), framebuffer, 640).unwrap();
     self.game_canvas.copy(&game_texture, None, Some(Rect::new(0, 0, 160, 144))).unwrap();
     self.game_canvas.present();
   }
