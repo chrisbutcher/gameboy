@@ -27,9 +27,10 @@ pub mod window_set;
 pub mod input;
 pub mod fps;
 
-use std::thread;
+use std::thread::{self, sleep};
 use std::sync::mpsc::{channel, sync_channel};
 use std::sync::mpsc::{SyncSender, Receiver, TrySendError, TryRecvError};
+use std::time::Duration;
 
 struct GameBoy {
   cpu: cpu::CPU,
@@ -156,7 +157,7 @@ fn main() {
   let mut events = window_set.sdl_context.event_pump().unwrap();
 
   'main: loop {
-    for event in events.poll_iter() {
+    for event in events.wait_timeout_iter(1) {
       match event {
         Event::Quit { .. } => break 'main,
         Event::KeyDown { keycode, .. } => {
@@ -189,6 +190,7 @@ fn main() {
 
 fn main_loop(mut game_boy: GameBoy, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<Vec<u8>>) {
   let mut fps_counter = fps::Counter::new();
+  let limiter = frame_limiter();
 
   'game: loop {
     fps_counter.print_fps();
@@ -211,7 +213,24 @@ fn main_loop(mut game_boy: GameBoy, events_receiver: Receiver<(input::Button, bo
       Err(TrySendError::Disconnected(_)) => break 'game,
       _ => {}
     }
+
+    limiter.recv().unwrap();
   }
+}
+
+fn frame_limiter() -> Receiver<()> {
+  let (sender, receiver) = sync_channel(1);
+  thread::Builder::new().name("frame_limiter".to_string()).spawn(move || {
+    'frame_limiter: loop {
+      sleep(Duration::from_millis(14)); // maintains 60fps
+      match sender.try_send(()) {
+        Err(_) => break 'frame_limiter,
+        _ => {}
+      }
+    }
+  }).unwrap();
+
+  receiver
 }
 
 fn translate_sdl2_keycode(keycode: Option<Keycode>) -> Option<input::Button> {
