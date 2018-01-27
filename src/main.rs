@@ -40,13 +40,15 @@ struct GameBoy {
 }
 
 impl GameBoy {
-  fn new() -> GameBoy {
-    GameBoy {
-      cpu: cpu::CPU::new(),
-      mmu: mmu::MMU::new(),
+  fn new() -> Box<GameBoy> {
+    Box::new(
+      GameBoy {
+        cpu: cpu::CPU::new(),
+        mmu: mmu::MMU::new(),
 
-      state_reporter: StateReporter::new("5555"),
-    }
+        state_reporter: StateReporter::new("5555"),
+      }
+    )
   }
 
   fn initialize(&mut self) {
@@ -151,7 +153,7 @@ fn main() {
   let (frames_sender, frames_receiver) = sync_channel(1);
 
   let game_thread = thread::Builder::new().name("game".to_string()).spawn(move || {
-    main_loop(game_boy, events_receiver, frames_sender)
+    game_loop(game_boy, events_receiver, frames_sender)
   }).unwrap();
 
   let mut events = window_set.sdl_context.event_pump().unwrap();
@@ -188,7 +190,7 @@ fn main() {
   game_thread.join().unwrap();
 }
 
-fn main_loop(mut game_boy: GameBoy, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<Vec<u8>>) {
+fn game_loop(mut game_boy: Box<GameBoy>, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<Vec<u8>>) {
   let mut fps_counter = fps::Counter::new();
   let limiter = frame_limiter();
 
