@@ -35,7 +35,13 @@ impl WindowSet {
       180
     );
 
-    let (game_window, sdl_context) = WindowSet::new_window(sdl_context, "GAMEBOY", GAME_WINDOW_WIDTH_BASE * DEBUG_WINDOW_SCALE as u32, GAME_WINDOW_HEIGHT_BASE * DEBUG_WINDOW_SCALE as u32, 0);
+    let (game_window, sdl_context) = WindowSet::new_window(
+      sdl_context,
+      "GAMEBOY",
+      GAME_WINDOW_WIDTH_BASE * DEBUG_WINDOW_SCALE as u32,
+      GAME_WINDOW_HEIGHT_BASE * DEBUG_WINDOW_SCALE as u32,
+      0
+    );
 
     let mut game_canvas = game_window.into_canvas().accelerated().present_vsync().build().unwrap();
     game_canvas.set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE);
@@ -62,6 +68,8 @@ impl WindowSet {
 
   // Perf, in previous iteration: Profiled with profile.release setting in Cargo.toml, and used XCode tool Instruments.
   // Found that draw_point and Point::new dominated
+
+  // TODO use constants above
 
   pub fn render_screen(&mut self, framebuffer: &[u8]) {
     if !RENDER_PIXELS { return }
