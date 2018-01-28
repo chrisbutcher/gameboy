@@ -44,10 +44,10 @@ impl WindowSet {
     );
 
     let mut game_canvas = game_window.into_canvas().accelerated().present_vsync().build().unwrap();
-    game_canvas.set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE);
+    game_canvas.set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE).unwrap();
 
     let mut debug_canvas = debug_window.into_canvas().accelerated().present_vsync().build().unwrap();
-    debug_canvas.set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE);
+    debug_canvas.set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE).unwrap();
 
     WindowSet {
       sdl_context: sdl_context,
