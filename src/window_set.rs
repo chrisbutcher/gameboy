@@ -19,7 +19,7 @@ impl WindowSet {
   pub fn new() -> WindowSet {
     let sdl_context = sdl2::init().unwrap();
 
-    let (debug_window, sdl_context) = WindowSet::new_window(sdl_context, "DEBUG", 192, 192, 160);
+    let (debug_window, sdl_context) = WindowSet::new_window(sdl_context, "DEBUG", 192, 128, 180);
     let (game_window, sdl_context) = WindowSet::new_window(sdl_context, "GAMEBOY", 160, 144, 0);
 
     let game_canvas = game_window.into_canvas().accelerated().present_vsync().build().unwrap();
@@ -56,30 +56,15 @@ impl WindowSet {
     self.game_canvas.present();
   }
 
-  pub fn show_debug_tiles(&mut self) {
+  pub fn render_debug_screen(&mut self, debug_framebuffer: &[u8]) {
     if !RENDER_PIXELS { return }
 
-    // for tile_y in 0..17 {
-    //   for tile_x in 0..17 {
-    //     for y in 0..8 {
-    //       for x in 0..8 {
-    //         let target_tile = tile_x + (tile_y * 18);
-            // let pixel_palette = self.palette[ self.tileset[ target_tile as usize ][ y as usize ][ x as usize ] as usize ];
+    let game_texture_creator = self.debug_canvas.texture_creator();
+    let mut debug_game_texture = game_texture_creator.create_texture(PixelFormatEnum::ABGR8888, TextureAccess::Target, 192, 192 ).unwrap();
 
-            // match self.debug_canvas {
-            //   Some(ref mut canvas) => {
-            //     canvas.set_draw_color(
-            //       pixels::Color::RGBA(pixel_palette[ 0 ], pixel_palette[ 1 ], pixel_palette[ 2 ], pixel_palette[ 3 ]),
-            //     );
-            //     canvas.draw_point(sdl2::rect::Point::new(x + (tile_x * 8), y + (tile_y * 8))).unwrap()
-            //   },
-            //   _ => {}
-            // }
-    //       }
-    //     }
-    //   }
-    // }
-
-    self.debug_canvas.present()
+    self.debug_canvas.clear();
+    debug_game_texture.update(Rect::new(0, 0, 192, 192), debug_framebuffer, 768).unwrap();
+    self.debug_canvas.copy(&debug_game_texture, None, Some(Rect::new(0, 0, 192, 192))).unwrap();
+    self.debug_canvas.present();
   }
 }

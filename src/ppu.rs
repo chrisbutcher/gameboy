@@ -39,6 +39,7 @@ pub struct PPU {
   pub video_ram: Vec<u8>,
   pub interrupt_flags: u8,
   pub framebuffer: [ u8; 160 * 144 * 4 ],
+  pub debug_framebuffer: [ u8; 256 * 256 * 4 ],
 
   tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
   sprites: [ Sprite; 40 ],
@@ -75,6 +76,8 @@ impl PPU {
   pub fn new() -> PPU {
     PPU {
       framebuffer: [ 0x00; 160 * 144 * 4 ],
+      debug_framebuffer: [ 0x00; 256 * 256 * 4 ],
+
       video_ram: vec![ 0x00; 0x2000 ],
       tileset: [ [ [ 0x00; 8 ]; 8 ]; 384 ],
       palette: [ [ 255, 255, 255, 255 ], // RGBA, TODO simplify to RGB
@@ -400,6 +403,40 @@ impl PPU {
           if self.mode != 3 { self.change_mode(3); }
         } else {
           if self.mode != 0 { self.change_mode(0); }
+        }
+      }
+    }
+  }
+
+  pub fn update_debug_frame(&mut self) {
+    const TILE_COUNT: usize = 24;
+    const TILE_WIDTH: usize = 8;
+    const IMAGE_WIDTH: usize = TILE_WIDTH * TILE_COUNT;
+    const PIXEL_COLOUR_STRIDE: usize = 4;
+
+    for tile_y in 0..TILE_COUNT {
+      for tile_x in 0..TILE_COUNT {
+        let target_tile = tile_x + (tile_y * TILE_COUNT);
+
+        if target_tile >= 384 {
+          return;
+        }
+
+        for y in 0..TILE_WIDTH {
+          for x in 0..TILE_WIDTH {
+            let pixel_palette = self.palette[ self.tileset[ target_tile as usize ][ y as usize ][ x as usize ] as usize ];
+
+            let point_x = x + (tile_x * TILE_WIDTH);
+            let point_y = y + (tile_y * TILE_WIDTH);
+
+            // https://stackoverflow.com/questions/2151084/map-a-2d-array-onto-a-1d-array
+            let index = IMAGE_WIDTH * point_y + point_x;
+
+            self.debug_framebuffer[ (index * PIXEL_COLOUR_STRIDE) + 0 ] = pixel_palette[ 0 ];
+            self.debug_framebuffer[ (index * PIXEL_COLOUR_STRIDE) + 1 ] = pixel_palette[ 1 ];
+            self.debug_framebuffer[ (index * PIXEL_COLOUR_STRIDE) + 2 ] = pixel_palette[ 2 ];
+            self.debug_framebuffer[ (index * PIXEL_COLOUR_STRIDE) + 3 ] = pixel_palette[ 3 ];
+          }
         }
       }
     }

@@ -96,6 +96,10 @@ impl GameBoy {
     cycles_this_frame.wrapping_sub(cycles_per_frame);
   }
 
+  fn render_debug_screen(&mut self) {
+    self.mmu.ppu.borrow_mut().update_debug_frame();
+  }
+
   fn update_timers(&mut self, cycles: i32) {
     self.mmu.timer.tick(cycles);
   }
@@ -179,7 +183,10 @@ fn main() {
     }
 
     match frames_receiver.try_recv() {
-      Ok(framebuffer) => { window_set.render_screen(&framebuffer) },
+      Ok(framebuffers) => {
+        window_set.render_screen(&framebuffers.0);
+        window_set.render_debug_screen(&framebuffers.1);
+      },
       Err(TryRecvError::Empty) => (),
       Err(TryRecvError::Disconnected) => break 'main,
     }
@@ -187,10 +194,11 @@ fn main() {
 
   drop(events_sender);
   drop(frames_receiver);
+
   game_thread.join().unwrap();
 }
 
-fn game_loop(mut game_boy: Box<GameBoy>, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<Vec<u8>>) {
+fn game_loop(mut game_boy: Box<GameBoy>, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<(Vec<u8>, Vec<u8>)>) {
   let mut fps_counter = fps::Counter::new();
   let limiter = frame_limiter();
 
@@ -208,25 +216,33 @@ fn game_loop(mut game_boy: Box<GameBoy>, events_receiver: Receiver<(input::Butto
       _ => {}
     }
 
-    game_boy.render_frame(); // TODO limit to 60fps
+    game_boy.render_frame();
+    game_boy.render_debug_screen();
 
     let framebuffer = game_boy.mmu.ppu.borrow_mut().framebuffer.to_vec();
-    match frames_sender.try_send(framebuffer) {
+    let debug_framebuffer = game_boy.mmu.ppu.borrow_mut().debug_framebuffer.to_vec();
+
+    match frames_sender.try_send((framebuffer, debug_framebuffer)) {
       Err(TrySendError::Disconnected(_)) => break 'game,
       _ => {}
     }
 
-    limiter.recv().unwrap();
+    match limiter.recv() {
+      Ok(_) => {},
+      _ => { println!("limiter RecvError") }
+    }
   }
 }
 
+// TODO replace this frame limiter solution, it's too brittle and blows up when more CPU intensive work is done
 fn frame_limiter() -> Receiver<()> {
   let (sender, receiver) = sync_channel(1);
   thread::Builder::new().name("frame_limiter".to_string()).spawn(move || {
     'frame_limiter: loop {
       sleep(Duration::from_millis(14)); // maintains 60fps
       match sender.try_send(()) {
-        Err(_) => break 'frame_limiter,
+        // Err(_) => { break 'frame_limiter} ,
+        Err(_) => { } ,
         _ => {}
       }
     }
