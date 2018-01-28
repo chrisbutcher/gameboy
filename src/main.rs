@@ -241,8 +241,7 @@ fn frame_limiter() -> Receiver<()> {
     'frame_limiter: loop {
       sleep(Duration::from_millis(14)); // maintains 60fps
       match sender.try_send(()) {
-        // Err(_) => { break 'frame_limiter} ,
-        Err(_) => { } ,
+        Err(_) => { } , // NOTE this used to break
         _ => {}
       }
     }
@@ -271,13 +270,16 @@ fn can_run_tetris() {
   game_boy.initialize();
   game_boy.mmu.load_game("tetris.gb");
 
+  let expected_cpu_state = "[PC] 0x36E\n[Regs] A:0x0, F:0xA0, B:0x0, C:0x8, D:0x0, E:0x10, H:0xFF, L:0xA8\n[Flags]: Z: 1, N: 0, H: 1 C: 0 [SP] 0xCFFF";
+  let actual_cpu_state;
+
   loop {
-    // if game_boy.cpu.tick_counter >= 1_000_000 {
-    if game_boy.cpu.tick_counter >= 20_574_537 {
+    if game_boy.cpu.tick_counter >= 42_000_000 {
+      actual_cpu_state = format!("{:?}", game_boy.cpu);
       break;
     }
     game_boy.render_frame();
   }
 
-  assert!(game_boy.cpu.tick_counter >= 1_000_000);
+  assert_eq!(expected_cpu_state, actual_cpu_state);
 }

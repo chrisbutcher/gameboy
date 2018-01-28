@@ -73,7 +73,7 @@ pub struct CPU {
   halted: bool,
 
   state_reporter: StateReporter,
-  tick_counter: u64,
+  pub tick_counter: u64, // TODO make this private
 }
 
 fn formatted_flags(cpu: &CPU) -> String {

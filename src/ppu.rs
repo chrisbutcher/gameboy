@@ -38,10 +38,10 @@ impl Sprite {
 pub struct PPU {
   pub video_ram: Vec<u8>,
   pub interrupt_flags: u8,
-  pub framebuffer: [ u8; 160 * 144 * 4 ],
-  pub debug_framebuffer: [ u8; 256 * 256 * 4 ],
+  pub framebuffer: Vec<u8>,
+  pub debug_framebuffer: Vec<u8>,
 
-  tileset: [ [ [ u8; 8 ]; 8 ]; 384 ],
+  tileset: [ [ [ u8; 8 ]; 8 ]; 384 ], // TODO vectorize
   sprites: [ Sprite; 40 ],
   palette: [ [ u8; 4 ]; 4 ],
 
@@ -75,8 +75,8 @@ pub struct PPU {
 impl PPU {
   pub fn new() -> PPU {
     PPU {
-      framebuffer: [ 0x00; 160 * 144 * 4 ],
-      debug_framebuffer: [ 0x00; 256 * 256 * 4 ],
+      framebuffer: vec![ 0x00; 160 * 144 * 4 ],
+      debug_framebuffer: vec![ 0x00; 256 * 256 * 4 ],
 
       video_ram: vec![ 0x00; 0x2000 ],
       tileset: [ [ [ 0x00; 8 ]; 8 ]; 384 ],
