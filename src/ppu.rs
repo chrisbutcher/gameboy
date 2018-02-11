@@ -2,7 +2,7 @@
 // use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const RENDER_PIXELS: bool = false;
+const RENDER_PIXELS: bool = true;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Sprite {
@@ -363,7 +363,7 @@ impl PPU {
   pub fn tick(&mut self, cycles: i32) {
     self.tick_counter += 1;
 
-    // if SYNC_STATE {
+    if SYNC_STATE {
     //   self.state_reporter.send_message(
     //     format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}",
     //       self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.lcdc_display_enabled).as_bytes()
@@ -372,7 +372,7 @@ impl PPU {
     //   if received == "kill" {
     //     panic!("Server stopped.");
     //   }
-    // }
+    }
 
     if !self.lcdc_display_enabled { return }
     self.horiz_blanking = false;

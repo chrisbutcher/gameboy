@@ -32,7 +32,7 @@ use std::sync::mpsc::{channel, sync_channel};
 use std::sync::mpsc::{SyncSender, Receiver, TrySendError, TryRecvError};
 use std::time::Duration;
 
-const LIMIT_FRAME_RATE: bool = false;
+const LIMIT_FRAME_RATE: bool = true;
 
 struct GameBoy {
   cpu: cpu::CPU,
@@ -85,14 +85,14 @@ impl GameBoy {
       self.update_mmu();
       self.update_graphics(cycles);
 
-      // if SYNC_STATE {
+      if SYNC_STATE {
       //   self.state_reporter.send_message(format!("{}", cycles).as_bytes());
       //   let received = self.state_reporter.receive_message();
       //   if received == "kill" {
       //     println!("{:#?}", &self.cpu);
       //     panic!("Server stopped.");
       //   }
-      // }
+      }
     }
 
     cycles_this_frame.wrapping_sub(cycles_per_frame);
