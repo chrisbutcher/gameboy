@@ -10,8 +10,8 @@ const FLAG_HALF_CARRY: u8 = 0x20; // Half-carry
 const FLAG_CARRY: u8 = 0x10; // Carry
 const FLAG_NONE: u8 = 0x00; // None
 
-extern crate socket_state_reporter;
-use self::socket_state_reporter::StateReporter;
+// extern crate socket_state_reporter;
+// use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
 const AFTER_TICK_COUNT: u64 = 32057900;
@@ -72,7 +72,7 @@ pub struct CPU {
 
   halted: bool,
 
-  state_reporter: StateReporter,
+  // state_reporter: StateReporter,
   pub tick_counter: u64, // TODO make this private
 }
 
@@ -100,7 +100,7 @@ impl fmt::Debug for CPU {
 
 impl CPU {
   pub fn new() -> CPU {
-    let state_reporter = StateReporter::new("5555");
+    // let state_reporter = StateReporter::new("5555");
 
     CPU {
       af: Register::new(), bc: Register::new(), de: Register::new(), hl: Register::new(), sp: Register::new(),
@@ -114,7 +114,7 @@ impl CPU {
 
       halted: false,
 
-      state_reporter: state_reporter,
+      // state_reporter: state_reporter,
       tick_counter: 0u64,
     }
   }
@@ -210,12 +210,12 @@ impl CPU {
         self.de.read_hi(), self.de.read_lo(), self.hl.read_hi(), self.hl.read_lo()
       );
 
-      let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, IME: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.master_interrupt_toggle, mmu.interrupt_enabled, mmu.interrupt_flags);
-      self.state_reporter.send_message(msg.as_bytes());
-      let received = self.state_reporter.receive_message();
-      if received == "kill" {
-        panic!("Server stopped.");
-      }
+      // let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, IME: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.master_interrupt_toggle, mmu.interrupt_enabled, mmu.interrupt_flags);
+      // self.state_reporter.send_message(msg.as_bytes());
+      // let received = self.state_reporter.receive_message();
+      // if received == "kill" {
+      //   panic!("Server stopped.");
+      // }
     }
 
     self.tick_counter += 1;
@@ -295,7 +295,7 @@ impl CPU {
       0x09 => { debug!("ADD HL,BC"); self.add_hl_bc() }
       0x19 => { debug!("ADD HL,DE"); self.add_hl_de() }
       0x29 => self.explode(format!("ADD HL,HL {:#X}", opcode)),
-      0x39 => self.explode(format!("ADD HL,SP {:#X}", opcode)),
+      0x39 => { debug!("ADD HL,SP"); shared_add_word_and_word_regs(self, RegEnum::HL, RegEnum::SP); },
       0xE8 => self.explode(format!("ADD SP,n {:#X}", opcode)),
       0xA6 => self.explode(format!("AND (HL) {:#X}", opcode)),
       0xA7 => { debug!("AND A"); self.and_a() }

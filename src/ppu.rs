@@ -1,8 +1,8 @@
-extern crate socket_state_reporter;
-use self::socket_state_reporter::StateReporter;
+// extern crate socket_state_reporter;
+// use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
-const RENDER_PIXELS: bool = true;
+const RENDER_PIXELS: bool = false;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Sprite {
@@ -68,7 +68,7 @@ pub struct PPU {
 
   horiz_blanking: bool,
 
-  state_reporter: StateReporter,
+  // state_reporter: StateReporter,
   tick_counter: u64,
 }
 
@@ -111,7 +111,7 @@ impl PPU {
       horiz_blanking: false,
       interrupt_flags: 0x00,
 
-      state_reporter: StateReporter::new("5555"),
+      // state_reporter: StateReporter::new("5555"),
       tick_counter: 0,
     }
   }
@@ -363,16 +363,16 @@ impl PPU {
   pub fn tick(&mut self, cycles: i32) {
     self.tick_counter += 1;
 
-    if SYNC_STATE {
-      self.state_reporter.send_message(
-        format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}",
-          self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.lcdc_display_enabled).as_bytes()
-        );
-      let received = self.state_reporter.receive_message();
-      if received == "kill" {
-        panic!("Server stopped.");
-      }
-    }
+    // if SYNC_STATE {
+    //   self.state_reporter.send_message(
+    //     format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}",
+    //       self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.lcdc_display_enabled).as_bytes()
+    //     );
+    //   let received = self.state_reporter.receive_message();
+    //   if received == "kill" {
+    //     panic!("Server stopped.");
+    //   }
+    // }
 
     if !self.lcdc_display_enabled { return }
     self.horiz_blanking = false;

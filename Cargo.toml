@@ -8,15 +8,15 @@ time = "0.1.36"
 log = "0.3.6"
 env_logger = "0.3"
 clap = "2"
-zmq = "0.8"
+# zmq = "0.8"
 
 [dependencies.sdl2]
 version = "0.31.0"
 default-features = false
-features = ["image","gfx"]
+features = ["image"]
 
-[dependencies.socket_state_reporter]
-path = "../socket-state-reporter"
+# [dependencies.socket_state_reporter]
+# path = "../socket-state-reporter"
 
 # TODO remove this
 # [profile.release]

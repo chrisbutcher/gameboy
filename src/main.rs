@@ -1,6 +1,6 @@
 
-extern crate socket_state_reporter;
-use self::socket_state_reporter::StateReporter;
+// extern crate socket_state_reporter;
+// use self::socket_state_reporter::StateReporter;
 
 const SYNC_STATE: bool = false;
 
@@ -32,11 +32,13 @@ use std::sync::mpsc::{channel, sync_channel};
 use std::sync::mpsc::{SyncSender, Receiver, TrySendError, TryRecvError};
 use std::time::Duration;
 
+const LIMIT_FRAME_RATE: bool = false;
+
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
 
-  state_reporter: StateReporter,
+  // state_reporter: StateReporter,
 }
 
 impl GameBoy {
@@ -46,7 +48,7 @@ impl GameBoy {
         cpu: cpu::CPU::new(),
         mmu: mmu::MMU::new(),
 
-        state_reporter: StateReporter::new("5555"),
+        // state_reporter: StateReporter::new("5555"),
       }
     )
   }
@@ -83,14 +85,14 @@ impl GameBoy {
       self.update_mmu();
       self.update_graphics(cycles);
 
-      if SYNC_STATE {
-        self.state_reporter.send_message(format!("{}", cycles).as_bytes());
-        let received = self.state_reporter.receive_message();
-        if received == "kill" {
-          println!("{:#?}", &self.cpu);
-          panic!("Server stopped.");
-        }
-      }
+      // if SYNC_STATE {
+      //   self.state_reporter.send_message(format!("{}", cycles).as_bytes());
+      //   let received = self.state_reporter.receive_message();
+      //   if received == "kill" {
+      //     println!("{:#?}", &self.cpu);
+      //     panic!("Server stopped.");
+      //   }
+      // }
     }
 
     cycles_this_frame.wrapping_sub(cycles_per_frame);
@@ -227,9 +229,11 @@ fn game_loop(mut game_boy: Box<GameBoy>, events_receiver: Receiver<(input::Butto
       _ => {}
     }
 
-    match limiter.recv() {
-      Ok(_) => {},
-      _ => { println!("limiter RecvError") }
+    if LIMIT_FRAME_RATE {
+      match limiter.recv() {
+        Ok(_) => {},
+        _ => { println!("limiter RecvError") }
+      }
     }
   }
 }
