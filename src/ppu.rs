@@ -1,6 +1,3 @@
-// extern crate socket_state_reporter;
-// use self::socket_state_reporter::StateReporter;
-
 const SYNC_STATE: bool = false;
 const RENDER_PIXELS: bool = true;
 
@@ -68,7 +65,6 @@ pub struct PPU {
 
   horiz_blanking: bool,
 
-  // state_reporter: StateReporter,
   tick_counter: u64,
 }
 
@@ -111,7 +107,6 @@ impl PPU {
       horiz_blanking: false,
       interrupt_flags: 0x00,
 
-      // state_reporter: StateReporter::new("5555"),
       tick_counter: 0,
     }
   }
@@ -244,7 +239,6 @@ impl PPU {
 
     if value != 0x00 {
       // Nothing but zeros being written, in infinite loop.
-      // Notes taken here anyways: https://docs.google.com/spreadsheets/d/1_OZnBw-mbklkPoMhlYTAy9lQeTT5WjXocao5c2lvU3g/edit#gid=0
       debug!("Writing data to VRAM!: {:#X}", value);
     }
 
@@ -310,7 +304,7 @@ impl PPU {
     }
   }
 
-  // NOTE borrowed from github.com/alexcrichton/jba
+  // NOTE github.com/alexcrichton/jba
   fn render_background(&mut self) {
     if !RENDER_PIXELS { return }
 
@@ -362,17 +356,6 @@ impl PPU {
 
   pub fn tick(&mut self, cycles: i32) {
     self.tick_counter += 1;
-
-    if SYNC_STATE {
-    //   self.state_reporter.send_message(
-    //     format!("tick_counter: {}, cycles: {}, line: {}, mode_clock: {}, mode: {}, switch_lcd: {}",
-    //       self.tick_counter, cycles, self.line, self.mode_clock, self.mode, self.lcdc_display_enabled).as_bytes()
-    //     );
-    //   let received = self.state_reporter.receive_message();
-    //   if received == "kill" {
-    //     panic!("Server stopped.");
-    //   }
-    }
 
     if !self.lcdc_display_enabled { return }
     self.horiz_blanking = false;

@@ -10,9 +10,6 @@ const FLAG_HALF_CARRY: u8 = 0x20; // Half-carry
 const FLAG_CARRY: u8 = 0x10; // Carry
 const FLAG_NONE: u8 = 0x00; // None
 
-// extern crate socket_state_reporter;
-// use self::socket_state_reporter::StateReporter;
-
 const SYNC_STATE: bool = false;
 const AFTER_TICK_COUNT: u64 = 32057900;
 
@@ -72,7 +69,6 @@ pub struct CPU {
 
   halted: bool,
 
-  // state_reporter: StateReporter,
   pub tick_counter: u64, // TODO make this private
 }
 
@@ -100,8 +96,6 @@ impl fmt::Debug for CPU {
 
 impl CPU {
   pub fn new() -> CPU {
-    // let state_reporter = StateReporter::new("5555");
-
     CPU {
       af: Register::new(), bc: Register::new(), de: Register::new(), hl: Register::new(), sp: Register::new(),
       pc: 0x0000,
@@ -113,8 +107,6 @@ impl CPU {
       di_cycles: 0,
 
       halted: false,
-
-      // state_reporter: state_reporter,
       tick_counter: 0u64,
     }
   }
@@ -201,21 +193,12 @@ impl CPU {
     let opcode: u8 = mmu.read(self.pc);
 
     if SYNC_STATE && self.tick_counter >= AFTER_TICK_COUNT {
-      // println!("pc: {:4x}, opcode: {:2x}, tick_counter: {}", self.pc, opcode, self.tick_counter);
-
-      let registers = format!(
+      let _registers = format!(
         "PC:{:04x} SP:{:04x} A:{:02x} F:{:04b} B:{:02x} C:{:02x} D:{:02x} E:{:02x} H:{:02x} L:{:02x}\n",
         self.pc, self.sp.value,
         self.af.read_hi(), self.af.read_lo(), self.bc.read_hi(), self.bc.read_lo(),
         self.de.read_hi(), self.de.read_lo(), self.hl.read_hi(), self.hl.read_lo()
       );
-
-      // let msg = format!("Tick: {}, Registers: {}, opcode: {:02x}, IME: {}, MMU INTE: {:02x}, MMU INTF: {:02x}", self.tick_counter, registers, opcode, self.master_interrupt_toggle, mmu.interrupt_enabled, mmu.interrupt_flags);
-      // self.state_reporter.send_message(msg.as_bytes());
-      // let received = self.state_reporter.receive_message();
-      // if received == "kill" {
-      //   panic!("Server stopped.");
-      // }
     }
 
     self.tick_counter += 1;
@@ -264,12 +247,6 @@ impl CPU {
     };
   }
 
-  // https://github.com/CTurt/Cinoop/blob/master/source/cpu.c
-  // https://github.com/CTurt/Cinoop/blob/master/include/cpu.h
-  // https://github.com/drhelius/Gearboy/blob/master/src/opcodes.cpp
-
-  // ALSO SEE https://github.com/mvdnes/rboy/blob/master/src/cpu.rs (Note that cycles in this code are divided by 4)
-  // http://gameboy.mongenel.com/dmg/lesson1.html
   fn execute_opcode(&mut self, opcode: u8, mmu: &mut mmu::MMU) -> i32 {
     let mut cb_opcode: Option<u8> = None;
 
@@ -311,12 +288,28 @@ impl CPU {
       0xC4 => { debug!("CALL NZ,nn"); self.call_nz_nn(mmu) }
       0xCC => self.explode(format!("CALL Z,nn {:#X}", opcode)),
       0xCD => { debug!("CALL nn"); self.call_nn(mmu) }
-      0xCB => { debug!("CB prefixed instruction"); cb_opcode = Some(mmu.read(self.pc)); self.cb_prefixed_instruction(cb_opcode.unwrap(), mmu) }
+      0xCB => {
+        debug!("CB prefixed instruction");
+        cb_opcode = Some(mmu.read(self.pc));
+        self.cb_prefixed_instruction(cb_opcode.unwrap(), mmu)
+      }
       0x3F => self.explode(format!("CCF {:#X}", opcode)),
       0xBE => { debug!("CP (HL)"); self.cp_hl(mmu) }
       0xBF => self.explode(format!("CP A {:#X}", opcode)),
-      0xB8 => { debug!("CP B"); let a = self.read_byte_reg(RegEnum::A); let value = self.read_byte_reg(RegEnum::B); shared_cp(self, value); self.write_byte_reg(RegEnum::A, a); },
-      0xB9 => { debug!("CP C"); let a = self.read_byte_reg(RegEnum::A); let value = self.read_byte_reg(RegEnum::C); shared_cp(self, value); self.write_byte_reg(RegEnum::A, a); },
+      0xB8 => {
+        debug!("CP B");
+        let a = self.read_byte_reg(RegEnum::A);
+        let value = self.read_byte_reg(RegEnum::B);
+        shared_cp(self, value);
+        self.write_byte_reg(RegEnum::A, a);
+      },
+      0xB9 => {
+        debug!("CP C");
+        let a = self.read_byte_reg(RegEnum::A);
+        let value = self.read_byte_reg(RegEnum::C);
+        shared_cp(self, value);
+        self.write_byte_reg(RegEnum::A, a);
+      },
       0xBA => self.explode(format!("CP D {:#X}", opcode)),
       0xBB => self.explode(format!("CP E {:#X}", opcode)),
       0xBC => self.explode(format!("CP H {:#X}", opcode)),
@@ -335,7 +328,11 @@ impl CPU {
       0x25 => { debug!("DEC H"); shared_dec_byte_reg(self, RegEnum::H) }
       0x2B => { debug!("DEC HL"); shared_dec_word_reg(self, RegEnum::HL) },
       0x2D => { debug!("DEC L"); self.dec_l(); }
-      0x3B => { debug!("DEC SP"); let sp = self.read_word_reg(RegEnum::SP); self.write_word_reg(RegEnum::SP, sp.wrapping_sub(1)) }
+      0x3B => {
+        debug!("DEC SP");
+        let sp = self.read_word_reg(RegEnum::SP);
+        self.write_word_reg(RegEnum::SP, sp.wrapping_sub(1))
+      }
       0xF3 => { debug!("DI"); self.di() }
       0xFB => { debug!("EI"); self.ei() }
       0x76 => self.explode(format!("HALT {:#X}", opcode)),

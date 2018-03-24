@@ -1,9 +1,3 @@
-
-// extern crate socket_state_reporter;
-// use self::socket_state_reporter::StateReporter;
-
-const SYNC_STATE: bool = false;
-
 extern crate clap;
 use clap::App;
 
@@ -37,8 +31,6 @@ const LIMIT_FRAME_RATE: bool = true;
 struct GameBoy {
   cpu: cpu::CPU,
   mmu: mmu::MMU,
-
-  // state_reporter: StateReporter,
 }
 
 impl GameBoy {
@@ -47,8 +39,6 @@ impl GameBoy {
       GameBoy {
         cpu: cpu::CPU::new(),
         mmu: mmu::MMU::new(),
-
-        // state_reporter: StateReporter::new("5555"),
       }
     )
   }
@@ -59,19 +49,14 @@ impl GameBoy {
     self.mmu.initialize();
   }
 
-  // NOTE
+  // Reminders:
   // To get around mutable references being consume more than once, just re-bind as immutable when possible
   // let mut foo = blah;
   // do_something(&mut foo);
   // let foo = foo;
 
-  // NOTE
   // When printing things, rather than giving ownership, just pass & reference so that after the print you can still
   // use it
-
-  // Avoid large array allocations [0; SIZE], use vec![] instead or box [] to put data on heap, not stack
-
-  // TODO remove all unwrap()s
 
   fn render_frame(&mut self) {
     let cycles_per_frame = (4194304f64 / 1000.0 * 16.0).round() as u32;
@@ -84,15 +69,6 @@ impl GameBoy {
       self.update_timers(cycles);
       self.update_mmu();
       self.update_graphics(cycles);
-
-      if SYNC_STATE {
-      //   self.state_reporter.send_message(format!("{}", cycles).as_bytes());
-      //   let received = self.state_reporter.receive_message();
-      //   if received == "kill" {
-      //     println!("{:#?}", &self.cpu);
-      //     panic!("Server stopped.");
-      //   }
-      }
     }
 
     cycles_this_frame.wrapping_sub(cycles_per_frame);
@@ -201,7 +177,7 @@ fn main() {
 }
 
 fn game_loop(mut game_boy: Box<GameBoy>, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<(Vec<u8>, Vec<u8>)>) {
-  let mut fps_counter = fps::Counter::new();
+  let mut fps_counter = fps::Counter::new(false);
   let limiter = frame_limiter();
 
   'game: loop {

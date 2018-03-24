@@ -7,6 +7,13 @@ find . -name '*.rs' | xargs wc -l
 
 // TODO get these test roms to try out http://slack.net/~ant/old/gb-tests/
 
+// https://github.com/CTurt/Cinoop/blob/master/source/cpu.c
+// https://github.com/CTurt/Cinoop/blob/master/include/cpu.h
+// https://github.com/drhelius/Gearboy/blob/master/src/opcodes.cpp
+
+// ALSO SEE https://github.com/mvdnes/rboy/blob/master/src/cpu.rs (Note that cycles in this code are divided by 4)
+// http://gameboy.mongenel.com/dmg/lesson1.html
+
 // Specs:
 // http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 // http://web.textfiles.com/games/gbspec.txt

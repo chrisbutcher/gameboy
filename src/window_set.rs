@@ -10,11 +10,11 @@ const RENDER_PIXELS: bool = true;
 
 const GAME_WINDOW_WIDTH_BASE: u32 = 160;
 const GAME_WINDOW_HEIGHT_BASE: u32 = 144;
-const GAME_WINDOW_SCALE: f32 = 3.0;
+const GAME_WINDOW_SCALE: f32 = 5.0;
 
 const DEBUG_WINDOW_WIDTH_BASE: u32 = 192;
 const DEBUG_WINDOW_HEIGHT_BASE: u32 = 128;
-const DEBUG_WINDOW_SCALE: f32 = 3.0;
+const DEBUG_WINDOW_SCALE: f32 = 4.0;
 
 pub struct WindowSet {
   pub sdl_context: sdl2::Sdl,
@@ -31,15 +31,15 @@ impl WindowSet {
       sdl_context,
       "DEBUG",
       DEBUG_WINDOW_WIDTH_BASE * DEBUG_WINDOW_SCALE as u32,
-      DEBUG_WINDOW_HEIGHT_BASE * GAME_WINDOW_SCALE as u32,
+      DEBUG_WINDOW_HEIGHT_BASE * DEBUG_WINDOW_SCALE as u32,
       180
     );
 
     let (game_window, sdl_context) = WindowSet::new_window(
       sdl_context,
       "GAMEBOY",
-      GAME_WINDOW_WIDTH_BASE * DEBUG_WINDOW_SCALE as u32,
-      GAME_WINDOW_HEIGHT_BASE * DEBUG_WINDOW_SCALE as u32,
+      GAME_WINDOW_WIDTH_BASE * GAME_WINDOW_SCALE as u32,
+      GAME_WINDOW_HEIGHT_BASE * GAME_WINDOW_SCALE as u32,
       0
     );
 

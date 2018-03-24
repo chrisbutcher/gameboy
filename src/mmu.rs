@@ -19,7 +19,7 @@ pub struct MMU {
   bootroom_active: bool,
 
   cartridge: cartridge::Cartridge, // 0000-7fff
-  // GPU's video ram                      8000-9FFF
+  // GPU's video ram 8000-9FFF
   external_ram: Vec<u8>, // A000-BFFF
   work_ram: Vec<u8>, // C000-DFFF, with E000-FDFF shadow
   sprite_info: Vec<u8>, // FE00-FE9F
@@ -85,11 +85,7 @@ impl MMU {
   pub fn read(&self, address: u16) -> u8 {
     let result = match address {
       0x0000...0x7FFF => {
-        // if address <= 0x0100 && self.bootroom_active {
-        //   self.bootrom.buffer [ address as usize ]
-        // } else {
-          self.cartridge.buffer[ address as usize ]
-        // }
+        self.cartridge.buffer[ address as usize ]
       },
       0x8000...0x9FFF => {
         self.ppu.borrow_mut().video_ram[ address as usize - 0x8000 ]
@@ -188,7 +184,7 @@ impl MMU {
       0xFF10...0xFF3F => {
         self.io[ address as usize - 0xFF00 ] = data
       }
-      0xFF40...0xFF45 | 0xFF47...0xFF7F => { // 0xFF40...0xFF7F
+      0xFF40...0xFF45 | 0xFF47...0xFF7F => {
         if address == 0xFF50 {
           self.bootroom_active = false;
         }
