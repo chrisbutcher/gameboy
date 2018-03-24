@@ -1,4 +1,3 @@
-const SYNC_STATE: bool = false;
 const RENDER_PIXELS: bool = true;
 
 #[derive(Clone, Copy, Debug)]
@@ -195,16 +194,16 @@ impl PPU {
         }
       },
       0xFF48 => {
-        println!("TODO, writing to FF48")
+        // println!("TODO, writing to FF48")
       }
       0xFF49 => {
-        println!("TODO, writing to FF49")
+        // println!("TODO, writing to FF49")
       }
       0xFF4A => {
-        println!("TODO, writing to FF4A")
+        // println!("TODO, writing to FF4A")
       }
       0xFF4B => {
-        println!("TODO, writing to FF4B")
+        // println!("TODO, writing to FF4B")
       }
       _ => {
         // panic!("Writing to PPU {:#x}", address);

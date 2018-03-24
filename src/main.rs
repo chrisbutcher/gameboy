@@ -20,6 +20,7 @@ pub mod ppu;
 pub mod window_set;
 pub mod input;
 pub mod fps;
+pub mod gb;
 
 use std::thread::{self, sleep};
 use std::sync::mpsc::{channel, sync_channel};
@@ -27,87 +28,6 @@ use std::sync::mpsc::{SyncSender, Receiver, TrySendError, TryRecvError};
 use std::time::Duration;
 
 const LIMIT_FRAME_RATE: bool = true;
-
-struct GameBoy {
-  cpu: cpu::CPU,
-  mmu: mmu::MMU,
-}
-
-impl GameBoy {
-  fn new() -> Box<GameBoy> {
-    Box::new(
-      GameBoy {
-        cpu: cpu::CPU::new(),
-        mmu: mmu::MMU::new(),
-      }
-    )
-  }
-
-  fn initialize(&mut self) {
-    // http://www.codeslinger.co.uk/pages/projects/gameboy/hardware.html
-    self.cpu.initialize();
-    self.mmu.initialize();
-  }
-
-  // Reminders:
-  // To get around mutable references being consume more than once, just re-bind as immutable when possible
-  // let mut foo = blah;
-  // do_something(&mut foo);
-  // let foo = foo;
-
-  // When printing things, rather than giving ownership, just pass & reference so that after the print you can still
-  // use it
-
-  fn render_frame(&mut self) {
-    let cycles_per_frame = (4194304f64 / 1000.0 * 16.0).round() as u32;
-    let mut cycles_this_frame = 0;
-
-    while cycles_this_frame < cycles_per_frame {
-      let cycles = self.cpu.execute_next_opcode(&mut self.mmu);
-
-      cycles_this_frame = cycles_this_frame.wrapping_add(cycles as u32);
-      self.update_timers(cycles);
-      self.update_mmu();
-      self.update_graphics(cycles);
-    }
-
-    cycles_this_frame.wrapping_sub(cycles_per_frame);
-  }
-
-  fn render_debug_screen(&mut self) {
-    self.mmu.ppu.borrow_mut().update_debug_frame();
-  }
-
-  fn update_timers(&mut self, cycles: i32) {
-    self.mmu.timer.tick(cycles);
-  }
-
-  fn update_mmu(&mut self) {
-    self.mmu.interrupt_flags |= self.mmu.input.interrupt_flags;
-    self.mmu.input.interrupt_flags = 0x00;
-  }
-
-  fn update_graphics(&mut self, cycles: i32) {
-    self.mmu.ppu.borrow_mut().tick(cycles);
-    self.mmu.interrupt_flags |= self.mmu.ppu.borrow_mut().interrupt_flags;
-    self.mmu.ppu.borrow_mut().interrupt_flags = 0x00;
-  }
-
-  fn print_game_title(&self) {
-    let mut title = String::with_capacity(14);
-
-    for i in 0x134..0x142 {
-      let mut ch = self.mmu.read(i) as char;
-      ch = if ch == '\u{0}' { ' ' } else { ch };
-
-      title.push(ch)
-    }
-
-    println!("Loading ROM: {:?}", title.trim());
-    println!("The game uses {:?} ROM banks", self.mmu.num_rom_banks());
-    println!("The game uses {:?} RAM banks", self.mmu.num_ram_banks());
-  }
-}
 
 fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
   App::new("gameboy")
@@ -118,14 +38,27 @@ fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
     .get_matches()
 }
 
+// DOCS: cargo doc -p gameboy --no-deps --open
+
+// http://imrannazar.com/content/img/jsgb-cpu-fetchloop.png
+// http://imrannazar.com/content/img/jsgb-int-cpu.png
+
+// http://gameboy.mongenel.com/dmg/asmmemmap.html
+// http://imrannazar.com/content/img/jsgb-gpu-bg-map.png
+
+// http://bgb.bircd.org/pandocs.htm
+// http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+
+// See NOTES.md
+
 fn main() {
   let args = handle_cli_args();
   let rom_filename = args.value_of("rom").unwrap_or("tetris.gb");
 
   env_logger::init().unwrap();
 
-  let mut game_boy = GameBoy::new();
-  game_boy.initialize();
+  let mut game_boy = gb::GameBoy::new();
+  game_boy.reset();
   game_boy.mmu.load_game(rom_filename);
   game_boy.print_game_title();
 
@@ -176,7 +109,7 @@ fn main() {
   game_thread.join().unwrap();
 }
 
-fn game_loop(mut game_boy: Box<GameBoy>, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<(Vec<u8>, Vec<u8>)>) {
+fn game_loop(mut game_boy: Box<gb::GameBoy>, events_receiver: Receiver<(input::Button, bool)>, frames_sender: SyncSender<(Vec<u8>, Vec<u8>)>) {
   let mut fps_counter = fps::Counter::new(false);
   let limiter = frame_limiter();
 
@@ -247,7 +180,7 @@ fn translate_sdl2_keycode(keycode: Option<Keycode>) -> Option<input::Button> {
 #[test]
 fn can_run_tetris() {
   let mut game_boy = GameBoy::new();
-  game_boy.initialize();
+  game_boy.reset();
   game_boy.mmu.load_game("tetris.gb");
 
   let expected_cpu_state = "[PC] 0x36E\n[Regs] A:0x0, F:0xA0, B:0x0, C:0x8, D:0x0, E:0x10, H:0xFF, L:0xA8\n[Flags]: Z: 1, N: 0, H: 1 C: 0 [SP] 0xCFFF";

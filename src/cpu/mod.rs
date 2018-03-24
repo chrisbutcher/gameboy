@@ -497,7 +497,11 @@ impl CPU {
       0x9D => self.explode(format!("SBC L {:#X}", opcode)),
       0xDE => self.explode(format!("SBC n {:#X}", opcode)),
       0x37 => self.explode(format!("SCF {:#X}", opcode)),
-      0x10 => { debug!("STOP"); println!(" not implemented.") },
+      0x10 => {
+        debug!("STOP");
+        // >>>>>>> TODO <<<<<<<<
+        // println!(" not implemented.")
+      },
       0x96 => { debug!("SUB (HL)"); let address = self.read_word_reg(RegEnum:: HL); let value = mmu.read(address); shared_sub_n(self, value, false); }
       0x97 => self.explode(format!("SUB A {:#X}", opcode)),
       0x90 => { debug!("SUB B"); let b = self.read_byte_reg(RegEnum::B); shared_sub_n(self, b, false) }
@@ -1655,6 +1659,7 @@ impl CPU {
   }
 
   // TODO use
+  #[allow(dead_code)]
   fn shared_reset_n_reg(&mut self, n: u8, reg_enum: RegEnum) {
     let value = self.read_byte_reg(reg_enum) & !(1 << n);
     self.write_byte_reg(reg_enum, value);

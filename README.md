@@ -1,48 +1,40 @@
-Find first difference between two files
-cmp cpu_dump ~/research/Cinoop/cpu_dump
+# GameBoy
 
+A GAMEBOY emulator written in Rust.
 
-count lines of code
-find . -name '*.rs' | xargs wc -l
+## Getting started
+```bash
+# SDL2 is the only dependency not fetched as a crate
+brew install sdl2 sdl2_image sdl2_gfx
+# ^ Mac OS-specific
+# See https://github.com/Rust-SDL2/rust-sdl2 for Windows, Linux instructions
 
-// TODO get these test roms to try out http://slack.net/~ant/old/gb-tests/
+cargo run
+# Or
+cargo run -r tetris.gb # Optional: Defaults to running tetris.gb
+```
 
-// https://github.com/CTurt/Cinoop/blob/master/source/cpu.c
-// https://github.com/CTurt/Cinoop/blob/master/include/cpu.h
-// https://github.com/drhelius/Gearboy/blob/master/src/opcodes.cpp
+## Controls
+```
+A = Z
+B = X
+Start = Enter
+Select = Right shift
+Up, Down, Left, Right (What you'd expect)
+```
 
-// ALSO SEE https://github.com/mvdnes/rboy/blob/master/src/cpu.rs (Note that cycles in this code are divided by 4)
-// http://gameboy.mongenel.com/dmg/lesson1.html
+## Screenshots
 
-// Specs:
-// http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
-// http://web.textfiles.com/games/gbspec.txt
-// http://bgb.bircd.org/pandocs.htm#aboutthepandocs
-// https://www.youtube.com/watch?v=ecTQVa42sJc
-// http://robdor.com/2016/08/10/gameboy-emulator-half-carry-flag/
-// http://gameboy.mongenel.com/asmschool.html
+![](https://user-images.githubusercontent.com/1916444/37868856-1cd661a4-2f84-11e8-8c99-3ffabd67568d.png)
+![](https://user-images.githubusercontent.com/1916444/37868857-1ce55722-2f84-11e8-9690-417bd86efa55.png)
 
-// Rust sdl2
-// http://jadpole.github.io/arcaders/arcaders-1-4
-// https://github.com/simias/gb-rs/blob/master/src/ui/sdl2/display.rs#L10
+## Features
 
-// Test roms:
-// http://gbdev.gg8.se/files/roms/blargg-gb-tests/
-
-// Opcodes specifically:
-// http://imrannazar.com/Gameboy-Z80-Opcode-Map
-// http://gameboy.mongenel.com/dmg/opcodes.html
-
-// Tools:
-// https://github.com/mmuszkow/gb-disasm (Gameboy Rom disassembler)
-
-// Tutorials
-// https://www.youtube.com/watch?v=_mHdUhVQOb8
-// http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU
-// http://www.codeslinger.co.uk/pages/projects/gameboy/beginning.html
-// https://cturt.github.io/cinoop.html
-// https://github.com/jedahan/rustboy/blob/master/development_log.md
-// https://speakerdeck.com/albertofem/a-journey-into-hardware-emulation-building-a-gameboy-emulator-from-scratch
-
-// Livecoding
-// https://www.youtube.com/watch?v=025tC0DcFUI&t=625s
+* [x] CPU (implemented enough to play Tetris but only tested with Tetris)
+* [x] PPU (no double-size sprite support yet)
+* [x] MMU (no memory bank switching yet)
+* [x] Input
+* [x] Runs at 60fps :)
+* [x] No `unsafe` blocks
+* [ ] Sound
+* [ ] Serial port
