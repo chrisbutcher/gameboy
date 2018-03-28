@@ -12,6 +12,8 @@ brew install sdl2 sdl2_image sdl2_gfx
 cargo run
 # Or
 cargo run -r tetris.gb # Optional: Defaults to running tetris.gb
+
+cargo doc --open # To see docs in your browser
 ```
 
 ## Controls
