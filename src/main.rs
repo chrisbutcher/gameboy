@@ -64,11 +64,11 @@ fn main() {
 
   let mut window_set = window_set::WindowSet::new();
 
-  let (events_sender, events_receiver) = channel();
+  let (events_sender, events_receiver) = channel(); // https://doc.rust-lang.org/std/sync/mpsc/
   let (frames_sender, frames_receiver) = sync_channel(1);
 
   let game_thread = thread::Builder::new().name("game".to_string()).spawn(move || {
-    game_loop(game_boy, events_receiver, frames_sender)
+    game_loop(game_boy, events_receiver, frames_sender) // New thread takes ownership of the gameboy, channels
   }).unwrap();
 
   let mut events = window_set.sdl_context.event_pump().unwrap();
@@ -130,8 +130,8 @@ fn game_loop(mut game_boy: Box<gb::GameBoy>, events_receiver: Receiver<(input::B
     game_boy.render_frame();
     game_boy.render_debug_screen();
 
-    let framebuffer = game_boy.mmu.ppu.borrow_mut().framebuffer.to_vec();
-    let debug_framebuffer = game_boy.mmu.ppu.borrow_mut().debug_framebuffer.to_vec();
+    let framebuffer = game_boy.mmu.ppu.borrow_mut().framebuffer.to_vec(); // Mutable borrow that only exists for this line of code.
+    let debug_framebuffer = game_boy.mmu.ppu.borrow_mut().debug_framebuffer.to_vec(); // Can call it again next line.
 
     match frames_sender.try_send((framebuffer, debug_framebuffer)) {
       Err(TrySendError::Disconnected(_)) => break 'game,

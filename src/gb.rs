@@ -30,6 +30,7 @@ impl GameBoy {
   }
 
   pub fn render_frame(&mut self) {
+    // 4.19 mhz CPU, 60fps maintained by frame limiter channel in game loop thread
     let cycles_per_frame = (4194304f64 / 1000.0 * 16.0).round() as u32;
     let mut cycles_this_frame = 0;
 
