@@ -27,27 +27,29 @@ pub struct MMU {
   zram: Vec<u8>,         // FF80-FFFF (zero page ram)
 }
 
-impl MMU {
-  pub fn new() -> MMU {
+impl Default for MMU {
+  fn default() -> Self {
     MMU {
       // bootrom: bootrom::Bootrom::new(),
       bootroom_active: true,
-      cartridge: cartridge::Cartridge::new(),
+      cartridge: cartridge::Cartridge::default(),
       external_ram: vec![0x00; 0x2000],
       work_ram: vec![0x00; 0x2000],
       sprite_info: vec![0x00; 0x100],
       io: vec![0x00; 0x100],
       zram: vec![0x00; 0x80],
 
-      ppu: RefCell::new(ppu::PPU::new()),
-      input: input::Input::new(),
-      timer: timer::Timer::new(),
+      ppu: RefCell::new(ppu::PPU::default()),
+      input: input::Input::default(),
+      timer: timer::Timer::default(),
 
       interrupt_enabled: 0x00,
       interrupt_flags: 0x00,
     }
   }
+}
 
+impl MMU {
   pub fn initialize(&mut self) {
     self.write(0xFF05, 0x00);
     self.write(0xFF06, 0x00);

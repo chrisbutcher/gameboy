@@ -1,13 +1,13 @@
 const MAX_CARTRIDGE_SIZE: usize = 0x200000;
 
 pub struct Cartridge {
-  pub buffer: Vec<u8>
+  pub buffer: Vec<u8>,
 }
 
-impl Cartridge {
-  pub fn new() -> Cartridge {
+impl Default for Cartridge {
+  fn default() -> Self {
     Cartridge {
-      buffer: vec![0x00; MAX_CARTRIDGE_SIZE]
+      buffer: vec![0x00; MAX_CARTRIDGE_SIZE],
     }
   }
 }

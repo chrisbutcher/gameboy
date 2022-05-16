@@ -112,8 +112,8 @@ impl fmt::Debug for CPU {
   }
 }
 
-impl CPU {
-  pub fn new() -> CPU {
+impl Default for CPU {
+  fn default() -> Self {
     CPU {
       af: Register::new(),
       bc: Register::new(),
@@ -132,7 +132,9 @@ impl CPU {
       tick_counter: 0u64,
     }
   }
+}
 
+impl CPU {
   pub fn initialize(&mut self) {
     self.pc = 0x0100;
 
@@ -234,7 +236,7 @@ impl CPU {
   }
 
   fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
-    if self.master_interrupt_toggle == false && self.halted == false {
+    if !self.master_interrupt_toggle && !self.halted {
       return 0;
     }
 
@@ -244,7 +246,7 @@ impl CPU {
     }
 
     self.halted = false;
-    if self.master_interrupt_toggle == false {
+    if !self.master_interrupt_toggle {
       return 0;
     }
     self.master_interrupt_toggle = false;
@@ -1099,13 +1101,11 @@ impl CPU {
 
     let raw_cycles = if opcode == 0xCB {
       opcode_cycles::cb(cb_opcode.unwrap())
+    } else if self.branch_taken {
+      self.branch_taken = false;
+      opcode_cycles::branch(opcode)
     } else {
-      if self.branch_taken {
-        self.branch_taken = false;
-        opcode_cycles::branch(opcode)
-      } else {
-        opcode_cycles::regular(opcode)
-      }
+      opcode_cycles::regular(opcode)
     };
     raw_cycles * 4
   }
@@ -2715,9 +2715,8 @@ fn shared_rotate_rr(cpu: &mut CPU, reg_enum: RegEnum) {
   let result = result | carry;
   cpu.write_byte_reg(reg_enum, result);
 
-  match reg_enum {
-    RegEnum::A => cpu.util_toggle_zero_flag_from_result(result),
-    _ => {} // NOTE Only do this for Register A
+  if reg_enum == RegEnum::A {
+    cpu.util_toggle_zero_flag_from_result(result)
   }
 }
 

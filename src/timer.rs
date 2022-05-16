@@ -2,7 +2,7 @@ pub enum Speed {
   Hz4096,
   Hz262144,
   Hz65536,
-  Hz16384
+  Hz16384,
 }
 
 pub struct Timer {
@@ -18,8 +18,8 @@ pub struct Timer {
   internal_counter: u32,
 }
 
-impl Timer {
-  pub fn new() -> Timer {
+impl Default for Timer {
+  fn default() -> Timer {
     Timer {
       interrupt_flags: 0x00,
 
@@ -33,24 +33,26 @@ impl Timer {
       internal_counter: 0x00,
     }
   }
+}
 
+impl Timer {
   pub fn read(&self, address: u16) -> u8 {
     match address {
-      0xFF04 => { self.divider },
-      0xFF05 => { self.counter },
-      0xFF06 => { self.modulo },
-      0xFF07 => {
-        (if self.running { 0b0100 } else { 0x00 }) | self.counter_speed_to_binary()
-      },
-      _ => { panic!("Invalid address in Timer#read") }
+      0xFF04 => self.divider,
+      0xFF05 => self.counter,
+      0xFF06 => self.modulo,
+      0xFF07 => (if self.running { 0b0100 } else { 0x00 }) | self.counter_speed_to_binary(),
+      _ => {
+        panic!("Invalid address in Timer#read")
+      }
     }
   }
 
-  pub fn write(&mut self, address: u16, value: u8){
+  pub fn write(&mut self, address: u16, value: u8) {
     match address {
-      0xFF04 => { self.divider = 0 },
-      0xFF05 => { self.counter = value },
-      0xFF06 => { self.modulo = value },
+      0xFF04 => self.divider = 0,
+      0xFF05 => self.counter = value,
+      0xFF06 => self.modulo = value,
       0xFF07 => {
         self.running = value & 0b0100 != 0x00;
 
@@ -59,10 +61,12 @@ impl Timer {
           0b01 => Speed::Hz262144,
           0b10 => Speed::Hz65536,
           0b11 => Speed::Hz16384,
-          _ => panic!("Invalid value in Timer#write")
+          _ => panic!("Invalid value in Timer#write"),
         }
-      },
-      _ => { panic!("Invalid address in Timer#write") }
+      }
+      _ => {
+        panic!("Invalid address in Timer#write")
+      }
     }
   }
 
@@ -95,7 +99,7 @@ impl Timer {
       Speed::Hz4096 => 0b00,
       Speed::Hz262144 => 0b01,
       Speed::Hz65536 => 0b10,
-      Speed::Hz16384 => 0b11
+      Speed::Hz16384 => 0b11,
     }
   }
 
@@ -108,7 +112,7 @@ impl Timer {
       Speed::Hz4096 => 1024,
       Speed::Hz262144 => 16,
       Speed::Hz65536 => 64,
-      Speed::Hz16384 => 256
+      Speed::Hz16384 => 256,
     }
   }
 }

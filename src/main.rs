@@ -62,7 +62,7 @@ fn main() {
   game_boy.mmu.load_game(rom_filename);
   game_boy.print_game_title();
 
-  let mut window_set = window_set::WindowSet::new();
+  let mut window_set = window_set::WindowSet::default();
 
   let (events_sender, events_receiver) = channel(); // https://doc.rust-lang.org/std/sync/mpsc/
   let (frames_sender, frames_receiver) = sync_channel(1);
@@ -126,15 +126,12 @@ fn game_loop(
   'game: loop {
     fps_counter.print_fps();
 
-    match events_receiver.try_recv() {
-      Ok((input_button, pressed)) => {
-        if pressed {
-          game_boy.mmu.input.key_pressed(input_button);
-        } else {
-          game_boy.mmu.input.key_released(input_button);
-        }
+    if let Ok((input_button, pressed)) = events_receiver.try_recv() {
+      if pressed {
+        game_boy.mmu.input.key_pressed(input_button);
+      } else {
+        game_boy.mmu.input.key_released(input_button);
       }
-      _ => {}
     }
 
     game_boy.render_frame();
@@ -143,9 +140,10 @@ fn game_loop(
     let framebuffer = game_boy.mmu.ppu.borrow_mut().framebuffer.to_vec(); // Mutable borrow that only exists for this line of code.
     let debug_framebuffer = game_boy.mmu.ppu.borrow_mut().debug_framebuffer.to_vec(); // Can call it again next line.
 
-    match frames_sender.try_send((framebuffer, debug_framebuffer)) {
-      Err(TrySendError::Disconnected(_)) => break 'game,
-      _ => {}
+    if let Err(TrySendError::Disconnected(_)) =
+      frames_sender.try_send((framebuffer, debug_framebuffer))
+    {
+      break 'game;
     }
 
     if LIMIT_FRAME_RATE {

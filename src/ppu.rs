@@ -63,8 +63,8 @@ pub struct PPU {
   tick_counter: u64,
 }
 
-impl PPU {
-  pub fn new() -> PPU {
+impl Default for PPU {
+  fn default() -> Self {
     PPU {
       framebuffer: vec![0x00; 160 * 144 * 4],
       debug_framebuffer: vec![0x00; 256 * 256 * 4],
@@ -107,7 +107,9 @@ impl PPU {
       tick_counter: 0,
     }
   }
+}
 
+impl PPU {
   pub fn read(&mut self, address: u16) -> u8 {
     match address {
       0xFF40 => {
@@ -142,7 +144,7 @@ impl PPU {
         }) | (if self.lcdc_bg_enabled { 0b0000_0001 } else { 0 })
       }
       0xFF41 => {
-        let ff41_val = (if self.ly_coincidence_interrupt_enabled {
+        (if self.ly_coincidence_interrupt_enabled {
           0x40
         } else {
           0
@@ -162,9 +164,7 @@ impl PPU {
           0x04
         } else {
           0
-        }) | self.mode;
-
-        ff41_val
+        }) | self.mode
       }
       0xFF42 => self.scroll_y as u8,
       0xFF43 => self.scroll_x,
@@ -317,13 +317,12 @@ impl PPU {
       // TODO account for double-sized sprites
       if sprite.y_pos <= line && (sprite.y_pos + 8) > line {
         let mut canvas_offset = ((line * 160) + sprite.x_pos) * 4;
-        let tile_row;
 
-        if sprite.y_flip {
-          tile_row = self.tileset[sprite.tile as usize][7 - (line - sprite.y_pos) as usize];
+        let tile_row = if sprite.y_flip {
+          self.tileset[sprite.tile as usize][7 - (line - sprite.y_pos) as usize]
         } else {
-          tile_row = self.tileset[sprite.tile as usize][(line - sprite.y_pos) as usize];
-        }
+          self.tileset[sprite.tile as usize][(line - sprite.y_pos) as usize]
+        };
 
         let mut colour;
 
@@ -389,10 +388,9 @@ impl PPU {
         (tilebase as isize + (tilei as i8 as isize)) as usize
       };
 
-      let row;
-      row = self.tileset[tilebase as usize][y as usize];
+      let row = self.tileset[tilebase as usize][y as usize];
 
-      while x < 8 && i < 160 as u8 {
+      while x < 8 && i < 160_u8 {
         let palette_index = row[x as usize];
         let colour = self.palette[palette_index as usize];
 
@@ -407,7 +405,7 @@ impl PPU {
       }
 
       x = 0;
-      if i >= 160 as u8 {
+      if i >= 160_u8 {
         break;
       }
     }
@@ -453,10 +451,8 @@ impl PPU {
           if self.mode != 3 {
             self.change_mode(3);
           }
-        } else {
-          if self.mode != 0 {
-            self.change_mode(0);
-          }
+        } else if self.mode != 0 {
+          self.change_mode(0);
         }
       }
     }
@@ -487,7 +483,7 @@ impl PPU {
             // https://stackoverflow.com/questions/2151084/map-a-2d-array-onto-a-1d-array
             let index = IMAGE_WIDTH * point_y + point_x;
 
-            self.debug_framebuffer[(index * PIXEL_COLOUR_STRIDE) + 0] = pixel_palette[0];
+            self.debug_framebuffer[index * PIXEL_COLOUR_STRIDE] = pixel_palette[0];
             self.debug_framebuffer[(index * PIXEL_COLOUR_STRIDE) + 1] = pixel_palette[1];
             self.debug_framebuffer[(index * PIXEL_COLOUR_STRIDE) + 2] = pixel_palette[2];
             self.debug_framebuffer[(index * PIXEL_COLOUR_STRIDE) + 3] = pixel_palette[3];

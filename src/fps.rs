@@ -11,7 +11,7 @@ impl Counter {
     Counter {
       frames: 0,
       last_time: time::Instant::now(),
-      print_fps: print_fps,
+      print_fps,
     }
   }
 

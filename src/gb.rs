@@ -16,8 +16,8 @@ pub struct GameBoy {
 impl GameBoy {
   pub fn new() -> Box<GameBoy> {
     Box::new(GameBoy {
-      cpu: cpu::CPU::new(),
-      mmu: mmu::MMU::new(),
+      cpu: cpu::CPU::default(),
+      mmu: mmu::MMU::default(),
     })
   }
 
