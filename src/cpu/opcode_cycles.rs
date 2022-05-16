@@ -257,7 +257,6 @@ pub fn regular(opcode: u8) -> i32 {
     0xFD => 0,
     0xFE => 2,
     0xFF => 4,
-    _ => panic!("Unexpected opcode: {:#X}", opcode),
   }
 }
 
@@ -519,7 +518,6 @@ pub fn branch(opcode: u8) -> i32 {
     0xFD => 0,
     0xFE => 2,
     0xFF => 4,
-    _ => panic!("Unexpected opcode: {:#X}", opcode),
   }
 }
 

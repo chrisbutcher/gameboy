@@ -1,12 +1,12 @@
-pub use super::cpu;
 pub use super::bootrom;
 pub use super::cartridge;
-pub use super::mmu;
-pub use super::timer;
-pub use super::ppu;
-pub use super::window_set;
-pub use super::input;
+pub use super::cpu;
 pub use super::fps;
+pub use super::input;
+pub use super::mmu;
+pub use super::ppu;
+pub use super::timer;
+pub use super::window_set;
 
 pub struct GameBoy {
   pub cpu: cpu::CPU,
@@ -15,12 +15,10 @@ pub struct GameBoy {
 
 impl GameBoy {
   pub fn new() -> Box<GameBoy> {
-    Box::new(
-      GameBoy {
-        cpu: cpu::CPU::new(),
-        mmu: mmu::MMU::new(),
-      }
-    )
+    Box::new(GameBoy {
+      cpu: cpu::CPU::new(),
+      mmu: mmu::MMU::new(),
+    })
   }
 
   pub fn reset(&mut self) {
@@ -42,8 +40,6 @@ impl GameBoy {
       self.update_mmu();
       self.update_graphics(cycles);
     }
-
-    cycles_this_frame.wrapping_sub(cycles_per_frame);
   }
 
   pub fn render_debug_screen(&mut self) {

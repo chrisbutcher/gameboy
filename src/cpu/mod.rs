@@ -14,9 +14,27 @@ const SYNC_STATE: bool = false;
 const AFTER_TICK_COUNT: u64 = 32057900;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum RegEnum { A, F, B, C, D, E, H, L, S, P, AF, BC, DE, HL, SP }
+pub enum RegEnum {
+  A,
+  F,
+  B,
+  C,
+  D,
+  E,
+  H,
+  L,
+  S,
+  P,
+  AF,
+  BC,
+  DE,
+  HL,
+  SP,
+}
 
-pub struct Register { value: u16 }
+pub struct Register {
+  value: u16,
+}
 
 impl Register {
   fn new() -> Register {
@@ -97,7 +115,11 @@ impl fmt::Debug for CPU {
 impl CPU {
   pub fn new() -> CPU {
     CPU {
-      af: Register::new(), bc: Register::new(), de: Register::new(), hl: Register::new(), sp: Register::new(),
+      af: Register::new(),
+      bc: Register::new(),
+      de: Register::new(),
+      hl: Register::new(),
+      sp: Register::new(),
       pc: 0x0000,
 
       branch_taken: false,
@@ -144,7 +166,9 @@ impl CPU {
       RegEnum::DE => self.de.write(word),
       RegEnum::HL => self.hl.write(word),
       RegEnum::SP => self.sp.write(word),
-      _ => {panic!("Unexpected reg_enum: {:?}", reg_enum)},
+      _ => {
+        panic!("Unexpected reg_enum: {:?}", reg_enum)
+      }
     }
   }
 
@@ -177,18 +201,20 @@ impl CPU {
 
   fn explode(&mut self, message: String) {
     println!("pc: {:?} tick_counter: {}", self, self.tick_counter);
-    panic!(message)
+    panic!("{}", message)
   }
 
   pub fn execute_next_opcode(&mut self, mmu: &mut mmu::MMU) -> i32 {
     self.update_ime();
 
     match self.handle_interrupts(mmu) {
-        0 => {},
-        interrupt_cycles => return interrupt_cycles,
+      0 => {}
+      interrupt_cycles => return interrupt_cycles,
     };
 
-    if self.halted { return 1 }
+    if self.halted {
+      return 1;
+    }
 
     let opcode: u8 = mmu.read(self.pc);
 
@@ -208,17 +234,25 @@ impl CPU {
   }
 
   fn handle_interrupts(&mut self, mmu: &mut mmu::MMU) -> i32 {
-    if self.master_interrupt_toggle == false && self.halted == false { return 0 }
+    if self.master_interrupt_toggle == false && self.halted == false {
+      return 0;
+    }
 
     let interrupt_to_handle = mmu.interrupt_enabled & mmu.interrupt_flags;
-    if interrupt_to_handle == 0 { return 0 }
+    if interrupt_to_handle == 0 {
+      return 0;
+    }
 
     self.halted = false;
-    if self.master_interrupt_toggle == false { return 0 }
+    if self.master_interrupt_toggle == false {
+      return 0;
+    }
     self.master_interrupt_toggle = false;
 
     let interrupt_offset = interrupt_to_handle.trailing_zeros() as u16;
-    if interrupt_offset >= 5 { panic!("Invalid interrupt"); }
+    if interrupt_offset >= 5 {
+      panic!("Invalid interrupt");
+    }
 
     mmu.interrupt_flags &= !(1 << interrupt_offset);
 
@@ -236,14 +270,20 @@ impl CPU {
 
   fn update_ime(&mut self) {
     self.di_cycles = match self.di_cycles {
-        2 => 1,
-        1 => { self.master_interrupt_toggle = false; 0 },
-        _ => 0,
+      2 => 1,
+      1 => {
+        self.master_interrupt_toggle = false;
+        0
+      }
+      _ => 0,
     };
     self.ei_cycles = match self.ei_cycles {
-        2 => 1,
-        1 => { self.master_interrupt_toggle = true; 0 },
-        _ => 0,
+      2 => 1,
+      1 => {
+        self.master_interrupt_toggle = true;
+        0
+      }
+      _ => 0,
     };
   }
 
@@ -251,50 +291,159 @@ impl CPU {
     let mut cb_opcode: Option<u8> = None;
 
     match opcode {
-      0x8E => { debug!("ADC A,(HL)"); let address = self.read_word_reg(RegEnum::HL); let value = mmu.read(address); shared_add_n(self, value, true) },
-      0x8F => { debug!("ADC A,A"); let value = self.read_byte_reg(RegEnum::A); shared_add_n(self, value, true) }
-      0x88 => { debug!("ADC A,B"); let value = self.read_byte_reg(RegEnum::B); shared_add_n(self, value, true) }
-      0x89 => { debug!("ADC A,C"); let value = self.read_byte_reg(RegEnum::C); shared_add_n(self, value, true) }
-      0x8A => { debug!("ADC A,D"); let value = self.read_byte_reg(RegEnum::D); shared_add_n(self, value, true) }
-      0x8B => { debug!("ADC A,E"); let value = self.read_byte_reg(RegEnum::E); shared_add_n(self, value, true) }
-      0x8C => { debug!("ADC A,H"); let value = self.read_byte_reg(RegEnum::H); shared_add_n(self, value, true) }
-      0x8D => { debug!("ADC A,L"); let value = self.read_byte_reg(RegEnum::L); shared_add_n(self, value, true) }
+      0x8E => {
+        debug!("ADC A,(HL)");
+        let address = self.read_word_reg(RegEnum::HL);
+        let value = mmu.read(address);
+        shared_add_n(self, value, true)
+      }
+      0x8F => {
+        debug!("ADC A,A");
+        let value = self.read_byte_reg(RegEnum::A);
+        shared_add_n(self, value, true)
+      }
+      0x88 => {
+        debug!("ADC A,B");
+        let value = self.read_byte_reg(RegEnum::B);
+        shared_add_n(self, value, true)
+      }
+      0x89 => {
+        debug!("ADC A,C");
+        let value = self.read_byte_reg(RegEnum::C);
+        shared_add_n(self, value, true)
+      }
+      0x8A => {
+        debug!("ADC A,D");
+        let value = self.read_byte_reg(RegEnum::D);
+        shared_add_n(self, value, true)
+      }
+      0x8B => {
+        debug!("ADC A,E");
+        let value = self.read_byte_reg(RegEnum::E);
+        shared_add_n(self, value, true)
+      }
+      0x8C => {
+        debug!("ADC A,H");
+        let value = self.read_byte_reg(RegEnum::H);
+        shared_add_n(self, value, true)
+      }
+      0x8D => {
+        debug!("ADC A,L");
+        let value = self.read_byte_reg(RegEnum::L);
+        shared_add_n(self, value, true)
+      }
       0xCE => self.explode(format!("ADC A,n {:#X}", opcode)),
-      0x86 => { debug!("ADD A,(HL)"); self.add_a_hl(mmu) }
-      0x87 => { debug!("ADD A,A"); let value = self.read_byte_reg(RegEnum::A); shared_add_n(self, value, false) }
-      0x80 => { debug!("ADD A,B"); let value = self.read_byte_reg(RegEnum::B); shared_add_n(self, value, false) }
-      0x81 => { debug!("ADD A,C"); let value = self.read_byte_reg(RegEnum::C); shared_add_n(self, value, false) }
-      0x82 => { debug!("ADD A,D"); let value = self.read_byte_reg(RegEnum::D); shared_add_n(self, value, false) }
-      0x83 => { debug!("ADD A,E"); let value = self.read_byte_reg(RegEnum::E); shared_add_n(self, value, false) }
-      0x84 => { debug!("ADD A,H"); let value = self.read_byte_reg(RegEnum::H); shared_add_n(self, value, false) }
-      0x85 => { debug!("ADD A,L"); let value = self.read_byte_reg(RegEnum::L); shared_add_n(self, value, false) }
-      0xC6 => { debug!("ADD A,N"); self.add_a_n(mmu) }
-      0x09 => { debug!("ADD HL,BC"); self.add_hl_bc() }
-      0x19 => { debug!("ADD HL,DE"); self.add_hl_de() }
+      0x86 => {
+        debug!("ADD A,(HL)");
+        self.add_a_hl(mmu)
+      }
+      0x87 => {
+        debug!("ADD A,A");
+        let value = self.read_byte_reg(RegEnum::A);
+        shared_add_n(self, value, false)
+      }
+      0x80 => {
+        debug!("ADD A,B");
+        let value = self.read_byte_reg(RegEnum::B);
+        shared_add_n(self, value, false)
+      }
+      0x81 => {
+        debug!("ADD A,C");
+        let value = self.read_byte_reg(RegEnum::C);
+        shared_add_n(self, value, false)
+      }
+      0x82 => {
+        debug!("ADD A,D");
+        let value = self.read_byte_reg(RegEnum::D);
+        shared_add_n(self, value, false)
+      }
+      0x83 => {
+        debug!("ADD A,E");
+        let value = self.read_byte_reg(RegEnum::E);
+        shared_add_n(self, value, false)
+      }
+      0x84 => {
+        debug!("ADD A,H");
+        let value = self.read_byte_reg(RegEnum::H);
+        shared_add_n(self, value, false)
+      }
+      0x85 => {
+        debug!("ADD A,L");
+        let value = self.read_byte_reg(RegEnum::L);
+        shared_add_n(self, value, false)
+      }
+      0xC6 => {
+        debug!("ADD A,N");
+        self.add_a_n(mmu)
+      }
+      0x09 => {
+        debug!("ADD HL,BC");
+        self.add_hl_bc()
+      }
+      0x19 => {
+        debug!("ADD HL,DE");
+        self.add_hl_de()
+      }
       0x29 => self.explode(format!("ADD HL,HL {:#X}", opcode)),
-      0x39 => { debug!("ADD HL,SP"); shared_add_word_and_word_regs(self, RegEnum::HL, RegEnum::SP); },
+      0x39 => {
+        debug!("ADD HL,SP");
+        shared_add_word_and_word_regs(self, RegEnum::HL, RegEnum::SP);
+      }
       0xE8 => self.explode(format!("ADD SP,n {:#X}", opcode)),
       0xA6 => self.explode(format!("AND (HL) {:#X}", opcode)),
-      0xA7 => { debug!("AND A"); self.and_a() }
-      0xA0 => { debug!("AND B"); self.and_b() }
-      0xA1 => { debug!("AND C"); self.and_c() }
-      0xA2 => { debug!("AND D"); self.and_d() }
-      0xA3 => { debug!("AND E"); self.and_e() }
-      0xA4 => { debug!("AND H"); self.and_h() }
-      0xA5 => { debug!("AND L"); self.and_l() }
-      0xE6 => { debug!("AND n"); self.and_n(mmu) }
+      0xA7 => {
+        debug!("AND A");
+        self.and_a()
+      }
+      0xA0 => {
+        debug!("AND B");
+        self.and_b()
+      }
+      0xA1 => {
+        debug!("AND C");
+        self.and_c()
+      }
+      0xA2 => {
+        debug!("AND D");
+        self.and_d()
+      }
+      0xA3 => {
+        debug!("AND E");
+        self.and_e()
+      }
+      0xA4 => {
+        debug!("AND H");
+        self.and_h()
+      }
+      0xA5 => {
+        debug!("AND L");
+        self.and_l()
+      }
+      0xE6 => {
+        debug!("AND n");
+        self.and_n(mmu)
+      }
       0xDC => self.explode(format!("CALL C,nn {:#X}", opcode)),
       0xD4 => self.explode(format!("CALL NC,nn {:#X}", opcode)),
-      0xC4 => { debug!("CALL NZ,nn"); self.call_nz_nn(mmu) }
+      0xC4 => {
+        debug!("CALL NZ,nn");
+        self.call_nz_nn(mmu)
+      }
       0xCC => self.explode(format!("CALL Z,nn {:#X}", opcode)),
-      0xCD => { debug!("CALL nn"); self.call_nn(mmu) }
+      0xCD => {
+        debug!("CALL nn");
+        self.call_nn(mmu)
+      }
       0xCB => {
         debug!("CB prefixed instruction");
         cb_opcode = Some(mmu.read(self.pc));
         self.cb_prefixed_instruction(cb_opcode.unwrap(), mmu)
       }
       0x3F => self.explode(format!("CCF {:#X}", opcode)),
-      0xBE => { debug!("CP (HL)"); self.cp_hl(mmu) }
+      0xBE => {
+        debug!("CP (HL)");
+        self.cp_hl(mmu)
+      }
       0xBF => self.explode(format!("CP A {:#X}", opcode)),
       0xB8 => {
         debug!("CP B");
@@ -302,191 +451,571 @@ impl CPU {
         let value = self.read_byte_reg(RegEnum::B);
         shared_cp(self, value);
         self.write_byte_reg(RegEnum::A, a);
-      },
+      }
       0xB9 => {
         debug!("CP C");
         let a = self.read_byte_reg(RegEnum::A);
         let value = self.read_byte_reg(RegEnum::C);
         shared_cp(self, value);
         self.write_byte_reg(RegEnum::A, a);
-      },
+      }
       0xBA => self.explode(format!("CP D {:#X}", opcode)),
       0xBB => self.explode(format!("CP E {:#X}", opcode)),
       0xBC => self.explode(format!("CP H {:#X}", opcode)),
       0xBD => self.explode(format!("CP L {:#X}", opcode)),
-      0xFE => { debug!("CP"); self.cp_n(mmu) }
-      0x2F => { debug!("CPL"); self.cpl() }
-      0x27 => { debug!("DAA"); self.daa() } ,
-      0x35 => { debug!("DEC (HL)"); self.dec_hl_indirect(mmu) }
-      0x3D => { debug!("DEC A"); self.dec_a() }
-      0x05 => { debug!("DEC B"); self.dec_b() }
-      0x0B => { debug!("DEC BC"); self.dec_bc() }
-      0x0D => { debug!("DEC C"); self.dec_c() }
-      0x15 => { debug!("DEC D"); self.dec_d() }
-      0x1B => { debug!("DEC DE"); shared_dec_word_reg(self, RegEnum::DE) },
-      0x1D => { debug!("DEC E"); self.dec_e() }
-      0x25 => { debug!("DEC H"); shared_dec_byte_reg(self, RegEnum::H) }
-      0x2B => { debug!("DEC HL"); shared_dec_word_reg(self, RegEnum::HL) },
-      0x2D => { debug!("DEC L"); self.dec_l(); }
+      0xFE => {
+        debug!("CP");
+        self.cp_n(mmu)
+      }
+      0x2F => {
+        debug!("CPL");
+        self.cpl()
+      }
+      0x27 => {
+        debug!("DAA");
+        self.daa()
+      }
+      0x35 => {
+        debug!("DEC (HL)");
+        self.dec_hl_indirect(mmu)
+      }
+      0x3D => {
+        debug!("DEC A");
+        self.dec_a()
+      }
+      0x05 => {
+        debug!("DEC B");
+        self.dec_b()
+      }
+      0x0B => {
+        debug!("DEC BC");
+        self.dec_bc()
+      }
+      0x0D => {
+        debug!("DEC C");
+        self.dec_c()
+      }
+      0x15 => {
+        debug!("DEC D");
+        self.dec_d()
+      }
+      0x1B => {
+        debug!("DEC DE");
+        shared_dec_word_reg(self, RegEnum::DE)
+      }
+      0x1D => {
+        debug!("DEC E");
+        self.dec_e()
+      }
+      0x25 => {
+        debug!("DEC H");
+        shared_dec_byte_reg(self, RegEnum::H)
+      }
+      0x2B => {
+        debug!("DEC HL");
+        shared_dec_word_reg(self, RegEnum::HL)
+      }
+      0x2D => {
+        debug!("DEC L");
+        self.dec_l();
+      }
       0x3B => {
         debug!("DEC SP");
         let sp = self.read_word_reg(RegEnum::SP);
         self.write_word_reg(RegEnum::SP, sp.wrapping_sub(1))
       }
-      0xF3 => { debug!("DI"); self.di() }
-      0xFB => { debug!("EI"); self.ei() }
+      0xF3 => {
+        debug!("DI");
+        self.di()
+      }
+      0xFB => {
+        debug!("EI");
+        self.ei()
+      }
       0x76 => self.explode(format!("HALT {:#X}", opcode)),
-      0x34 => { debug!("INC (HL)"); self.inc_hl_indirect(mmu) }
-      0x3C => { debug!("INC A"); self.inc_a() }
-      0x04 => { debug!("INC B"); self.inc_b() }
-      0x03 => { debug!("INC BC"); self.inc_bc() }
-      0x0C => { debug!("INC C"); self.inc_c() }
-      0x14 => { debug!("INC D"); shared_inc_byte_reg(self, RegEnum::D) },
-      0x13 => { debug!("INC DE"); self.inc_de() }
-      0x1C => { debug!("INC E"); self.inc_e() }
-      0x24 => { debug!("INC H"); self.inc_h() }
-      0x23 => { debug!("INC HL"); self.inc_hl() }
-      0x2C => { debug!("INC L"); self.inc_l() }
+      0x34 => {
+        debug!("INC (HL)");
+        self.inc_hl_indirect(mmu)
+      }
+      0x3C => {
+        debug!("INC A");
+        self.inc_a()
+      }
+      0x04 => {
+        debug!("INC B");
+        self.inc_b()
+      }
+      0x03 => {
+        debug!("INC BC");
+        self.inc_bc()
+      }
+      0x0C => {
+        debug!("INC C");
+        self.inc_c()
+      }
+      0x14 => {
+        debug!("INC D");
+        shared_inc_byte_reg(self, RegEnum::D)
+      }
+      0x13 => {
+        debug!("INC DE");
+        self.inc_de()
+      }
+      0x1C => {
+        debug!("INC E");
+        self.inc_e()
+      }
+      0x24 => {
+        debug!("INC H");
+        self.inc_h()
+      }
+      0x23 => {
+        debug!("INC HL");
+        self.inc_hl()
+      }
+      0x2C => {
+        debug!("INC L");
+        self.inc_l()
+      }
       0x33 => self.explode(format!("INC SP {:#X}", opcode)),
-      0xE9 => { debug!("JP (HL)"); self.jp_hl() }
+      0xE9 => {
+        debug!("JP (HL)");
+        self.jp_hl()
+      }
       0xDA => self.explode(format!("JP C,nn {:#X}", opcode)),
       0xD2 => self.explode(format!("JP NC,nn {:#X}", opcode)),
-      0xC2 => { debug!("JP NZ,nn"); self.jp_nz_nn(mmu) }
-      0xCA => { debug!("JP Z,nn"); self.jp_z_nn(mmu) }
-      0xC3 => { debug!("JP nn"); self.jp_nn(mmu) }
-      0x38 => { debug!("JR C,n"); self.jr_c_n(mmu) },
-      0x30 => { debug!("JR NC,n"); self.jr_nc_n(mmu) },
-      0x20 => { debug!("JR NZ,n"); self.jr_nz_n(mmu) }
-      0x28 => { debug!("JR Z,n"); self.jr_z_n(mmu) }
-      0x18 => { debug!("JR n"); self.jr_n(mmu) }
-      0xE2 => { debug!("LD (0xFF00+C),A"); self.ld_0xff00_plus_c_a(mmu) }
-      0xE0 => { debug!("LD (0xFF00+n),A"); self.ld_0xff00_plus_n_a(mmu) }
-      0x02 => { debug!("LD (BC),A"); self.shared_ld_nn_reg(RegEnum::A, RegEnum::BC, mmu) }
-      0x12 => { debug!("LD (DE),A"); self.ld_de_a(mmu) }
-      0x77 => { debug!("LD (HL),A"); self.ld_hl_a(mmu) }
+      0xC2 => {
+        debug!("JP NZ,nn");
+        self.jp_nz_nn(mmu)
+      }
+      0xCA => {
+        debug!("JP Z,nn");
+        self.jp_z_nn(mmu)
+      }
+      0xC3 => {
+        debug!("JP nn");
+        self.jp_nn(mmu)
+      }
+      0x38 => {
+        debug!("JR C,n");
+        self.jr_c_n(mmu)
+      }
+      0x30 => {
+        debug!("JR NC,n");
+        self.jr_nc_n(mmu)
+      }
+      0x20 => {
+        debug!("JR NZ,n");
+        self.jr_nz_n(mmu)
+      }
+      0x28 => {
+        debug!("JR Z,n");
+        self.jr_z_n(mmu)
+      }
+      0x18 => {
+        debug!("JR n");
+        self.jr_n(mmu)
+      }
+      0xE2 => {
+        debug!("LD (0xFF00+C),A");
+        self.ld_0xff00_plus_c_a(mmu)
+      }
+      0xE0 => {
+        debug!("LD (0xFF00+n),A");
+        self.ld_0xff00_plus_n_a(mmu)
+      }
+      0x02 => {
+        debug!("LD (BC),A");
+        self.shared_ld_nn_reg(RegEnum::A, RegEnum::BC, mmu)
+      }
+      0x12 => {
+        debug!("LD (DE),A");
+        self.ld_de_a(mmu)
+      }
+      0x77 => {
+        debug!("LD (HL),A");
+        self.ld_hl_a(mmu)
+      }
       0x70 => self.explode(format!("LD (HL),B {:#X}", opcode)),
-      0x71 => { debug!("LD (HL),C"); self.ld_hl_c(mmu) }
-      0x72 => { debug!("LD (HL),D"); self.ld_hl_d(mmu) }
-      0x73 => { debug!("LD (HL),E"); self.ld_hl_e(mmu) }
+      0x71 => {
+        debug!("LD (HL),C");
+        self.ld_hl_c(mmu)
+      }
+      0x72 => {
+        debug!("LD (HL),D");
+        self.ld_hl_d(mmu)
+      }
+      0x73 => {
+        debug!("LD (HL),E");
+        self.ld_hl_e(mmu)
+      }
       0x74 => self.explode(format!("LD (HL),H {:#X}", opcode)),
       0x75 => self.explode(format!("LD (HL),L {:#X}", opcode)),
-      0x36 => { debug!("LD (HL),n"); self.ld_hl_n(mmu) }
-      0x32 => { debug!("LD (HLD), A"); self.ld_hld_a(mmu) }
-      0x22 => { debug!("LD (HLI),A"); self.ld_hli_a(mmu) }
-      0xEA => { debug!("LD (nn),A"); self.ld_nn_a(mmu) }
-      0x08 => { debug!("LD (nn),SP"); self.ld_nn_sp(mmu) }
-      0xF0 => { debug!("LD A,(0xFF00+n)"); self.ld_a_0xff00_plus_n(mmu) }
-      0x0A => { debug!("LD A,(BC)"); self.ld_a_bc(mmu) }
+      0x36 => {
+        debug!("LD (HL),n");
+        self.ld_hl_n(mmu)
+      }
+      0x32 => {
+        debug!("LD (HLD), A");
+        self.ld_hld_a(mmu)
+      }
+      0x22 => {
+        debug!("LD (HLI),A");
+        self.ld_hli_a(mmu)
+      }
+      0xEA => {
+        debug!("LD (nn),A");
+        self.ld_nn_a(mmu)
+      }
+      0x08 => {
+        debug!("LD (nn),SP");
+        self.ld_nn_sp(mmu)
+      }
+      0xF0 => {
+        debug!("LD A,(0xFF00+n)");
+        self.ld_a_0xff00_plus_n(mmu)
+      }
+      0x0A => {
+        debug!("LD A,(BC)");
+        self.ld_a_bc(mmu)
+      }
       0xF2 => self.explode(format!("LD A,(C) {:#X}", opcode)),
-      0x1A => { debug!("LD A,(DE)"); self.ld_a_de(mmu) }
-      0x7E => { debug!("LD A,(HL)"); self.ld_a_hl(mmu) }
-      0x3A => { debug!("LD A,(HLD)"); self.ld_a_hld(mmu) }
-      0x2A => { debug!("LD A,(HLI)"); self.ld_a_hli(mmu) }
-      0xFA => { debug!("LD A,(nn)"); self.ld_a_nn(mmu) }
-      0x7F => { debug!("LD A,A"); }
-      0x78 => { debug!("LD A,B"); self.ld_a_b() }
-      0x79 => { debug!("LD A,C"); self.ld_a_c() }
-      0x7A => { debug!("LD A,D"); self.ld_a_d() }
-      0x7B => { debug!("LD A,E"); self.ld_a_e() },
-      0x7C => { debug!("LD A,H"); self.ld_a_h() }
-      0x7D => { debug!("LD A,L"); self.ld_a_l() }
-      0x3E => { debug!("LD A,n"); self.ld_a_n(mmu) }
-      0x46 => { debug!("LD B,(HL)"); self.ld_b_hl(mmu) }
-      0x47 => { debug!("LD B,A"); self.ld_b_a() }
-      0x40 => { debug!("LD B,B"); self.ld_b_b() }
-      0x41 => { debug!("LD B,C"); self.shared_ld_reg_reg(RegEnum::C, RegEnum::B) }
-      0x42 => { debug!("LD B,D"); self.shared_ld_reg_reg(RegEnum::D, RegEnum::B) }
-      0x43 => { debug!("LD B,E"); self.shared_ld_reg_reg(RegEnum::E, RegEnum::B) }
-      0x44 => { debug!("LD B,H"); self.shared_ld_reg_reg(RegEnum::H, RegEnum::B) }
-      0x45 => { debug!("LD B,L"); self.shared_ld_reg_reg(RegEnum::L, RegEnum::B) }
-      0x06 => { debug!("LD B,n"); self.ld_b_n(mmu) }
-      0x01 => { debug!("LD BC,nn"); self.ld_bc_nn(mmu) }
-      0x4E => { debug!("LD C,(HL)"); self.ld_c_hl(mmu) }
-      0x4F => { debug!("LD C,A"); self.ld_c_a() }
+      0x1A => {
+        debug!("LD A,(DE)");
+        self.ld_a_de(mmu)
+      }
+      0x7E => {
+        debug!("LD A,(HL)");
+        self.ld_a_hl(mmu)
+      }
+      0x3A => {
+        debug!("LD A,(HLD)");
+        self.ld_a_hld(mmu)
+      }
+      0x2A => {
+        debug!("LD A,(HLI)");
+        self.ld_a_hli(mmu)
+      }
+      0xFA => {
+        debug!("LD A,(nn)");
+        self.ld_a_nn(mmu)
+      }
+      0x7F => {
+        debug!("LD A,A");
+      }
+      0x78 => {
+        debug!("LD A,B");
+        self.ld_a_b()
+      }
+      0x79 => {
+        debug!("LD A,C");
+        self.ld_a_c()
+      }
+      0x7A => {
+        debug!("LD A,D");
+        self.ld_a_d()
+      }
+      0x7B => {
+        debug!("LD A,E");
+        self.ld_a_e()
+      }
+      0x7C => {
+        debug!("LD A,H");
+        self.ld_a_h()
+      }
+      0x7D => {
+        debug!("LD A,L");
+        self.ld_a_l()
+      }
+      0x3E => {
+        debug!("LD A,n");
+        self.ld_a_n(mmu)
+      }
+      0x46 => {
+        debug!("LD B,(HL)");
+        self.ld_b_hl(mmu)
+      }
+      0x47 => {
+        debug!("LD B,A");
+        self.ld_b_a()
+      }
+      0x40 => {
+        debug!("LD B,B");
+        self.ld_b_b()
+      }
+      0x41 => {
+        debug!("LD B,C");
+        self.shared_ld_reg_reg(RegEnum::C, RegEnum::B)
+      }
+      0x42 => {
+        debug!("LD B,D");
+        self.shared_ld_reg_reg(RegEnum::D, RegEnum::B)
+      }
+      0x43 => {
+        debug!("LD B,E");
+        self.shared_ld_reg_reg(RegEnum::E, RegEnum::B)
+      }
+      0x44 => {
+        debug!("LD B,H");
+        self.shared_ld_reg_reg(RegEnum::H, RegEnum::B)
+      }
+      0x45 => {
+        debug!("LD B,L");
+        self.shared_ld_reg_reg(RegEnum::L, RegEnum::B)
+      }
+      0x06 => {
+        debug!("LD B,n");
+        self.ld_b_n(mmu)
+      }
+      0x01 => {
+        debug!("LD BC,nn");
+        self.ld_bc_nn(mmu)
+      }
+      0x4E => {
+        debug!("LD C,(HL)");
+        self.ld_c_hl(mmu)
+      }
+      0x4F => {
+        debug!("LD C,A");
+        self.ld_c_a()
+      }
       0x48 => self.explode(format!("LD C,B {:#X}", opcode)),
       0x49 => debug!("LD C,C"), // no-op
       0x4A => self.explode(format!("LD C,D {:#X}", opcode)),
       0x4B => self.explode(format!("LD C,E {:#X}", opcode)),
       0x4C => self.explode(format!("LD C,H {:#X}", opcode)),
       0x4D => self.explode(format!("LD C,L {:#X}", opcode)),
-      0x0E => { debug!("LD C,n"); self.ld_c_n(mmu) }
-      0x56 => { debug!("LD D,(HL)"); self.ld_d_hl(mmu) }
-      0x57 => { debug!("LD D,A"); self.ld_d_a() },
+      0x0E => {
+        debug!("LD C,n");
+        self.ld_c_n(mmu)
+      }
+      0x56 => {
+        debug!("LD D,(HL)");
+        self.ld_d_hl(mmu)
+      }
+      0x57 => {
+        debug!("LD D,A");
+        self.ld_d_a()
+      }
       0x50 => self.explode(format!("LD D,B {:#X}", opcode)),
       0x51 => self.explode(format!("LD D,C {:#X}", opcode)),
       0x52 => self.explode(format!("LD D,D {:#X}", opcode)),
       0x53 => self.explode(format!("LD D,E {:#X}", opcode)),
-      0x54 => { debug!("LD D,H"); self.ld_d_h() }
+      0x54 => {
+        debug!("LD D,H");
+        self.ld_d_h()
+      }
       0x55 => self.explode(format!("LD D,L {:#X}", opcode)),
-      0x16 => { debug!("LD D,n"); self.ld_d_n(mmu) }
-      0x11 => { debug!("LD DE,nn"); self.ld_de_nn(mmu) }
-      0x5E => { debug!("LD E,(HL)"); self.ld_e_hl(mmu) }
-      0x5F => { debug!("LD E,A"); self.ld_e_a() }
+      0x16 => {
+        debug!("LD D,n");
+        self.ld_d_n(mmu)
+      }
+      0x11 => {
+        debug!("LD DE,nn");
+        self.ld_de_nn(mmu)
+      }
+      0x5E => {
+        debug!("LD E,(HL)");
+        self.ld_e_hl(mmu)
+      }
+      0x5F => {
+        debug!("LD E,A");
+        self.ld_e_a()
+      }
       0x58 => self.explode(format!("LD E,B {:#X}", opcode)),
       0x59 => self.explode(format!("LD E,C {:#X}", opcode)),
       0x5A => self.explode(format!("LD E,D {:#X}", opcode)),
       0x5B => self.explode(format!("LD E,E {:#X}", opcode)),
       0x5C => self.explode(format!("LD E,H {:#X}", opcode)),
-      0x5D => { debug!("LD E,L"); self.ld_e_l() }
-      0x1E => { debug!("LD E,n"); self.ld_e_n(mmu) }
+      0x5D => {
+        debug!("LD E,L");
+        self.ld_e_l()
+      }
+      0x1E => {
+        debug!("LD E,n");
+        self.ld_e_n(mmu)
+      }
       0x66 => self.explode(format!("LD H,(HL) {:#X}", opcode)),
-      0x67 => { debug!("LD H,A"); self.ld_h_a() },
-      0x60 => { debug!("LD H,B"); self.ld_h_b() }
-      0x61 => { debug!("LD H,C"); self.ld_h_c() }
-      0x62 => { debug!("LD H,D"); self.ld_h_d() }
+      0x67 => {
+        debug!("LD H,A");
+        self.ld_h_a()
+      }
+      0x60 => {
+        debug!("LD H,B");
+        self.ld_h_b()
+      }
+      0x61 => {
+        debug!("LD H,C");
+        self.ld_h_c()
+      }
+      0x62 => {
+        debug!("LD H,D");
+        self.ld_h_d()
+      }
       0x63 => self.explode(format!("LD H,E {:#X}", opcode)),
       0x64 => self.explode(format!("LD H,H {:#X}", opcode)),
       0x65 => self.explode(format!("LD H,L {:#X}", opcode)),
-      0x26 => { debug!("LD H,n"); shared_ld_reg_n(self, RegEnum::H, mmu) }
+      0x26 => {
+        debug!("LD H,n");
+        shared_ld_reg_n(self, RegEnum::H, mmu)
+      }
       0xF8 => self.explode(format!("LD HL,SP+n {:#X}", opcode)),
-      0x21 => { debug!("LD HL,nn"); self.ld_hl_nn(mmu) }
+      0x21 => {
+        debug!("LD HL,nn");
+        self.ld_hl_nn(mmu)
+      }
       0x6E => self.explode(format!("LD L,(HL) {:#X}", opcode)),
-      0x6F => { debug!("LD L,A"); self.ld_l_a() }
+      0x6F => {
+        debug!("LD L,A");
+        self.ld_l_a()
+      }
       0x68 => self.explode(format!("LD L,B {:#X}", opcode)),
-      0x69 => { debug!("LD L,C"); self.ld_l_c() }
+      0x69 => {
+        debug!("LD L,C");
+        self.ld_l_c()
+      }
       0x6A => self.explode(format!("LD L,D {:#X}", opcode)),
-      0x6B => { debug!("LD L,E"); self.ld_l_e() }
+      0x6B => {
+        debug!("LD L,E");
+        self.ld_l_e()
+      }
       0x6C => self.explode(format!("LD L,H {:#X}", opcode)),
       0x6D => self.explode(format!("LD L,L {:#X}", opcode)),
-      0x2E => { debug!("LD L,n"); self.ld_l_n(mmu) },
+      0x2E => {
+        debug!("LD L,n");
+        self.ld_l_n(mmu)
+      }
       0xF9 => self.explode(format!("LD SP,HL {:#X}", opcode)),
-      0x31 => { debug!("LD SP,nn"); self.ld_sp_nn(mmu) }
-      0x00 => { debug!("NOP"); self.nop() }
+      0x31 => {
+        debug!("LD SP,nn");
+        self.ld_sp_nn(mmu)
+      }
+      0x00 => {
+        debug!("NOP");
+        self.nop()
+      }
       0xB6 => self.explode(format!("OR (HL) {:#X}", opcode)),
-      0xB7 => { debug!("OR A"); let value = self.read_byte_reg(RegEnum::A); shared_or_n(self, value) },
-      0xB0 => { debug!("OR B"); self.or_b() }
-      0xB1 => { debug!("OR C"); self.or_c() }
-      0xB2 => { debug!("OR D"); let value = self.read_byte_reg(RegEnum::D); shared_or_n(self, value); }
-      0xB3 => { debug!("OR E"); let value = self.read_byte_reg(RegEnum::E); shared_or_n(self, value); }
-      0xB4 => { debug!("OR H"); let value = self.read_byte_reg(RegEnum::H); shared_or_n(self, value); }
-      0xB5 => { debug!("OR L"); let value = self.read_byte_reg(RegEnum::L); shared_or_n(self, value); }
-      0xF6 => { debug!("OR N"); self.or_n(mmu) }
-      0xF1 => { debug!("POP AF"); self.pop_af(mmu) }
-      0xC1 => { debug!("POP BC"); self.pop_bc(mmu) }
-      0xD1 => { debug!("POP DE"); self.pop_de(mmu) }
-      0xE1 => { debug!("POP HL"); self.pop_hl(mmu) }
-      0xF5 => { debug!("PUSH AF"); self.push_af(mmu) }
-      0xC5 => { debug!("PUSH BC"); self.push_bc(mmu) }
-      0xD5 => { debug!("PUSH DE"); self.push_de(mmu) }
-      0xE5 => { debug!("PUSH HL"); self.push_hl(mmu) }
-      0xD8 => { debug!("RET C"); self.ret_c(mmu) },
-      0xD0 => { debug!("RET NC"); self.ret_nc(mmu) },
-      0xC0 => { debug!("RET NZ"); self.ret_nz(mmu) }
-      0xC8 => { debug!("RET Z"); self.ret_z(mmu) }
-      0xC9 => { debug!("RET"); self.ret(mmu) }
-      0xD9 => { debug!("RETI"); self.reti(mmu) }
-      0x17 => { debug!("RLA"); self.rla() }
-      0x07 => { debug!("RLCA"); shared_rlc_n(self, RegEnum::A); self.util_set_flag_by_boolean(FLAG_ZERO, false) }
-      0x1F => { debug!("RRA"); self.rra() }
+      0xB7 => {
+        debug!("OR A");
+        let value = self.read_byte_reg(RegEnum::A);
+        shared_or_n(self, value)
+      }
+      0xB0 => {
+        debug!("OR B");
+        self.or_b()
+      }
+      0xB1 => {
+        debug!("OR C");
+        self.or_c()
+      }
+      0xB2 => {
+        debug!("OR D");
+        let value = self.read_byte_reg(RegEnum::D);
+        shared_or_n(self, value);
+      }
+      0xB3 => {
+        debug!("OR E");
+        let value = self.read_byte_reg(RegEnum::E);
+        shared_or_n(self, value);
+      }
+      0xB4 => {
+        debug!("OR H");
+        let value = self.read_byte_reg(RegEnum::H);
+        shared_or_n(self, value);
+      }
+      0xB5 => {
+        debug!("OR L");
+        let value = self.read_byte_reg(RegEnum::L);
+        shared_or_n(self, value);
+      }
+      0xF6 => {
+        debug!("OR N");
+        self.or_n(mmu)
+      }
+      0xF1 => {
+        debug!("POP AF");
+        self.pop_af(mmu)
+      }
+      0xC1 => {
+        debug!("POP BC");
+        self.pop_bc(mmu)
+      }
+      0xD1 => {
+        debug!("POP DE");
+        self.pop_de(mmu)
+      }
+      0xE1 => {
+        debug!("POP HL");
+        self.pop_hl(mmu)
+      }
+      0xF5 => {
+        debug!("PUSH AF");
+        self.push_af(mmu)
+      }
+      0xC5 => {
+        debug!("PUSH BC");
+        self.push_bc(mmu)
+      }
+      0xD5 => {
+        debug!("PUSH DE");
+        self.push_de(mmu)
+      }
+      0xE5 => {
+        debug!("PUSH HL");
+        self.push_hl(mmu)
+      }
+      0xD8 => {
+        debug!("RET C");
+        self.ret_c(mmu)
+      }
+      0xD0 => {
+        debug!("RET NC");
+        self.ret_nc(mmu)
+      }
+      0xC0 => {
+        debug!("RET NZ");
+        self.ret_nz(mmu)
+      }
+      0xC8 => {
+        debug!("RET Z");
+        self.ret_z(mmu)
+      }
+      0xC9 => {
+        debug!("RET");
+        self.ret(mmu)
+      }
+      0xD9 => {
+        debug!("RETI");
+        self.reti(mmu)
+      }
+      0x17 => {
+        debug!("RLA");
+        self.rla()
+      }
+      0x07 => {
+        debug!("RLCA");
+        shared_rlc_n(self, RegEnum::A);
+        self.util_set_flag_by_boolean(FLAG_ZERO, false)
+      }
+      0x1F => {
+        debug!("RRA");
+        self.rra()
+      }
       0x0F => self.explode(format!("RRCA {:#X}", opcode)),
       0xC7 => self.explode(format!("RST 00H {:#X}", opcode)),
       0xCF => self.explode(format!("RST 08H {:#X}", opcode)),
       0xD7 => self.explode(format!("RST 10H {:#X}", opcode)),
       0xDF => self.explode(format!("RST 18H {:#X}", opcode)),
       0xE7 => self.explode(format!("RST 20H {:#X}", opcode)),
-      0xEF => { debug!("RST 28H"); self.rst_28h(mmu) }
+      0xEF => {
+        debug!("RST 28H");
+        self.rst_28h(mmu)
+      }
       0xF7 => self.explode(format!("RST 30H {:#X}", opcode)),
-      0xFF => { debug!("RST 38H"); self.rst_38h(mmu) }
+      0xFF => {
+        debug!("RST 38H");
+        self.rst_38h(mmu)
+      }
       0x9E => self.explode(format!("SBC (HL) {:#X}", opcode)),
       0x9F => self.explode(format!("SBC A {:#X}", opcode)),
       0x98 => self.explode(format!("SBC B {:#X}", opcode)),
@@ -501,26 +1030,70 @@ impl CPU {
         debug!("STOP");
         // >>>>>>> TODO <<<<<<<<
         // println!(" not implemented.")
-      },
-      0x96 => { debug!("SUB (HL)"); let address = self.read_word_reg(RegEnum:: HL); let value = mmu.read(address); shared_sub_n(self, value, false); }
+      }
+      0x96 => {
+        debug!("SUB (HL)");
+        let address = self.read_word_reg(RegEnum::HL);
+        let value = mmu.read(address);
+        shared_sub_n(self, value, false);
+      }
       0x97 => self.explode(format!("SUB A {:#X}", opcode)),
-      0x90 => { debug!("SUB B"); let b = self.read_byte_reg(RegEnum::B); shared_sub_n(self, b, false) }
+      0x90 => {
+        debug!("SUB B");
+        let b = self.read_byte_reg(RegEnum::B);
+        shared_sub_n(self, b, false)
+      }
       0x91 => self.explode(format!("SUB C {:#X}", opcode)),
       0x92 => self.explode(format!("SUB D {:#X}", opcode)),
       0x93 => self.explode(format!("SUB E {:#X}", opcode)),
       0x94 => self.explode(format!("SUB H {:#X}", opcode)),
       0x95 => self.explode(format!("SUB L {:#X}", opcode)),
-      0xD6 => { debug!("SUB n"); let value = mmu.read(self.pc); shared_sub_n(self, value, false); }
+      0xD6 => {
+        debug!("SUB n");
+        let value = mmu.read(self.pc);
+        shared_sub_n(self, value, false);
+      }
       0xFD => debug!("Unhandled opcode"),
-      0xAE => { debug!("XOR (HL)"); let hl = self.read_word_reg(RegEnum::HL); let value = mmu.read(hl); shared_xor_n(self, value) }
-      0xAF => { debug!("XOR A"); self.xor_a() }
-      0xA8 => { debug!("XOR B"); self.xor_b() }
-      0xA9 => { debug!("XOR C"); self.xor_c() }
-      0xAA => { debug!("XOR D"); self.xor_d() }
-      0xAB => { debug!("XOR E"); self.xor_e() }
-      0xAC => { debug!("XOR H"); self.xor_h() }
-      0xAD => { debug!("XOR L"); self.xor_l() }
-      0xEE => { debug!("XOR n"); let value = mmu.read(self.pc); shared_xor_n(self, value); self.pc += 1; }
+      0xAE => {
+        debug!("XOR (HL)");
+        let hl = self.read_word_reg(RegEnum::HL);
+        let value = mmu.read(hl);
+        shared_xor_n(self, value)
+      }
+      0xAF => {
+        debug!("XOR A");
+        self.xor_a()
+      }
+      0xA8 => {
+        debug!("XOR B");
+        self.xor_b()
+      }
+      0xA9 => {
+        debug!("XOR C");
+        self.xor_c()
+      }
+      0xAA => {
+        debug!("XOR D");
+        self.xor_d()
+      }
+      0xAB => {
+        debug!("XOR E");
+        self.xor_e()
+      }
+      0xAC => {
+        debug!("XOR H");
+        self.xor_h()
+      }
+      0xAD => {
+        debug!("XOR L");
+        self.xor_l()
+      }
+      0xEE => {
+        debug!("XOR n");
+        let value = mmu.read(self.pc);
+        shared_xor_n(self, value);
+        self.pc += 1;
+      }
       _ => self.explode(format!("Unexpected opcode: {:#X}", opcode)),
     }
 
@@ -927,7 +1500,8 @@ impl CPU {
   }
 
   fn or_b(&mut self) {
-    let value = self.read_byte_reg(RegEnum::B); shared_or_n(self, value);
+    let value = self.read_byte_reg(RegEnum::B);
+    shared_or_n(self, value);
   }
 
   fn or_c(&mut self) {
@@ -1005,7 +1579,11 @@ impl CPU {
     let result = value.wrapping_add(1);
     mmu.write(hl, result);
 
-    if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
+    if self.util_is_flag_set(FLAG_CARRY) {
+      self.util_set_flag(FLAG_CARRY)
+    } else {
+      self.util_clear_all_flags()
+    }
     self.util_toggle_zero_flag_from_result(result);
 
     if (result & 0x0F) == 0x00 {
@@ -1019,7 +1597,11 @@ impl CPU {
     let result = value.wrapping_sub(1);
     mmu.write(hl, result);
 
-    if self.util_is_flag_set(FLAG_CARRY) { self.util_set_flag(FLAG_CARRY) } else { self.util_clear_all_flags() }
+    if self.util_is_flag_set(FLAG_CARRY) {
+      self.util_set_flag(FLAG_CARRY)
+    } else {
+      self.util_clear_all_flags()
+    }
     self.util_toggle_flag(FLAG_SUB);
     self.util_toggle_zero_flag_from_result(result);
 
@@ -1273,7 +1855,11 @@ impl CPU {
 
   fn daa(&mut self) {
     let mut a = self.read_byte_reg(RegEnum::A);
-    let mut add_or_subtract = if self.util_is_flag_set(FLAG_CARRY) { 0x60 } else { 0x00 };
+    let mut add_or_subtract = if self.util_is_flag_set(FLAG_CARRY) {
+      0x60
+    } else {
+      0x00
+    };
 
     if self.util_is_flag_set(FLAG_HALF_CARRY) {
       add_or_subtract |= 0x06;
@@ -1282,8 +1868,12 @@ impl CPU {
     if self.util_is_flag_set(FLAG_SUB) {
       a = a.wrapping_sub(add_or_subtract);
     } else {
-      if a & 0x0F > 0x09 { add_or_subtract |= 0x06; }
-      if a > 0x99 { add_or_subtract |= 0x60; }
+      if a & 0x0F > 0x09 {
+        add_or_subtract |= 0x06;
+      }
+      if a > 0x99 {
+        add_or_subtract |= 0x60;
+      }
       a = a.wrapping_add(add_or_subtract);
     }
 
@@ -1356,72 +1946,270 @@ impl CPU {
 
   fn execute_cb_opcode(&mut self, opcode: u8, mmu: &mut mmu::MMU) {
     match opcode {
-      0x46 => { debug!("CB: BIT 0 (HL)"); shared_bit_n_hl(self, 0, mmu) }
-      0x47 => { debug!("CB: BIT 0 A"); shared_bit_n_reg(self, 0, RegEnum::A) }
-      0x40 => { debug!("CB: BIT 0 B"); shared_bit_n_reg(self, 0, RegEnum::B) }
-      0x41 => { debug!("CB: BIT 0 C"); shared_bit_n_reg(self, 0, RegEnum::C) }
-      0x42 => { debug!("CB: BIT 0 D"); shared_bit_n_reg(self, 0, RegEnum::D) }
-      0x43 => { debug!("CB: BIT 0 E"); shared_bit_n_reg(self, 0, RegEnum::E) }
-      0x44 => { debug!("CB: BIT 0 H"); shared_bit_n_reg(self, 0, RegEnum::H) }
-      0x45 => { debug!("CB: BIT 0 L"); shared_bit_n_reg(self, 0, RegEnum::L) }
-      0x4E => { debug!("CB: BIT 1 (HL)"); shared_bit_n_hl(self, 1, mmu) }
-      0x4F => { debug!("CB: BIT 1 A"); shared_bit_n_reg(self, 1, RegEnum::A) }
-      0x48 => { debug!("CB: BIT 1 B"); shared_bit_n_reg(self, 1, RegEnum::B) }
-      0x49 => { debug!("CB: BIT 1 C"); shared_bit_n_reg(self, 1, RegEnum::C) }
-      0x4A => { debug!("CB: BIT 1 D"); shared_bit_n_reg(self, 1, RegEnum::D) }
-      0x4B => { debug!("CB: BIT 1 E"); shared_bit_n_reg(self, 1, RegEnum::E) }
-      0x4C => { debug!("CB: BIT 1 H"); shared_bit_n_reg(self, 1, RegEnum::H) }
-      0x4D => { debug!("CB: BIT 1 L"); shared_bit_n_reg(self, 1, RegEnum::L) }
-      0x56 => { debug!("CB: BIT 2 (HL)"); shared_bit_n_hl(self, 2, mmu) }
-      0x57 => { debug!("CB: BIT 2 A"); shared_bit_n_reg(self, 2, RegEnum::A) }
-      0x50 => { debug!("CB: BIT 2 B"); shared_bit_n_reg(self, 2, RegEnum::B) }
-      0x51 => { debug!("CB: BIT 2 C"); shared_bit_n_reg(self, 2, RegEnum::C) }
-      0x52 => { debug!("CB: BIT 2 D"); shared_bit_n_reg(self, 2, RegEnum::D) }
-      0x53 => { debug!("CB: BIT 2 E"); shared_bit_n_reg(self, 2, RegEnum::E) }
-      0x54 => { debug!("CB: BIT 2 H"); shared_bit_n_reg(self, 2, RegEnum::H) }
-      0x55 => { debug!("CB: BIT 2 L"); shared_bit_n_reg(self, 2, RegEnum::L) }
-      0x5E => { debug!("CB: BIT 3 (HL)"); shared_bit_n_hl(self, 3, mmu) }
-      0x5F => { debug!("CB: BIT 3 A"); shared_bit_n_reg(self, 3, RegEnum::A) }
-      0x58 => { debug!("CB: BIT 3 B"); shared_bit_n_reg(self, 3, RegEnum::B) }
-      0x59 => { debug!("CB: BIT 3 C"); shared_bit_n_reg(self, 3, RegEnum::C) }
-      0x5A => { debug!("CB: BIT 3 D"); shared_bit_n_reg(self, 3, RegEnum::D) }
-      0x5B => { debug!("CB: BIT 3 E"); shared_bit_n_reg(self, 3, RegEnum::E) }
-      0x5C => { debug!("CB: BIT 3 H"); shared_bit_n_reg(self, 3, RegEnum::H) }
-      0x5D => { debug!("CB: BIT 3 L"); shared_bit_n_reg(self, 3, RegEnum::L) }
-      0x66 => { debug!("CB: BIT 4 (HL)"); shared_bit_n_hl(self, 4, mmu) }
-      0x67 => { debug!("CB: BIT 4 A"); shared_bit_n_reg(self, 4, RegEnum::A) }
-      0x60 => { debug!("CB: BIT 4 B"); shared_bit_n_reg(self, 4, RegEnum::B) }
-      0x61 => { debug!("CB: BIT 4 C"); shared_bit_n_reg(self, 4, RegEnum::C) }
-      0x62 => { debug!("CB: BIT 4 D"); shared_bit_n_reg(self, 4, RegEnum::D) }
-      0x63 => { debug!("CB: BIT 4 E"); shared_bit_n_reg(self, 4, RegEnum::E) }
-      0x64 => { debug!("CB: BIT 4 H"); shared_bit_n_reg(self, 4, RegEnum::H) }
-      0x65 => { debug!("CB: BIT 4 L"); shared_bit_n_reg(self, 4, RegEnum::L) }
-      0x6E => { debug!("CB: BIT 5 (HL)"); shared_bit_n_hl(self, 5, mmu) }
-      0x6F => { debug!("CB: BIT 5 A"); shared_bit_n_reg(self, 5, RegEnum::A) }
-      0x68 => { debug!("CB: BIT 5 B"); shared_bit_n_reg(self, 5, RegEnum::B) }
-      0x69 => { debug!("CB: BIT 5 C"); shared_bit_n_reg(self, 5, RegEnum::C) }
-      0x6A => { debug!("CB: BIT 5 D"); shared_bit_n_reg(self, 5, RegEnum::D) }
-      0x6B => { debug!("CB: BIT 5 E"); shared_bit_n_reg(self, 5, RegEnum::E) }
-      0x6C => { debug!("CB: BIT 5 H"); shared_bit_n_reg(self, 5, RegEnum::H) }
-      0x6D => { debug!("CB: BIT 5 L"); shared_bit_n_reg(self, 5, RegEnum::L) }
-      0x76 => { debug!("CB: BIT 6 (HL)"); shared_bit_n_hl(self, 6, mmu) }
-      0x77 => { debug!("CB: BIT 6 A"); shared_bit_n_reg(self, 6, RegEnum::A) }
-      0x70 => { debug!("CB: BIT 6 B"); shared_bit_n_reg(self, 6, RegEnum::B) }
-      0x71 => { debug!("CB: BIT 6 C"); shared_bit_n_reg(self, 6, RegEnum::C) }
-      0x72 => { debug!("CB: BIT 6 D"); shared_bit_n_reg(self, 6, RegEnum::D) }
-      0x73 => { debug!("CB: BIT 6 E"); shared_bit_n_reg(self, 6, RegEnum::E) }
-      0x74 => { debug!("CB: BIT 6 H"); shared_bit_n_reg(self, 6, RegEnum::H) }
-      0x75 => { debug!("CB: BIT 6 L"); shared_bit_n_reg(self, 6, RegEnum::L) }
-      0x7E => { debug!("CB: BIT 7 (HL)"); shared_bit_n_hl(self, 7, mmu) }
-      0x7F => { debug!("CB: BIT 7 A"); shared_bit_n_reg(self, 7, RegEnum::A) }
-      0x78 => { debug!("CB: BIT 7 B"); shared_bit_n_reg(self, 7, RegEnum::B) }
-      0x79 => { debug!("CB: BIT 7 C"); shared_bit_n_reg(self, 7, RegEnum::C) }
-      0x7A => { debug!("CB: BIT 7 D"); shared_bit_n_reg(self, 7, RegEnum::D) }
-      0x7B => { debug!("CB: BIT 7 E"); shared_bit_n_reg(self, 7, RegEnum::E) }
-      0x7C => { debug!("CB: BIT 7 H"); shared_bit_n_reg(self, 7, RegEnum::H) }
-      0x7D => { debug!("CB: BIT 7 L"); shared_bit_n_reg(self, 7, RegEnum::L) }
-      0x86 => { debug!("CB: RES 0 (HL)"); self.res_bit_hl(0, mmu) }
-      0x87 => { debug!("CB: RES 0 A"); self.res_bit_a(0) }
+      0x46 => {
+        debug!("CB: BIT 0 (HL)");
+        shared_bit_n_hl(self, 0, mmu)
+      }
+      0x47 => {
+        debug!("CB: BIT 0 A");
+        shared_bit_n_reg(self, 0, RegEnum::A)
+      }
+      0x40 => {
+        debug!("CB: BIT 0 B");
+        shared_bit_n_reg(self, 0, RegEnum::B)
+      }
+      0x41 => {
+        debug!("CB: BIT 0 C");
+        shared_bit_n_reg(self, 0, RegEnum::C)
+      }
+      0x42 => {
+        debug!("CB: BIT 0 D");
+        shared_bit_n_reg(self, 0, RegEnum::D)
+      }
+      0x43 => {
+        debug!("CB: BIT 0 E");
+        shared_bit_n_reg(self, 0, RegEnum::E)
+      }
+      0x44 => {
+        debug!("CB: BIT 0 H");
+        shared_bit_n_reg(self, 0, RegEnum::H)
+      }
+      0x45 => {
+        debug!("CB: BIT 0 L");
+        shared_bit_n_reg(self, 0, RegEnum::L)
+      }
+      0x4E => {
+        debug!("CB: BIT 1 (HL)");
+        shared_bit_n_hl(self, 1, mmu)
+      }
+      0x4F => {
+        debug!("CB: BIT 1 A");
+        shared_bit_n_reg(self, 1, RegEnum::A)
+      }
+      0x48 => {
+        debug!("CB: BIT 1 B");
+        shared_bit_n_reg(self, 1, RegEnum::B)
+      }
+      0x49 => {
+        debug!("CB: BIT 1 C");
+        shared_bit_n_reg(self, 1, RegEnum::C)
+      }
+      0x4A => {
+        debug!("CB: BIT 1 D");
+        shared_bit_n_reg(self, 1, RegEnum::D)
+      }
+      0x4B => {
+        debug!("CB: BIT 1 E");
+        shared_bit_n_reg(self, 1, RegEnum::E)
+      }
+      0x4C => {
+        debug!("CB: BIT 1 H");
+        shared_bit_n_reg(self, 1, RegEnum::H)
+      }
+      0x4D => {
+        debug!("CB: BIT 1 L");
+        shared_bit_n_reg(self, 1, RegEnum::L)
+      }
+      0x56 => {
+        debug!("CB: BIT 2 (HL)");
+        shared_bit_n_hl(self, 2, mmu)
+      }
+      0x57 => {
+        debug!("CB: BIT 2 A");
+        shared_bit_n_reg(self, 2, RegEnum::A)
+      }
+      0x50 => {
+        debug!("CB: BIT 2 B");
+        shared_bit_n_reg(self, 2, RegEnum::B)
+      }
+      0x51 => {
+        debug!("CB: BIT 2 C");
+        shared_bit_n_reg(self, 2, RegEnum::C)
+      }
+      0x52 => {
+        debug!("CB: BIT 2 D");
+        shared_bit_n_reg(self, 2, RegEnum::D)
+      }
+      0x53 => {
+        debug!("CB: BIT 2 E");
+        shared_bit_n_reg(self, 2, RegEnum::E)
+      }
+      0x54 => {
+        debug!("CB: BIT 2 H");
+        shared_bit_n_reg(self, 2, RegEnum::H)
+      }
+      0x55 => {
+        debug!("CB: BIT 2 L");
+        shared_bit_n_reg(self, 2, RegEnum::L)
+      }
+      0x5E => {
+        debug!("CB: BIT 3 (HL)");
+        shared_bit_n_hl(self, 3, mmu)
+      }
+      0x5F => {
+        debug!("CB: BIT 3 A");
+        shared_bit_n_reg(self, 3, RegEnum::A)
+      }
+      0x58 => {
+        debug!("CB: BIT 3 B");
+        shared_bit_n_reg(self, 3, RegEnum::B)
+      }
+      0x59 => {
+        debug!("CB: BIT 3 C");
+        shared_bit_n_reg(self, 3, RegEnum::C)
+      }
+      0x5A => {
+        debug!("CB: BIT 3 D");
+        shared_bit_n_reg(self, 3, RegEnum::D)
+      }
+      0x5B => {
+        debug!("CB: BIT 3 E");
+        shared_bit_n_reg(self, 3, RegEnum::E)
+      }
+      0x5C => {
+        debug!("CB: BIT 3 H");
+        shared_bit_n_reg(self, 3, RegEnum::H)
+      }
+      0x5D => {
+        debug!("CB: BIT 3 L");
+        shared_bit_n_reg(self, 3, RegEnum::L)
+      }
+      0x66 => {
+        debug!("CB: BIT 4 (HL)");
+        shared_bit_n_hl(self, 4, mmu)
+      }
+      0x67 => {
+        debug!("CB: BIT 4 A");
+        shared_bit_n_reg(self, 4, RegEnum::A)
+      }
+      0x60 => {
+        debug!("CB: BIT 4 B");
+        shared_bit_n_reg(self, 4, RegEnum::B)
+      }
+      0x61 => {
+        debug!("CB: BIT 4 C");
+        shared_bit_n_reg(self, 4, RegEnum::C)
+      }
+      0x62 => {
+        debug!("CB: BIT 4 D");
+        shared_bit_n_reg(self, 4, RegEnum::D)
+      }
+      0x63 => {
+        debug!("CB: BIT 4 E");
+        shared_bit_n_reg(self, 4, RegEnum::E)
+      }
+      0x64 => {
+        debug!("CB: BIT 4 H");
+        shared_bit_n_reg(self, 4, RegEnum::H)
+      }
+      0x65 => {
+        debug!("CB: BIT 4 L");
+        shared_bit_n_reg(self, 4, RegEnum::L)
+      }
+      0x6E => {
+        debug!("CB: BIT 5 (HL)");
+        shared_bit_n_hl(self, 5, mmu)
+      }
+      0x6F => {
+        debug!("CB: BIT 5 A");
+        shared_bit_n_reg(self, 5, RegEnum::A)
+      }
+      0x68 => {
+        debug!("CB: BIT 5 B");
+        shared_bit_n_reg(self, 5, RegEnum::B)
+      }
+      0x69 => {
+        debug!("CB: BIT 5 C");
+        shared_bit_n_reg(self, 5, RegEnum::C)
+      }
+      0x6A => {
+        debug!("CB: BIT 5 D");
+        shared_bit_n_reg(self, 5, RegEnum::D)
+      }
+      0x6B => {
+        debug!("CB: BIT 5 E");
+        shared_bit_n_reg(self, 5, RegEnum::E)
+      }
+      0x6C => {
+        debug!("CB: BIT 5 H");
+        shared_bit_n_reg(self, 5, RegEnum::H)
+      }
+      0x6D => {
+        debug!("CB: BIT 5 L");
+        shared_bit_n_reg(self, 5, RegEnum::L)
+      }
+      0x76 => {
+        debug!("CB: BIT 6 (HL)");
+        shared_bit_n_hl(self, 6, mmu)
+      }
+      0x77 => {
+        debug!("CB: BIT 6 A");
+        shared_bit_n_reg(self, 6, RegEnum::A)
+      }
+      0x70 => {
+        debug!("CB: BIT 6 B");
+        shared_bit_n_reg(self, 6, RegEnum::B)
+      }
+      0x71 => {
+        debug!("CB: BIT 6 C");
+        shared_bit_n_reg(self, 6, RegEnum::C)
+      }
+      0x72 => {
+        debug!("CB: BIT 6 D");
+        shared_bit_n_reg(self, 6, RegEnum::D)
+      }
+      0x73 => {
+        debug!("CB: BIT 6 E");
+        shared_bit_n_reg(self, 6, RegEnum::E)
+      }
+      0x74 => {
+        debug!("CB: BIT 6 H");
+        shared_bit_n_reg(self, 6, RegEnum::H)
+      }
+      0x75 => {
+        debug!("CB: BIT 6 L");
+        shared_bit_n_reg(self, 6, RegEnum::L)
+      }
+      0x7E => {
+        debug!("CB: BIT 7 (HL)");
+        shared_bit_n_hl(self, 7, mmu)
+      }
+      0x7F => {
+        debug!("CB: BIT 7 A");
+        shared_bit_n_reg(self, 7, RegEnum::A)
+      }
+      0x78 => {
+        debug!("CB: BIT 7 B");
+        shared_bit_n_reg(self, 7, RegEnum::B)
+      }
+      0x79 => {
+        debug!("CB: BIT 7 C");
+        shared_bit_n_reg(self, 7, RegEnum::C)
+      }
+      0x7A => {
+        debug!("CB: BIT 7 D");
+        shared_bit_n_reg(self, 7, RegEnum::D)
+      }
+      0x7B => {
+        debug!("CB: BIT 7 E");
+        shared_bit_n_reg(self, 7, RegEnum::E)
+      }
+      0x7C => {
+        debug!("CB: BIT 7 H");
+        shared_bit_n_reg(self, 7, RegEnum::H)
+      }
+      0x7D => {
+        debug!("CB: BIT 7 L");
+        shared_bit_n_reg(self, 7, RegEnum::L)
+      }
+      0x86 => {
+        debug!("CB: RES 0 (HL)");
+        self.res_bit_hl(0, mmu)
+      }
+      0x87 => {
+        debug!("CB: RES 0 A");
+        self.res_bit_a(0)
+      }
       0x80 => self.explode(format!("CB: RES 0 B {:#X}", opcode)),
       0x81 => self.explode(format!("CB: RES 0 C {:#X}", opcode)),
       0x82 => self.explode(format!("CB: RES 0 D {:#X}", opcode)),
@@ -1444,7 +2232,10 @@ impl CPU {
       0x93 => self.explode(format!("CB: RES 2 E {:#X}", opcode)),
       0x94 => self.explode(format!("CB: RES 2 H {:#X}", opcode)),
       0x95 => self.explode(format!("CB: RES 2 L {:#X}", opcode)),
-      0x9E => { debug!("CB: RES 3 (HL)"); self.shared_reset_n_hl(3, mmu) }
+      0x9E => {
+        debug!("CB: RES 3 (HL)");
+        self.shared_reset_n_hl(3, mmu)
+      }
       0x9F => self.explode(format!("CB: RES 3 A {:#X}", opcode)),
       0x98 => self.explode(format!("CB: RES 3 B {:#X}", opcode)),
       0x99 => self.explode(format!("CB: RES 3 C {:#X}", opcode)),
@@ -1476,7 +2267,10 @@ impl CPU {
       0xB3 => self.explode(format!("CB: RES 6 E {:#X}", opcode)),
       0xB4 => self.explode(format!("CB: RES 6 H {:#X}", opcode)),
       0xB5 => self.explode(format!("CB: RES 6 L {:#X}", opcode)),
-      0xBE => { debug!("CB: RES 7 (HL)"); self.shared_reset_n_hl(7, mmu) }
+      0xBE => {
+        debug!("CB: RES 7 (HL)");
+        self.shared_reset_n_hl(7, mmu)
+      }
       0xBF => self.explode(format!("CB: RES 7 A {:#X}", opcode)),
       0xB8 => self.explode(format!("CB: RES 7 B {:#X}", opcode)),
       0xB9 => self.explode(format!("CB: RES 7 C {:#X}", opcode)),
@@ -1487,7 +2281,10 @@ impl CPU {
       0x16 => self.explode(format!("CB: RL (HL) {:#X}", opcode)),
       0x17 => self.explode(format!("CB: RL A {:#X}", opcode)),
       0x10 => self.explode(format!("CB: RL B {:#X}", opcode)),
-      0x11 => { debug!("CB: RL C"); self.rl_c() },
+      0x11 => {
+        debug!("CB: RL C");
+        self.rl_c()
+      }
       0x12 => self.explode(format!("CB: RL D {:#X}", opcode)),
       0x13 => self.explode(format!("CB: RL E {:#X}", opcode)),
       0x14 => self.explode(format!("CB: RL H {:#X}", opcode)),
@@ -1534,15 +2331,39 @@ impl CPU {
       0xCD => self.explode(format!("CB: SET 1 L {:#X}", opcode)),
       0xD6 => self.explode(format!("CB: SET 2 (HL) {:#X}", opcode)),
       0xD7 => self.explode(format!("CB: SET 2 A {:#X}", opcode)),
-      0xD0 => { debug!("CB: SET 2 B"); self.shared_set_n_reg(2, RegEnum::B) }
-      0xD1 => { debug!("CB: SET 2 C"); self.shared_set_n_reg(2, RegEnum::C) }
-      0xD2 => { debug!("CB: SET 2 D"); self.shared_set_n_reg(2, RegEnum::D) }
-      0xD3 => { debug!("CB: SET 2 E"); self.shared_set_n_reg(2, RegEnum::E) }
-      0xD4 => { debug!("CB: SET 2 H"); self.shared_set_n_reg(2, RegEnum::H) }
-      0xD5 => { debug!("CB: SET 2 L"); self.shared_set_n_reg(2, RegEnum::L) }
-      0xDE => { debug!("CB: SET 3 (HL)"); self.shared_set_n_hl(3, mmu) }
+      0xD0 => {
+        debug!("CB: SET 2 B");
+        self.shared_set_n_reg(2, RegEnum::B)
+      }
+      0xD1 => {
+        debug!("CB: SET 2 C");
+        self.shared_set_n_reg(2, RegEnum::C)
+      }
+      0xD2 => {
+        debug!("CB: SET 2 D");
+        self.shared_set_n_reg(2, RegEnum::D)
+      }
+      0xD3 => {
+        debug!("CB: SET 2 E");
+        self.shared_set_n_reg(2, RegEnum::E)
+      }
+      0xD4 => {
+        debug!("CB: SET 2 H");
+        self.shared_set_n_reg(2, RegEnum::H)
+      }
+      0xD5 => {
+        debug!("CB: SET 2 L");
+        self.shared_set_n_reg(2, RegEnum::L)
+      }
+      0xDE => {
+        debug!("CB: SET 3 (HL)");
+        self.shared_set_n_hl(3, mmu)
+      }
       0xDF => self.explode(format!("CB: SET 3 A {:#X}", opcode)),
-      0xD8 => { debug!("CB: SET 3 B"); self.shared_set_n_reg(3, RegEnum::B) }
+      0xD8 => {
+        debug!("CB: SET 3 B");
+        self.shared_set_n_reg(3, RegEnum::B)
+      }
       0xD9 => self.explode(format!("CB: SET 3 C {:#X}", opcode)),
       0xDA => self.explode(format!("CB: SET 3 D {:#X}", opcode)),
       0xDB => self.explode(format!("CB: SET 3 E {:#X}", opcode)),
@@ -1572,16 +2393,25 @@ impl CPU {
       0xF3 => self.explode(format!("CB: SET 6 E {:#X}", opcode)),
       0xF4 => self.explode(format!("CB: SET 6 H {:#X}", opcode)),
       0xF5 => self.explode(format!("CB: SET 6 L {:#X}", opcode)),
-      0xFE => { debug!("CB: SET 7 (HL)"); self.shared_set_n_hl(7, mmu) }
+      0xFE => {
+        debug!("CB: SET 7 (HL)");
+        self.shared_set_n_hl(7, mmu)
+      }
       0xFF => self.explode(format!("CB: SET 7 A {:#X}", opcode)),
-      0xF8 => { debug!("CB: SET 7 B"); self.shared_set_n_reg(7, RegEnum::B) }
+      0xF8 => {
+        debug!("CB: SET 7 B");
+        self.shared_set_n_reg(7, RegEnum::B)
+      }
       0xF9 => self.explode(format!("CB: SET 7 C {:#X}", opcode)),
       0xFA => self.explode(format!("CB: SET 7 D {:#X}", opcode)),
       0xFB => self.explode(format!("CB: SET 7 E {:#X}", opcode)),
       0xFC => self.explode(format!("CB: SET 7 H {:#X}", opcode)),
       0xFD => self.explode(format!("CB: SET 7 L {:#X}", opcode)),
       0x26 => self.explode(format!("CB: SLA (HL) {:#X}", opcode)),
-      0x27 => { debug!("CB: SLA A"); self.sla_a() }
+      0x27 => {
+        debug!("CB: SLA A");
+        self.sla_a()
+      }
       0x20 => self.explode(format!("CB: SLA B {:#X}", opcode)),
       0x21 => self.explode(format!("CB: SLA C {:#X}", opcode)),
       0x22 => self.explode(format!("CB: SLA D {:#X}", opcode)),
@@ -1597,7 +2427,10 @@ impl CPU {
       0x2C => self.explode(format!("CB: SRA H {:#X}", opcode)),
       0x2D => self.explode(format!("CB: SRA L {:#X}", opcode)),
       0x3E => self.explode(format!("CB: SRL (HL) {:#X}", opcode)),
-      0x3F => { debug!("CB: SRL A"); shared_srl_n(self, RegEnum::A) },
+      0x3F => {
+        debug!("CB: SRL A");
+        shared_srl_n(self, RegEnum::A)
+      }
       0x38 => self.explode(format!("CB: SRL B {:#X}", opcode)),
       0x39 => self.explode(format!("CB: SRL C {:#X}", opcode)),
       0x3A => self.explode(format!("CB: SRL D {:#X}", opcode)),
@@ -1605,14 +2438,20 @@ impl CPU {
       0x3C => self.explode(format!("CB: SRL H {:#X}", opcode)),
       0x3D => self.explode(format!("CB: SRL L {:#X}", opcode)),
       0x36 => self.explode(format!("CB: SWAP (HL) {:#X}", opcode)),
-      0x37 => { debug!("CB: SWAP A"); shared_swap_register(self, RegEnum::A); }
+      0x37 => {
+        debug!("CB: SWAP A");
+        shared_swap_register(self, RegEnum::A);
+      }
       0x30 => self.explode(format!("CB: SWAP B {:#X}", opcode)),
       0x31 => self.explode(format!("CB: SWAP C {:#X}", opcode)),
       0x32 => self.explode(format!("CB: SWAP D {:#X}", opcode)),
-      0x33 => { debug!("CB: SWAP E"); shared_swap_register(self, RegEnum::E); }
+      0x33 => {
+        debug!("CB: SWAP E");
+        shared_swap_register(self, RegEnum::E);
+      }
       0x34 => self.explode(format!("CB: SWAP H {:#X}", opcode)),
       0x35 => self.explode(format!("CB: SWAP L {:#X}", opcode)),
-      _ => self.explode(format!("Unexpected CB opcode: {:#X}", opcode)),
+      // _ => self.explode(format!("Unexpected CB opcode: {:#X}", opcode)),
     }
   }
 
@@ -1747,10 +2586,10 @@ fn shared_update_srl_flags(cpu: &mut CPU, result: u8, carry: bool) {
 }
 
 fn shared_ld_reg_n(cpu: &mut CPU, reg_enum: RegEnum, mmu: &mmu::MMU) {
-    let operand = mmu.read(cpu.pc);
-    cpu.write_byte_reg(reg_enum, operand);
-    cpu.pc += 1;
-  }
+  let operand = mmu.read(cpu.pc);
+  cpu.write_byte_reg(reg_enum, operand);
+  cpu.pc += 1;
+}
 
 fn shared_swap_register(cpu: &mut CPU, reg_enum: RegEnum) {
   let value = cpu.read_byte_reg(reg_enum);
@@ -1784,7 +2623,11 @@ fn shared_inc_byte_reg(cpu: &mut CPU, reg_enum: RegEnum) {
   let result = cpu.read_byte_reg(reg_enum).wrapping_add(1);
   cpu.write_byte_reg(reg_enum, result);
 
-  if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
+  if cpu.util_is_flag_set(FLAG_CARRY) {
+    cpu.util_set_flag(FLAG_CARRY)
+  } else {
+    cpu.util_clear_all_flags()
+  }
   cpu.util_toggle_zero_flag_from_result(result);
 
   if (result & 0x0F) == 0x00 {
@@ -1793,14 +2636,21 @@ fn shared_inc_byte_reg(cpu: &mut CPU, reg_enum: RegEnum) {
 }
 
 fn shared_add_n(cpu: &mut CPU, byte: u8, carry_preserve: bool) {
-  let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
+  let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) {
+    1
+  } else {
+    0
+  };
   let a = cpu.read_byte_reg(RegEnum::A);
   let result = a.wrapping_add(byte).wrapping_add(carry);
 
   cpu.util_set_flag_by_boolean(FLAG_ZERO, result == 0);
   cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (a & 0xF) + (byte & 0xF) + carry > 0xF);
   cpu.util_set_flag_by_boolean(FLAG_SUB, false);
-  cpu.util_set_flag_by_boolean(FLAG_CARRY, (a as u16) + (byte as u16) + (carry as u16) > 0xFF);
+  cpu.util_set_flag_by_boolean(
+    FLAG_CARRY,
+    (a as u16) + (byte as u16) + (carry as u16) > 0xFF,
+  );
 
   cpu.write_byte_reg(RegEnum::A, result);
 }
@@ -1811,7 +2661,10 @@ fn shared_add_word_and_word_regs(cpu: &mut CPU, reg_enum1: RegEnum, reg_enum2: R
 
   let result = value_1.wrapping_add(value_2);
 
-  cpu.util_set_flag_by_boolean(FLAG_HALF_CARRY, (value_1 & 0x07FF) + (value_2 & 0x07FF) > 0x07FF);
+  cpu.util_set_flag_by_boolean(
+    FLAG_HALF_CARRY,
+    (value_1 & 0x07FF) + (value_2 & 0x07FF) > 0x07FF,
+  );
   cpu.util_set_flag_by_boolean(FLAG_SUB, false);
   cpu.util_set_flag_by_boolean(FLAG_CARRY, value_1 > 0xFFFF - value_2);
   cpu.write_word_reg(reg_enum1, result);
@@ -1827,7 +2680,11 @@ fn shared_dec_byte_reg(cpu: &mut CPU, reg_enum: RegEnum) {
   let result = cpu.read_byte_reg(reg_enum).wrapping_sub(1);
   cpu.write_byte_reg(reg_enum, result);
 
-  if cpu.util_is_flag_set(FLAG_CARRY) { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
+  if cpu.util_is_flag_set(FLAG_CARRY) {
+    cpu.util_set_flag(FLAG_CARRY)
+  } else {
+    cpu.util_clear_all_flags()
+  }
   cpu.util_toggle_flag(FLAG_SUB);
   cpu.util_toggle_zero_flag_from_result(result);
 
@@ -1842,10 +2699,18 @@ fn shared_dec_word_reg(cpu: &mut CPU, reg_enum: RegEnum) {
 }
 
 fn shared_rotate_rr(cpu: &mut CPU, reg_enum: RegEnum) {
-  let carry = if cpu.util_is_flag_set(FLAG_CARRY) { 0x80 } else { 0x00 };
+  let carry = if cpu.util_is_flag_set(FLAG_CARRY) {
+    0x80
+  } else {
+    0x00
+  };
   let result = cpu.read_byte_reg(reg_enum);
 
-  if result & 0x01 != 0 { cpu.util_set_flag(FLAG_CARRY) } else { cpu.util_clear_all_flags() }
+  if result & 0x01 != 0 {
+    cpu.util_set_flag(FLAG_CARRY)
+  } else {
+    cpu.util_clear_all_flags()
+  }
   let result = result >> 1;
   let result = result | carry;
   cpu.write_byte_reg(reg_enum, result);
@@ -1891,7 +2756,11 @@ fn shared_rlc_n(cpu: &mut CPU, reg_enum: RegEnum) {
 }
 
 fn shared_sub_n(cpu: &mut CPU, value: u8, carry_preserve: bool) {
-  let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) { 1 } else { 0 };
+  let carry = if carry_preserve && cpu.util_is_flag_set(FLAG_CARRY) {
+    1
+  } else {
+    0
+  };
   let a = cpu.read_byte_reg(RegEnum::A);
   let result = a.wrapping_sub(value).wrapping_sub(carry);
 

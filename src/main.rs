@@ -165,7 +165,7 @@ fn frame_limiter() -> Receiver<()> {
   thread::Builder::new()
     .name("frame_limiter".to_string())
     .spawn(move || {
-      'frame_limiter: loop {
+      loop {
         sleep(Duration::from_millis(14)); // maintains 60fps
         match sender.try_send(()) {
           Err(_) => {} // NOTE this used to break
