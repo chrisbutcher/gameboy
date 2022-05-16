@@ -55,7 +55,7 @@ fn main() {
   let args = handle_cli_args();
   let rom_filename = args.value_of("rom").unwrap_or("tetris.gb");
 
-  env_logger::init().unwrap();
+  env_logger::init();
 
   let mut game_boy = gb::GameBoy::new();
   game_boy.reset();
