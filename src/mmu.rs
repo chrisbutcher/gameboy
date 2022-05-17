@@ -161,7 +161,9 @@ impl MMU {
 
   pub fn load_game(&mut self, rom_filename: &str) {
     let mut f = File::open(rom_filename).unwrap();
-    f.read(&mut self.cartridge.buffer).unwrap();
+    f.read(&mut self.cartridge.buffer)
+      .map_err(|err| print!("{:?}", err))
+      .ok();
   }
 
   pub fn read_word(&self, address: u16) -> u16 {
