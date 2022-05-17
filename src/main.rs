@@ -1,7 +1,7 @@
 extern crate clap;
-use clap::App;
-
 extern crate time;
+
+use clap::Parser;
 
 #[macro_use]
 extern crate log;
@@ -29,13 +29,15 @@ use std::time::Duration;
 
 const LIMIT_FRAME_RATE: bool = true;
 
-fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
-  App::new("gameboy")
-    .version("0.1.0")
-    .author("Chris Butcher <cbutcher@gmail.com>")
-    .about("Play Game Boy")
-    .args_from_usage("-r, --rom=[FILE] 'Sets .gb rom to play'")
-    .get_matches()
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+  #[clap(short = 'r', long, default_value = "tetris.gb")]
+  rom_filename: String,
+}
+
+fn handle_cli_args() -> Args {
+  Args::parse()
 }
 
 // DOCS: cargo doc -p gameboy --no-deps --open
@@ -53,13 +55,13 @@ fn handle_cli_args<'a>() -> clap::ArgMatches<'a> {
 
 fn main() {
   let args = handle_cli_args();
-  let rom_filename = args.value_of("rom").unwrap_or("tetris.gb");
+  let rom_filename = args.rom_filename;
 
   env_logger::init();
 
   let mut game_boy = gb::GameBoy::new();
   game_boy.reset();
-  game_boy.mmu.load_game(rom_filename);
+  game_boy.mmu.load_game(&rom_filename);
   game_boy.print_game_title();
 
   let mut window_set = window_set::WindowSet::default();
