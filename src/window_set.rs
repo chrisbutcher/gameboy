@@ -43,16 +43,6 @@ impl Default for WindowSet {
       0,
     );
 
-    let mut game_canvas = game_window
-      .into_canvas()
-      .accelerated()
-      .present_vsync()
-      .build()
-      .unwrap();
-    game_canvas
-      .set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE)
-      .unwrap();
-
     let mut debug_canvas = debug_window
       .into_canvas()
       .accelerated()
@@ -60,6 +50,16 @@ impl Default for WindowSet {
       .build()
       .unwrap();
     debug_canvas
+      .set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE)
+      .unwrap();
+
+    let mut game_canvas = game_window
+      .into_canvas()
+      .accelerated()
+      .present_vsync()
+      .build()
+      .unwrap();
+    game_canvas
       .set_scale(GAME_WINDOW_SCALE, GAME_WINDOW_SCALE)
       .unwrap();
 

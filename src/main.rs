@@ -103,8 +103,8 @@ fn main() {
 
     match frames_receiver.try_recv() {
       Ok(framebuffers) => {
-        window_set.render_screen(&framebuffers.0);
         window_set.render_debug_screen(&framebuffers.1);
+        window_set.render_screen(&framebuffers.0);
       }
       Err(TryRecvError::Empty) => (),
       Err(TryRecvError::Disconnected) => break 'main,

@@ -2,7 +2,7 @@ const RENDER_PIXELS: bool = true;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Sprite {
-  y_pos: i32, // TODO i8 or i16?
+  y_pos: i32, // 32-bit for SDL display purposes, not in Gameboy pixel domain.
   x_pos: i32,
   tile: u8,
 
@@ -259,7 +259,7 @@ impl PPU {
     }
   }
 
-  // TODO optimize
+  // TODO optimize?
   pub fn update_tile(&mut self, address: u16, value: u8) {
     if !RENDER_PIXELS {
       return;
