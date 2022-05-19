@@ -167,7 +167,7 @@ fn frame_limiter() -> Receiver<()> {
     .spawn(move || {
       loop {
         sleep(Duration::from_millis(14)); // maintains 60fps
-        sender.try_send(()).map_err(|err| panic!("{}", err)).ok();
+        sender.try_send(()).map_err(|err| debug!("{}", err)).ok();
       }
     })
     .unwrap();

@@ -40,6 +40,8 @@ impl GameBoy {
       self.update_mmu();
       self.update_graphics(cycles);
     }
+
+    self.mmu.ppu.borrow_mut().tileset_or_palette_changed = false;
   }
 
   pub fn render_debug_screen(&mut self) {

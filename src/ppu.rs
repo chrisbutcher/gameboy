@@ -34,6 +34,8 @@ pub struct PPU {
   pub debug_framebuffer: Vec<u8>,
 
   tileset: [[[u8; 8]; 8]; 384], // TODO vectorize
+  pub tileset_or_palette_changed: bool,
+
   sprites: [Sprite; 40],
   palette: [[u8; 4]; 4],
 
@@ -70,7 +72,10 @@ impl Default for PPU {
       debug_framebuffer: vec![0x00; 256 * 256 * 4],
 
       video_ram: vec![0x00; 0x2000],
+
       tileset: [[[0x00; 8]; 8]; 384],
+      tileset_or_palette_changed: true,
+
       palette: [
         [255, 255, 255, 255], // RGBA, TODO simplify to RGB
         [192, 192, 192, 255],
@@ -220,6 +225,8 @@ impl PPU {
             }
           }
         }
+
+        self.tileset_or_palette_changed = true;
       }
       0xFF48 => {
         // println!("TODO, writing to FF48")
@@ -294,6 +301,8 @@ impl PPU {
 
       self.tileset[tile as usize][y as usize][x as usize] = pixel_colour;
     }
+
+    self.tileset_or_palette_changed = true;
   }
 
   fn render_scanline(&mut self) {
@@ -459,6 +468,10 @@ impl PPU {
   }
 
   pub fn update_debug_frame(&mut self) {
+    if self.tileset_or_palette_changed {
+      return;
+    }
+
     const TILE_COUNT: usize = 24;
     const TILE_WIDTH: usize = 8;
     const IMAGE_WIDTH: usize = TILE_WIDTH * TILE_COUNT;
